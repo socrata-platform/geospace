@@ -1,9 +1,14 @@
 package com.socrata.geospace
 
 import org.scalatra._
-import scalate.ScalateSupport
+import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
 
-class GeospaceServlet extends GeospaceMicroserviceStack {
+
+
+class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
+  final val MaxFileSizeMegabytes = 5
+
+  configureMultipartHandling(MultipartConfig(maxFileSize = Some(MaxFileSizeMegabytes*1024*1024)))
 
   get("/") {
     <html>
@@ -11,6 +16,20 @@ class GeospaceServlet extends GeospaceMicroserviceStack {
         <h1>Welcome to Geospace!</h1>
       </body>
     </html>
+  }
+
+  // TODO Finalize the name for the shapefile ingress endpoint
+  // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
+  post("/ingress-rename-me") {
+    // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
+    fileParams.get("file") match {
+      case Some(file) => {
+        val ingester = new ShapefileIngester(file.get)
+        ingester.ingest
+      }
+      case None => { BadRequest("No zip file provided in the request") }
+    }
+
   }
 
 }
