@@ -20,13 +20,22 @@ object Dependencies {
         "org.scalatra" %% "scalatra" % ScalatraVersion,
         "org.scalatra" %% "scalatra-scalate" % ScalatraVersion,
         "org.scalatra" %% "scalatra-specs2" % ScalatraVersion % "test"
-                              )
+                          )
+
+  lazy val geoDeps = Seq(
+        "org.velvia" %% "geoscript" % "0.8.3"
+                         )
 
   lazy val jettyDeps = Seq(
         "ch.qos.logback" % "logback-classic" % "1.0.6" % "runtime",
         "org.eclipse.jetty" % "jetty-webapp" % "8.1.8.v20121106" % "container",
         "org.eclipse.jetty.orbit" % "javax.servlet" % "3.0.0.v201112011016" % "container;provided;test" artifacts (Artifact("javax.servlet", "jar", "jar"))
                            )
+
+  lazy val extraRepos = Seq(
+        Classpaths.typesafeReleases,
+        "velvia maven" at "http://dl.bintray.com/velvia/maven"
+                            )
 }
 
 object GeospaceMicroserviceBuild extends Build {
@@ -41,8 +50,8 @@ object GeospaceMicroserviceBuild extends Build {
       name := Name,
       version := Version,
       scalaVersion := ScalaVersion,
-      resolvers += Classpaths.typesafeReleases,
-      libraryDependencies ++= scalatraDeps ++ jettyDeps,
+      resolvers ++= extraRepos,
+      libraryDependencies ++= scalatraDeps ++ jettyDeps ++ geoDeps,
       scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
         Seq(
           TemplateConfig(
