@@ -3,10 +3,8 @@ package com.socrata.geospace
 import org.scalatra._
 import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
 
-
-
 class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
-  final val MaxFileSizeMegabytes = 5
+  final val MaxFileSizeMegabytes = 5  // TODO : Make this configurable
 
   configureMultipartHandling(MultipartConfig(maxFileSize = Some(MaxFileSizeMegabytes*1024*1024)))
 
@@ -24,10 +22,9 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     fileParams.get("file") match {
       case Some(file) => {
-        val ingester = new ShapefileIngester(file.get)
-        ingester.ingest
+        TempZipDecompressor.decompress(file.get, { directory => /* TODO */ })
       }
-      case None => { BadRequest("No zip file provided in the request") }
+      case None => BadRequest("No zip file provided in the request")
     }
 
   }

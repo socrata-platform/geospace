@@ -1,9 +1,9 @@
 package com.socrata.geospace
 
-import org.scalatest.{FunSuite, Matchers}
-import java.io.{FileInputStream, File}
+import java.io.IOException
 import java.nio.file.{Paths, Files}
 import org.apache.commons.codec.binary.Base64
+import org.scalatest.{FunSuite, Matchers}
 
 class TempZipDecompressorSpec extends FunSuite with Matchers  {
   // Base 64 string of a zip file with the following contents:
@@ -16,10 +16,9 @@ class TempZipDecompressorSpec extends FunSuite with Matchers  {
 
   test("Decompress and flatten valid zip file") {
     val zipBytes = Base64.decodeBase64(ZipFileWithTxt);
-    val tzd = new TempZipDecompressor
     var tempDir = ""
 
-    tzd.decompress(zipBytes,
+    TempZipDecompressor.decompress(zipBytes,
     {
       dir =>
         val files = dir.listFiles
@@ -36,33 +35,25 @@ class TempZipDecompressorSpec extends FunSuite with Matchers  {
   }
 
   test("Null byte array") {
-    val tzd = new TempZipDecompressor
-
     a [IllegalArgumentException] should be thrownBy {
-      tzd.decompress(null, {
-        dir =>
-      })
+      TempZipDecompressor.decompress(null, { dir => })
     }
   }
 
   test("Empty byte array") {
-    val tzd = new TempZipDecompressor
-
     a [IllegalArgumentException] should be thrownBy {
-      tzd.decompress(new Array[Byte](0), {
-        dir =>
-      })
+      TempZipDecompressor.decompress(new Array[Byte](0), { dir => })
     }
   }
 
   test("Byte array not a valid zip file") {
     val notAZipBytes = Base64.decodeBase64(NotAZipFile);
-    val tzd = new TempZipDecompressor
-
-    a [IllegalArgumentException] should be thrownBy {
-      tzd.decompress(notAZipBytes, {
-        dir =>
-      })
+    a [IOException] should be thrownBy {
+      TempZipDecompressor.decompress(notAZipBytes, { dir => })
     }
   }
+
+  // TODO : Add test to ensure directory traversal is not possible
+
+  // TODO : Add test for 2 files with same name in different directories eg sub1/file1.txt, sub2/file1.txt
 }

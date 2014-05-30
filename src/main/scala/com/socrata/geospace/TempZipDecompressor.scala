@@ -7,7 +7,7 @@ import java.nio.file.Files
 import java.util.zip.ZipFile
 import org.apache.commons.io.{FileUtils, FilenameUtils, IOUtils}
 
-class TempZipDecompressor {
+object TempZipDecompressor {
   def decompress(compressed: Array[Byte], useContents: File => Unit) = {
     if (compressed == null || compressed.length == 0) {
       throw new IllegalArgumentException("Null or empty zip file")
@@ -30,21 +30,21 @@ class TempZipDecompressor {
         } {
           // Save zip contents in a single directory
           // Any directory structure will be flattened
-          zip.entries.asScala.filter(e => !e.isDirectory).foreach(e => {
-            val contentFile = new File(FilenameUtils.concat(contentsTmpDir.toString, FilenameUtils.getName(e.getName)))
-            for {
-              contentOut <- managed(new FileOutputStream(contentFile))
-            } {
-              IOUtils.copy(zip.getInputStream(e), contentOut)
-              contentOut.flush()
-            }
-          })
+          val files = zip.entries.asScala.filter(e => !e.isDirectory)
+          files.foreach {
+            e =>
+              val contentFile = new File(contentsTmpDir.toString, FilenameUtils.getName(e.getName))
+              for {
+                contentOut <- managed(new FileOutputStream(contentFile))
+              } {
+                IOUtils.copy(zip.getInputStream(e), contentOut)
+                contentOut.flush()
+              }
+          }
 
           useContents(contentsTmpDir.toFile)
         }
       }
-    } catch {
-      case _: IOException => throw new IllegalArgumentException("Zip file format is invalid")
     } finally {
       // Clean up original zip and extracted files
       zipTmp.delete()
