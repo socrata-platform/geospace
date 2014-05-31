@@ -21,9 +21,7 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
   post("/ingress-rename-me") {
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     fileParams.get("file") match {
-      case Some(file) => {
-        TempZipDecompressor.decompress(file.get, { directory => /* TODO */ })
-      }
+      case Some(file) => { /* TODO */ }
       case None => BadRequest("No zip file provided in the request")
     }
 
