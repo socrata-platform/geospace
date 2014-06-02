@@ -9,11 +9,10 @@ import org.geoscript.workspace._
 
 
 /**
- * A class to perform geo-region coding.
+ * A class to perform geo-region coding from points to feature IDs.
  *
  * @param layer a [[org.geoscript.layer.Layer]] containing the features to region code against.
  *              Should be reprojected to WGS84.
- * @param regionNameColumn the attribute column in the layer containing the region name
  *
  * == Implementation Notes ==
  * The first implementation used GeoTool's featureCollection query API.  The problem was, it is quite
@@ -27,20 +26,16 @@ import org.geoscript.workspace._
  *
  * So we switched to one using the JTS STRTree spatial index, and the result is much faster.
  */
-class GeoRegionCoder(layer: Layer, regionNameColumn: String) {
+class GeoRegionCoder(layer: Layer) {
   import collection.JavaConverters._
 
-  private val index = SpatialIndex(layer, regionNameColumn)
+  private val index = SpatialIndex(layer)
 
   /**
-   * Geo region codes one geometry object.  Returns the region names corresponding to the region features
-   * which completely contain the given geometry object.
+   * Geo region codes one geometry object.
    *
    * @param geom a Geometry. Should be in WGS84 or same projection as the layer geometries.
-   * @return a Seq[String] from the names of the matching features
+   * @return an Option[String] with the ID for the first feature which completely contains geom, or None
    */
-  def regionCode(geom: Geometry): Seq[String] = {
-    val entries = index.whatContains(geom)
-    entries.map { _.item }
-  }
+  def regionCode(geom: Geometry): Option[String] = index.firstContains(geom).map { _.item }
 }

@@ -20,11 +20,24 @@ class SpatialIndex[T](items: Seq[Entry[T]]) {
   /**
    * Returns a list of Entry's which contain the given geometry, as defined by JTS contains test.
    * Uses the spatial index to minimize the number of items to search.
-   * @type {[type]}
+   *
+   * @param geom the Geometry which the indexed geometries should contain
+   * @return a Seq of entries containing geom.
    */
   def whatContains(geom: Geometry): Seq[Entry[T]] = {
     val results = index.query(geom.getEnvelopeInternal).asScala.asInstanceOf[Seq[Entry[T]]]
     results.filter { entry => entry.geom.contains(geom) }
+  }
+
+  /**
+   * Returns the first Entry which contains the given geometry, in no particular order.
+   *
+   * @param geom the Geometry which the indexed geometries should contain
+   * @return Some[Entry[T]] if a containing entry is found, otherwise None
+   */
+  def firstContains(geom: Geometry): Option[Entry[T]] = {
+    val results = index.query(geom.getEnvelopeInternal).asScala.asInstanceOf[Seq[Entry[T]]]
+    results.find { entry => entry.geom.contains(geom) }
   }
 
   private def addItems() {
@@ -41,18 +54,14 @@ object SpatialIndex {
   case class Entry[T](geom: Geometry, item: T)
 
   /**
-   * Create a SpatialIndex from a Layer/FeatureSource.
-   * @param layer an [[org.geoscript.layer.Layer]] or GeoTools FeatureSource.
-   * @param labelColumn the name of the layer attribute column to store as an extra item in the index
+   * Create a SpatialIndex[String] from a Layer/FeatureSource.  The feature ID will be stored in the index.
    *
-   * TODO(velvia): create an API just for extracting the feature ID.  Then maybe we don't need the
-   * labelColumn?
+   * @param layer an [[org.geoscript.layer.Layer]] or GeoTools FeatureSource.
+   * @return a SpatialIndex[String] where each entry is the geometry and ID from each feature
    */
-  def apply(layer: Layer, labelColumn: String): SpatialIndex[String] = {
-    require(layer.schema.getDescriptor(labelColumn) != null, labelColumn + " is not a valid column")
-
+  def apply(layer: Layer): SpatialIndex[String] = {
     val items = layer.features.map { feature =>
-        Entry(feature.getDefaultGeometry.asInstanceOf[Geometry], feature.getAttribute(labelColumn).toString)
+        Entry(feature.getDefaultGeometry.asInstanceOf[Geometry], feature.getID)
       }
     new SpatialIndex(items.toSeq)
   }
