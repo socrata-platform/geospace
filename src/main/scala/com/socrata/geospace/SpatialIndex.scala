@@ -9,6 +9,9 @@ import SpatialIndex.Entry
  * Each entry is designed to hold an associated item for querying, it could be a string name for the geometry
  * for example.
  *
+ * This can be used to perform geo-region coding from points to feature IDs by populating each Entry's item
+ * field with the feature ID.  See the companion object's apply method for an example.
+ *
  * @param items A sequence of SpatialIndex.Entry's to index
  */
 class SpatialIndex[T](items: Seq[Entry[T]]) {
