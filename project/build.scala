@@ -23,7 +23,8 @@ object Dependencies {
                           )
 
   lazy val geoDeps = Seq(
-        "org.velvia" %% "geoscript" % "0.8.3"
+        "org.velvia" %% "geoscript" % "0.8.3",
+        "org.scalatest" %% "scalatest" % "2.1.0" % "test"
                          )
 
   lazy val jettyDeps = Seq(

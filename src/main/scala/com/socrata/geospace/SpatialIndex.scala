@@ -26,7 +26,7 @@ class SpatialIndex[T](items: Seq[Entry[T]]) {
    */
   def whatContains(geom: Geometry): Seq[Entry[T]] = {
     val results = index.query(geom.getEnvelopeInternal).asScala.asInstanceOf[Seq[Entry[T]]]
-    results.filter { entry => entry.geom.contains(geom) }
+    results.filter { entry => entry.geom.covers(geom) }
   }
 
   /**
@@ -37,7 +37,7 @@ class SpatialIndex[T](items: Seq[Entry[T]]) {
    */
   def firstContains(geom: Geometry): Option[Entry[T]] = {
     val results = index.query(geom.getEnvelopeInternal).asScala.asInstanceOf[Seq[Entry[T]]]
-    results.find { entry => entry.geom.contains(geom) }
+    results.find { entry => entry.geom.covers(geom) }
   }
 
   private def addItems() {
