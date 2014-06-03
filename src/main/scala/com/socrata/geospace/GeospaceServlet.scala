@@ -19,17 +19,24 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
 
   // TODO Finalize the name for the shapefile ingress endpoint
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
+  // TODO The service needs to gracefully handle exceptions thrown by called methods and return the appropriate HTTP response code.
+  // TODO Return some kind of meaningful JSON response
   post("/ingress-rename-me") {
-    // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
-    fileParams.get("file") match {
-      case Some(file) => {
-        for { zip <- managed(new TemporaryZip(file.get)) } {
-          /* TODO */
+    params.get("resourceName") match {
+      case Some(resourceName) =>
+        // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
+        fileParams.get("file") match {
+          case Some(file) => {
+            for { zip <- managed(new TemporaryZip(file.get)) } {
+              val (layer, schema) = ShapefileReader.read(zip.contents)
+              FeatureIngester.createDataset(resourceName, schema)
+              FeatureIngester.upsert(resourceName, layer, schema)
+            }
+          }
+          case None => BadRequest("No zip file provided in the request")
         }
-      }
-      case None => BadRequest("No zip file provided in the request")
+      case None => BadRequest("No resource name provided in the request")
     }
 
   }
-
 }

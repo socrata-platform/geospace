@@ -39,6 +39,7 @@ object Dependencies {
     "org.apache.commons"        % "commons-io"          % "1.3.2",
     "org.velvia"               %% "geoscript"           % "0.8.3",
     "com.rojoma"               %% "simple-arm"          % "[1.2.0,2.0.0)",
+    "com.rojoma"               %% "rojoma-json"         % "[2.0.0,3.0.0)",
     "org.scalatest"            %% "scalatest"           % "2.1.0-RC2"           % "test"
   )
 }
