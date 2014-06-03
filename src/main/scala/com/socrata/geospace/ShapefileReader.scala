@@ -6,6 +6,7 @@ import org.geoscript.feature._
 import org.geoscript.feature.schemaBuilder._
 import org.geoscript.layer._
 import org.geoscript.projection._
+import org.geoscript.workspace
 
 object ShapefileReader {
   final val ShapeFormat = "shp"
@@ -44,6 +45,9 @@ object ShapefileReader {
   def getContents(directory: File) = {
     getFile(directory, ShapeFormat) match {
       case Some(shp) => {
+        // TODO : Geoscript seems to be holding a lock on the .shp file if the below line throws an exception.
+        // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
+        // looking through the Geoscript API.
         val shapefile = Shapefile(shp)
         lookupEPSG(StandardProjection) match {
           case Some(proj) => {
