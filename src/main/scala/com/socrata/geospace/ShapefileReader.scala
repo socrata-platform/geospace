@@ -6,27 +6,65 @@ import org.geoscript.feature._
 import org.geoscript.feature.schemaBuilder._
 import org.geoscript.layer._
 import org.geoscript.projection._
-import org.geoscript.workspace
 
+/**
+ * Validates and extracts shape and schema data from a shapefile directory.
+ * */
 object ShapefileReader {
+  /**
+   * Shape file extension
+   */
   final val ShapeFormat = "shp"
+
+  /**
+   * Shape index file extension
+   */
   final val ShapeIndexFormat = "shx"
+
+  /**
+   * Attribute file extension
+   */
   final val AttributeFormat = "dbf"
+
+  /**
+   * Projection file extension
+   */
   final val ProjectionFormat = "prj"
 
+  /**
+   * List of files required to ingest a shapefile as a Socrata dataset
+   */
   final val RequiredFiles = Seq(ShapeFormat, ShapeIndexFormat, AttributeFormat, ProjectionFormat)
 
+  /**
+   * Identifier for the default projection for Socrata datasets (WGS84)
+   */
   final val StandardProjection = "EPSG:4326" // TODO : Make this configurable
 
+  /**
+   * From the specified directory, returns the first file that matches the specified extension
+   * @param directory Directory to look for files with the given extension
+   * @param extension The desired file extension
+   * @return The first file in the directory that matches the specified extension, or None if there are no matches.
+   */
   def getFile(directory: File, extension: String) = {
     directory.listFiles.find(f => FilenameUtils.getExtension(f.getName).equals(extension))
   }
 
+  /**
+   * Validates a shapefile and extracts its contents
+   * @param directory Directory containing the set of files that make up the shapefile
+   * @return The shapefile shape layer and schema
+   */
   def read(directory: File) = {
     validate(directory)
     getContents(directory)
   }
 
+  /**
+   * Validates that the shapefile directory contains the expected set of files and nothing else
+   * @param directory Directory containing the set of files that make up the shapefile
+   */
   def validate(directory: File) = {
     // TODO : Should we just let the Geotools shapefile parser throw an (albeit slightly more ambiguous) error?
     val files = directory.listFiles
@@ -42,6 +80,11 @@ object ShapefileReader {
       rf => throw new IllegalArgumentException(s".$rf file not found"))
   }
 
+  /**
+   * Extracts the contents of a shapefile
+   * @param directory Directory containing the set of files that make up the shapefile
+   * @return The shapefile shape layer and schema
+   */
   def getContents(directory: File) = {
     getFile(directory, ShapeFormat) match {
       case Some(shp) => {
