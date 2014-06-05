@@ -8,20 +8,17 @@ import java.util.zip.ZipFile
 import org.apache.commons.io.{FileUtils, FilenameUtils, IOUtils}
 
 /** Saves the contents of a zip file in a single flattened directory
-  * and cleans up all temporary files afterwards.
-  *
-  * @constructor create a new temporary zip given the zip file as a byte array.
-  * @param compressed byte array representation of the zip file
-  */
+ * and cleans up all temporary files afterwards.
+ *
+ * @constructor create a new temporary zip given the zip file as a byte array.
+ * @param compressed byte array representation of the zip file
+ */
 class TemporaryZip(compressed: Array[Byte]) extends Closeable {
+  require(compressed != null && compressed.length > 0, "Null or empty zip file")
   /**
    * the zip file saved temporarily to disk.
    */
   lazy val archive: File = {
-    if (compressed == null || compressed.length == 0) {
-      throw new IllegalArgumentException("Null or empty zip file")
-    }
-
     val tmpFile = File.createTempFile("shp_", ".zip")
     for {
       in <- managed(new ByteArrayInputStream(compressed))
@@ -48,12 +45,12 @@ class TemporaryZip(compressed: Array[Byte]) extends Closeable {
       // in the same temp directory.
       val files = zip.entries.asScala.filter(e => !e.isDirectory)
       files.foreach {
-        e =>
-          val contentFile = new File(contentsTmpDir.toString, FilenameUtils.getName(e.getName))
+        entry =>
+          val contentFile = new File(contentsTmpDir.toString, FilenameUtils.getName(entry.getName))
           for {
             contentOut <- managed(new FileOutputStream(contentFile))
           } {
-            IOUtils.copy(zip.getInputStream(e), contentOut)
+            IOUtils.copy(zip.getInputStream(entry), contentOut)
           }
       }
     }

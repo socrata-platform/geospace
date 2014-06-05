@@ -43,23 +43,23 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
     copyToTmp(tmp.toFile, "data/parks.dbf", "extra.dbf")
     copyToTmp(tmp.toFile, "data/parks.prj", "extra.prj")
 
-    a[IllegalArgumentException] should be thrownBy ShapefileReader.validate(tmp.toFile)
+    an [IllegalArgumentException] should be thrownBy ShapefileReader.validate(tmp.toFile)
   }
 
   test("Validation - files missing") {
     for (required <- ShapefileReader.RequiredFiles) {
       Files.delete(Paths.get(tmp.toString, s"parks.$required"))
 
-      a[IllegalArgumentException] should be thrownBy ShapefileReader.validate(tmp.toFile)
+      an [IllegalArgumentException] should be thrownBy ShapefileReader.validate(tmp.toFile)
 
       copyToTmp(tmp.toFile, s"data/parks.$required", s"parks.$required")
     }
   }
 
   test("Get shapefile contents - layer and schema data should be returned correctly") {
-    val (layer, schema) = ShapefileReader.getContents(tmp.toFile)
-    layer should not be (empty)
-    layer.foreach { feature =>
+    val (features, schema) = ShapefileReader.getContents(tmp.toFile)
+    features should not be (empty)
+    features.foreach { feature =>
       feature.getDefaultGeometry.getClass should be (classOf[Point])
     }
     schema should not be (null)
@@ -71,7 +71,7 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
     val invalidContent = "mayhem"
     Files.write(shpFile, invalidContent.getBytes());
 
-    a[IOException] should be thrownBy ShapefileReader.getContents(tmp.toFile)
+    an [IOException] should be thrownBy ShapefileReader.getContents(tmp.toFile)
   }
 
   private def copyToTmp(tmp: File, from: String, renameTo: String) {

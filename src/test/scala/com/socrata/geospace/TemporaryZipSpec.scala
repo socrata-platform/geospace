@@ -44,7 +44,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
   }
 
   test("Null byte array") {
-    a[IllegalArgumentException] should be thrownBy {
+    an [IllegalArgumentException] should be thrownBy {
       for {zip <- managed(new TemporaryZip(null))} {
         zip.contents.listFiles
       }
@@ -52,8 +52,8 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
   }
 
   test("Empty byte array") {
-    a[IllegalArgumentException] should be thrownBy {
-      for {zip <- managed(new TemporaryZip(new Array[Byte](0)))} {
+    an [IllegalArgumentException] should be thrownBy {
+      for { zip <- managed(new TemporaryZip(Array[Byte](0))) } {
         zip.contents.listFiles
       }
     }
@@ -62,7 +62,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
   test("Byte array not a valid zip file") {
     val bytes = Base64.decodeBase64(NotAZipFile);
 
-    a[IOException] should be thrownBy {
+    an [IOException] should be thrownBy {
       for {zip <- managed(new TemporaryZip(bytes))} {
         zip.contents.listFiles
       }
@@ -72,7 +72,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
   test("Zip containing 2 files with same name in different subdirectories") {
     val bytes = Base64.decodeBase64(ZipFileWithTxt);
 
-    for { zip <- managed( new TemporaryZip(bytes))} {
+    for { zip <- managed( new TemporaryZip(bytes)) } {
       val files = zip.contents.listFiles
       files.size should be (2)
       files.filter(f => f.getName.equals("file1.txt")).size should be (1)
