@@ -93,13 +93,17 @@ object ShapefileReader {
     // looking through the Geotools API.
     // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
     val shapefile = Shapefile(shpFile)
-    lookupEPSG(StandardProjection) match {
-      case Some(proj) => {
-        val features = shapefile.features.map(feature => reproject(feature, proj))
-        val schema = reproject(shapefile.schema, proj)
-        (features, schema)
+    try {
+      lookupEPSG(StandardProjection) match {
+        case Some(proj) => {
+          val features = shapefile.features.map(feature => reproject(feature, proj))
+          val schema = reproject(shapefile.schema, proj)
+          (features, schema)
+        }
+        case _ => throw new RuntimeException(s"Unable to lookup projection $StandardProjection")
       }
-      case _ => throw new RuntimeException(s"Unable to lookup projection $StandardProjection")
+    } finally {
+      shapefile.getDataStore.dispose
     }
   }
 }
