@@ -70,7 +70,9 @@ object ShapefileReader {
     val files = directory.listFiles
 
     // 1. All files in the set must have the same prefix (eg. foo.shp, foo.shx,...).
-    val namedGroups = files.groupBy { f => FilenameUtils.getBaseName(f.getName) }
+    val namedGroups = files.groupBy {
+      f => FilenameUtils.getBaseName(f.getName)
+    }
     if (namedGroups.size != 1) {
       throw new InvalidShapefileSet(
         "Expected a single set of consistently named shapefiles")
@@ -87,8 +89,7 @@ object ShapefileReader {
    * @return The shapefile shape layer and schema
    */
   def getContents(directory: File) = {
-    getFile(directory, ShapeFormat) match {
-      case Some(shp) => {
+    getFile(directory, ShapeFormat).foreach { shp =>
         // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
         // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
         // looking through the Geotools API.
@@ -101,8 +102,6 @@ object ShapefileReader {
           }
           case _ => throw new IllegalArgumentException(s"Cannot reproject to unknown projection $StandardProjection")
         }
-      }
-      case _ => throw new InvalidShapefileSet(".shp file not found")
     }
   }
 }
