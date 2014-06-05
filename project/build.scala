@@ -11,6 +11,8 @@ object BuildParameters {
   val Version = "0.0.1"
   val ScalaVersion = "2.10.3"
   val ScalatraVersion = "2.2.2"
+  val port = SettingKey[Int]("port")
+  val Conf = config("container")
 }
 
 object Dependencies {
@@ -27,6 +29,14 @@ object Dependencies {
         "org.eclipse.jetty" % "jetty-webapp" % "8.1.8.v20121106" % "container",
         "org.eclipse.jetty.orbit" % "javax.servlet" % "3.0.0.v201112011016" % "container;provided;test" artifacts (Artifact("javax.servlet", "jar", "jar"))
                            )
+
+  lazy val socrataDeps = Seq(
+    "com.rojoma"               %% "simple-arm"          % "[1.2.0,2.0.0)",
+    "com.socrata" %% "socrata-http-client" % "2.0.0-SNAPSHOT",
+    "com.typesafe"              % "config"              % "1.0.2",
+    "org.apache.curator"        % "curator-x-discovery" % "2.4.2",
+    "org.scalatest"            %% "scalatest"           % "2.1.0-RC2"           % "test"
+  )
 }
 
 object GeospaceMicroserviceBuild extends Build {
@@ -41,8 +51,9 @@ object GeospaceMicroserviceBuild extends Build {
       name := Name,
       version := Version,
       scalaVersion := ScalaVersion,
+      port in Conf := 2020,
       resolvers += Classpaths.typesafeReleases,
-      libraryDependencies ++= scalatraDeps ++ jettyDeps,
+      libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps,
       scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
         Seq(
           TemplateConfig(
