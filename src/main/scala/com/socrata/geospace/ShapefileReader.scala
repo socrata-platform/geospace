@@ -87,20 +87,19 @@ object ShapefileReader {
    * @return The shapefile shape layer and schema
    */
   def getContents(directory: File): (Traversable[Feature], Schema) = {
-    getFile(directory, ShapeFormat).map {shp =>
-      // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
-      // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
-      // looking through the Geotools API.
-      // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
-      val shapefile = Shapefile(shp)
-      lookupEPSG(StandardProjection) match {
-        case Some(proj) => {
-          val features = shapefile.features.map(feature => reproject(feature, proj))
-          val schema = reproject(shapefile.schema, proj)
-          (features, schema)
-        }
-        case _ => throw new IllegalArgumentException(s"Cannot reproject to unknown projection $StandardProjection")
+    val shpFile = getFile(directory, ShapeFormat).get
+    // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
+    // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
+    // looking through the Geotools API.
+    // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
+    val shapefile = Shapefile(shpFile)
+    lookupEPSG(StandardProjection) match {
+      case Some(proj) => {
+        val features = shapefile.features.map(feature => reproject(feature, proj))
+        val schema = reproject(shapefile.schema, proj)
+        (features, schema)
       }
-    }.getOrElse(throw new InvalidShapefileSet(".shp file not found"))
+      case _ => throw new RuntimeException(s"Unable to lookup projection $StandardProjection")
+    }
   }
 }
