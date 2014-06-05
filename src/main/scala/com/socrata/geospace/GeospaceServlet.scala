@@ -3,8 +3,10 @@ package com.socrata.geospace
 import com.rojoma.simplearm.util._
 import org.scalatra._
 import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
+import org.apache.curator.x.discovery.ServiceDiscovery
+import com.socrata.http.common.AuxiliaryData
 
-class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
+class GeospaceServlet(config: GeospaceConfig, discovery: ServiceDiscovery[AuxiliaryData]) extends GeospaceMicroserviceStack with FileUploadSupport {
   final val MaxFileSizeMegabytes = 5  // TODO : Make this configurable
 
   configureMultipartHandling(MultipartConfig(maxFileSize = Some(MaxFileSizeMegabytes*1024*1024)))
@@ -39,4 +41,9 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
     }
 
   }
+
+  get("/config-test") {
+    config.sodaFountain.port + "\n"
+  }
+
 }
