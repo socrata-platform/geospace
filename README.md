@@ -15,7 +15,7 @@ $ ./sbt
 > browse
 ```
 
-If `browse` doesn't launch your browser, manually open [http://localhost:8080/](http://localhost:8080/) in your browser.
+If `browse` doesn't launch your browser, manually open [http://localhost:2020/](http://localhost:2020/) in your browser.
 
 To manually restart the geospace server after changes, use `container:restart`.
 

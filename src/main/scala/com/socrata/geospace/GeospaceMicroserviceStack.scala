@@ -1,9 +1,5 @@
 package com.socrata.geospace
 
-import collection.mutable
-import javax.servlet.http.HttpServletRequest
-import org.fusesource.scalate.layout.DefaultLayoutStrategy
-import org.fusesource.scalate.{ TemplateEngine, Binding }
 import org.scalatra._
 import scalate.ScalateSupport
 
