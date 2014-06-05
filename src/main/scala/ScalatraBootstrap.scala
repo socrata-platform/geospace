@@ -1,6 +1,8 @@
 import com.socrata.geospace._
+import com.socrata.http.client.{NoopLivenessChecker, HttpClientHttpClient}
 import com.socrata.http.common.AuxiliaryData
 import com.typesafe.config.ConfigFactory
+import java.util.concurrent.Executors
 import javax.servlet.ServletContext
 import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.retry
@@ -8,9 +10,12 @@ import org.apache.curator.x.discovery.ServiceDiscoveryBuilder
 import org.scalatra._
 
 class ScalatraBootstrap extends LifeCycle {
-  val config = new GeospaceConfig(ConfigFactory.load())
 
-  val curator = CuratorFrameworkFactory.builder.
+  // TODO: Factor out the code from Soda Fountain that already does this into a new library
+  // and then use that library instead of repeating ourselves here.
+  lazy val config = new GeospaceConfig(ConfigFactory.load())
+
+  lazy val curator = CuratorFrameworkFactory.builder.
     connectString(config.curator.ensemble).
     sessionTimeoutMs(config.curator.sessionTimeout.toMillis.toInt).
     connectionTimeoutMs(config.curator.connectTimeout.toMillis.toInt).
@@ -20,18 +25,29 @@ class ScalatraBootstrap extends LifeCycle {
     namespace(config.curator.namespace).
     build()
 
-  val discovery = ServiceDiscoveryBuilder.builder(classOf[AuxiliaryData]).
+  lazy val discovery = ServiceDiscoveryBuilder.builder(classOf[AuxiliaryData]).
     client(curator).
     basePath(config.curator.serviceBasePath).
     build()
 
+  // TODO : Add real liveness checking and other goodness
+  // (involves factoring out a whole bunch of code from Soda Fountain)
+  lazy val httpClient = new HttpClientHttpClient(
+    NoopLivenessChecker, Executors.newCachedThreadPool(), userAgent = "geospace")
+
+  lazy val sodaFountain =  new SodaFountainClient(
+    httpClient, discovery, config.sodaFountain.serviceName, config.curator.connectTimeout)
+
   override def init(context: ServletContext) {
     curator.start
     discovery.start
-    context.mount(new GeospaceServlet(config, discovery), "/*")
+    sodaFountain.start
+    context.mount(new GeospaceServlet(config, sodaFountain), "/*")
   }
 
   override def destroy(context: ServletContext) {
+    sodaFountain.close
+    httpClient.close
     discovery.close
     curator.close
   }

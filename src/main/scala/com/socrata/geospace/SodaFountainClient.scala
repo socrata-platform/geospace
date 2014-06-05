@@ -1,18 +1,50 @@
 package com.socrata.geospace
 
+import com.rojoma.json.ast.{JNull, JValue}
+import com.rojoma.json.io.JValueEventIterator
 import com.socrata.http.client.{Response, SimpleHttpRequest, HttpClient, RequestBuilder}
 import com.socrata.http.common.AuxiliaryData
 import org.apache.curator.x.discovery.ServiceDiscovery
 import scala.concurrent.duration.FiniteDuration
-import com.rojoma.json.ast.JValue
 
+/**
+ * Manages connections and requests to the Soda Fountain service
+ * @param httpClient HttpClient object used to make requests
+ * @param discovery Service discovery object for querying Zookeeper
+ * @param serviceName Service name as registered in Zookeeper
+ * @param connectTimeout Timeout setting for connecting to the service
+ */
 class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[AuxiliaryData], serviceName: String, connectTimeout: FiniteDuration)
   extends ZookeeperService(discovery, serviceName) {
-  private def versionUrl(rb: RequestBuilder) = rb.p("version")
 
-  def version() = {
-    query[JValue] { rb => versionUrl(rb).get } {
-      response => response.asJValue()
+  private def createUrl(rb: RequestBuilder) = rb.p("dataset").method("POST").addHeader(("Content-Type", "application/json"))
+
+  private def publishUrl(rb: RequestBuilder, resourceName: String) =
+    rb.p("dataset-copy", resourceName, "_DEFAULT_").method("POST")
+
+  private def upsertUrl(rb: RequestBuilder, resourceName: String) =
+    rb.p("resource", resourceName).method("POST").addHeader(("Content-Type", "application/json"))
+
+  private def post(requestBuilder: RequestBuilder, payload:JValue) = requestBuilder.json(JValueEventIterator(payload))
+
+  def create(payload: JValue): JValue = {
+    query { rb => post(createUrl(rb), payload) } { response =>
+      response.asJValue()
+      // TODO: check for 201 response code and do something sensible with errors
+    }
+  }
+
+  def publish(resourceName: String): JValue = {
+    query { rb => post(publishUrl(rb, resourceName), JNull) } { response =>
+      JNull
+      // TODO : There's no response body from SF for this, but check for 201 response code and do something sensible with errors
+    }
+  }
+
+  def upsert(resourceName: String, payload: JValue): JValue = {
+    query { rb => post(upsertUrl(rb, resourceName), payload) } { response =>
+      response.asJValue()
+      // TODO: check for 200 response code and do something sensible with errors
     }
   }
 
