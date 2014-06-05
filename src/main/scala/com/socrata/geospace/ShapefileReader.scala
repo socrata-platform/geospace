@@ -65,14 +65,12 @@ object ShapefileReader {
    * Validates that the shapefile directory contains the expected set of files and nothing else
    * @param directory Directory containing the set of files that make up the shapefile
    */
-  def validate(directory: File) = {
+  def validate(directory: File): Unit = {
     // TODO : Should we just let the Geotools shapefile parser throw an (albeit slightly more ambiguous) error?
     val files = directory.listFiles
 
     // 1. All files in the set must have the same prefix (eg. foo.shp, foo.shx,...).
-    val namedGroups = files.groupBy {
-      f => FilenameUtils.getBaseName(f.getName)
-    }
+    val namedGroups = files.groupBy { f => FilenameUtils.getBaseName(f.getName) }
     if (namedGroups.size != 1) {
       throw new InvalidShapefileSet(
         "Expected a single set of consistently named shapefiles")
@@ -88,20 +86,21 @@ object ShapefileReader {
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
    */
-  def getContents(directory: File) = {
-    getFile(directory, ShapeFormat).foreach { shp =>
-        // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
-        // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
-        // looking through the Geotools API.
-        val shapefile = Shapefile(shp)
-        lookupEPSG(StandardProjection) match {
-          case Some(proj) => {
-            val features = shapefile.features.map(feature => reproject(feature, proj))
-            val schema = reproject(shapefile.schema, proj)
-            (features, schema)
-          }
-          case _ => throw new IllegalArgumentException(s"Cannot reproject to unknown projection $StandardProjection")
+  def getContents(directory: File): (Traversable[Feature], Schema) = {
+    getFile(directory, ShapeFormat).map {shp =>
+      // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
+      // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
+      // looking through the Geotools API.
+      // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
+      val shapefile = Shapefile(shp)
+      lookupEPSG(StandardProjection) match {
+        case Some(proj) => {
+          val features = shapefile.features.map(feature => reproject(feature, proj))
+          val schema = reproject(shapefile.schema, proj)
+          (features, schema)
         }
-    }
+        case _ => throw new IllegalArgumentException(s"Cannot reproject to unknown projection $StandardProjection")
+      }
+    }.getOrElse(throw new InvalidShapefileSet(".shp file not found"))
   }
 }

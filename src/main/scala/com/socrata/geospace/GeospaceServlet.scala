@@ -28,9 +28,9 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
         fileParams.get("file") match {
           case Some(file) => {
             for { zip <- managed(new TemporaryZip(file.get)) } {
-              val (layer, schema) = ShapefileReader.read(zip.contents)
+              val (features, schema) = ShapefileReader.read(zip.contents)
               FeatureIngester.createDataset(resourceName, schema)
-              FeatureIngester.upsert(resourceName, layer, schema)
+              FeatureIngester.upsert(resourceName, features, schema)
             }
           }
           case None => BadRequest("No zip file provided in the request")
