@@ -1,4 +1,3 @@
-import com.rojoma.simplearm.util._
 import com.socrata.geospace._
 import com.socrata.http.common.AuxiliaryData
 import com.typesafe.config.ConfigFactory

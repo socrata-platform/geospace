@@ -1,15 +1,18 @@
 package com.socrata.geospace
 
 import com.rojoma.simplearm.util._
+import com.socrata.http.client.{NoopLivenessChecker, HttpClientHttpClient}
+import com.socrata.http.common.AuxiliaryData
+import java.util.concurrent.Executors
+import org.apache.curator.x.discovery.ServiceDiscovery
 import org.scalatra._
 import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
-import com.socrata.http.common.AuxiliaryData
-import org.apache.curator.x.discovery.ServiceDiscovery
 
 class GeospaceServlet(config: GeospaceConfig, discovery: ServiceDiscovery[AuxiliaryData]) extends GeospaceMicroserviceStack with FileUploadSupport {
-  final val MaxFileSizeMegabytes = 5  // TODO : Make this configurable
+  configureMultipartHandling(MultipartConfig(maxFileSize = Some(config.maxFileSizeMegabytes*1024*1024)))
 
-  configureMultipartHandling(MultipartConfig(maxFileSize = Some(MaxFileSizeMegabytes*1024*1024)))
+  // TODO : Add real liveness checking and other goodness (involves factoring out a whole bunch of code from Soda Fountain)
+  val httpClient = new HttpClientHttpClient(NoopLivenessChecker, Executors.newCachedThreadPool(), userAgent = "geospace")
 
   get("/") {
     <html>
@@ -44,11 +47,14 @@ class GeospaceServlet(config: GeospaceConfig, discovery: ServiceDiscovery[Auxili
 
   get("/zookeeper-test") {
     var msg = "haven't done anything yet"
-    for { sf <- managed(new SodaFountainClient(discovery, config.sodaFountain.serviceName, config.curator.connectTimeout)) } {
+    for { sf <- managed(new SodaFountainClient(httpClient, discovery, config.sodaFountain.serviceName, config.curator.connectTimeout)) } {
       try {
         sf.start
         sf.requestBuilder match {
-          case Some(rb) => msg = "Connected to Soda Fountain!\n"
+          case Some(rb) => {
+            val sfVersion = sf.version().toString
+            msg = s"Connected to Soda Fountain! Version info : \n $sfVersion\n"
+          }
           case _ => msg = "Couldn't get Soda Fountain instance\n"
         }
       } catch {

@@ -5,6 +5,8 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 
 class GeospaceConfig(config: Config) {
+  val maxFileSizeMegabytes = config.getInt("max-file-size-megabytes")
+
   val curator = new CuratorConfig(config, "curator")
   val sodaFountain = new SodaFountainConfig(config, "com.socrata.soda-fountain")
 }

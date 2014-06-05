@@ -1,27 +1,35 @@
 package com.socrata.geospace
 
-import org.apache.curator.x.discovery.{strategies => providerStrategies, ServiceDiscovery}
-import scala.concurrent.duration.FiniteDuration
+import com.socrata.http.client.{Response, SimpleHttpRequest, HttpClient, RequestBuilder}
 import com.socrata.http.common.AuxiliaryData
-import java.io.Closeable
-import com.socrata.http.client.RequestBuilder
+import org.apache.curator.x.discovery.ServiceDiscovery
+import scala.concurrent.duration.FiniteDuration
+import com.rojoma.json.ast.JValue
 
-class SodaFountainClient(discovery: ServiceDiscovery[AuxiliaryData], serviceName: String, connectTimeout: FiniteDuration)
-  extends Closeable {
-  private[this] val connectTimeoutMS = connectTimeout.toMillis.toInt
-  if(connectTimeoutMS != connectTimeout.toMillis) throw new IllegalArgumentException("Connect timeout out of range (milliseconds must fit in an int)")
+class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[AuxiliaryData], serviceName: String, connectTimeout: FiniteDuration)
+  extends ZookeeperService(discovery, serviceName) {
+  private def versionUrl(rb: RequestBuilder) = rb.p("version")
 
-  val provider = discovery.serviceProviderBuilder().
-    providerStrategy(new providerStrategies.RoundRobinStrategy).
-    serviceName(serviceName).
-    build()
-
-  def start() {
-    provider.start()
+  def version() = {
+    query[JValue] { rb => versionUrl(rb).get } {
+      response => response.asJValue()
+    }
   }
 
-  def close() {
-    provider.close()
+  private[this] val connectTimeoutMS = connectTimeout.toMillis.toInt
+  if(connectTimeoutMS != connectTimeout.toMillis) {
+    throw new IllegalArgumentException("Connect timeout out of range (milliseconds must fit in an int)")
+  }
+
+  def query[T](buildRequest: RequestBuilder => SimpleHttpRequest)(f: Response => T) = {
+    requestBuilder match {
+      case Some(rb) => {
+        for (response <- httpClient.execute(buildRequest(rb))) yield {
+          f(response)
+        }
+      }
+      case None => throw new ServiceDiscoveryException("Could not connect to Soda Fountain")
+    }
   }
 
   def requestBuilder: Option[RequestBuilder] = Option(provider.getInstance()).map { serv =>
