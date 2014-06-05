@@ -1,11 +1,11 @@
 import com.rojoma.simplearm.util._
 import com.socrata.geospace._
 import com.socrata.http.common.AuxiliaryData
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 import javax.servlet.ServletContext
 import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.retry
-import org.apache.curator.x.discovery.{ServiceInstanceBuilder, ServiceDiscoveryBuilder}
+import org.apache.curator.x.discovery.ServiceDiscoveryBuilder
 import org.scalatra._
 
 class ScalatraBootstrap extends LifeCycle {

@@ -1,7 +1,7 @@
 package com.socrata.geospace
 
-import org.apache.curator.x.discovery.ServiceDiscovery
 import com.socrata.http.common.AuxiliaryData
+import org.apache.curator.x.discovery.ServiceDiscovery
 
 class GeospaceServlet(config: GeospaceConfig, discovery: ServiceDiscovery[AuxiliaryData]) extends GeospaceMicroserviceStack {
 
