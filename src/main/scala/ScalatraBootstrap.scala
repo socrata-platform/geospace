@@ -9,27 +9,31 @@ import org.apache.curator.x.discovery.ServiceDiscoveryBuilder
 import org.scalatra._
 
 class ScalatraBootstrap extends LifeCycle {
-  override def init(context: ServletContext) {
-    val config = new GeospaceConfig(ConfigFactory.load())
+  val config = new GeospaceConfig(ConfigFactory.load())
 
-    for {
-      curator <- managed(CuratorFrameworkFactory.builder.
-        connectString(config.curator.ensemble).
-        sessionTimeoutMs(config.curator.sessionTimeout.toMillis.toInt).
-        connectionTimeoutMs(config.curator.connectTimeout.toMillis.toInt).
-        retryPolicy(new retry.BoundedExponentialBackoffRetry(config.curator.baseRetryWait.toMillis.toInt,
-        config.curator.maxRetryWait.toMillis.toInt,
-        config.curator.maxRetries)).
-        namespace(config.curator.namespace).
-        build())
-      discovery <- managed(ServiceDiscoveryBuilder.builder(classOf[AuxiliaryData]).
-        client(curator).
-        basePath(config.curator.serviceBasePath).
-        build())
-    } {
-      curator.start()
-      discovery.start()
-      context.mount(new GeospaceServlet(config, discovery), "/*")
-    }
+  val curator = CuratorFrameworkFactory.builder.
+    connectString(config.curator.ensemble).
+    sessionTimeoutMs(config.curator.sessionTimeout.toMillis.toInt).
+    connectionTimeoutMs(config.curator.connectTimeout.toMillis.toInt).
+    retryPolicy(new retry.BoundedExponentialBackoffRetry(config.curator.baseRetryWait.toMillis.toInt,
+    config.curator.maxRetryWait.toMillis.toInt,
+    config.curator.maxRetries)).
+    namespace(config.curator.namespace).
+    build()
+
+  val discovery = ServiceDiscoveryBuilder.builder(classOf[AuxiliaryData]).
+    client(curator).
+    basePath(config.curator.serviceBasePath).
+    build()
+
+  override def init(context: ServletContext) {
+    curator.start
+    discovery.start
+    context.mount(new GeospaceServlet(config, discovery), "/*")
+  }
+
+  override def destroy(context: ServletContext) {
+    discovery.close
+    curator.close
   }
 }
