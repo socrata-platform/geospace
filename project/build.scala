@@ -26,6 +26,8 @@ object Dependencies {
   lazy val scalatraDeps = Seq(
     "org.scalatra"             %% "scalatra"            % ScalatraVersion,
     "org.scalatra"             %% "scalatra-scalate"    % ScalatraVersion,
+    "org.scalatra"             %% "scalatra-json"       % ScalatraVersion,
+    "org.json4s"               %% "json4s-jackson"      % "3.2.6",
     "org.scalatra"             %% "scalatra-scalatest"  % ScalatraVersion   % "test"
   )
 
