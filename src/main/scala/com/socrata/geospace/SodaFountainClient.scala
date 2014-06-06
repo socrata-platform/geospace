@@ -17,7 +17,33 @@ import scala.concurrent.duration.FiniteDuration
 class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[AuxiliaryData], serviceName: String, connectTimeout: FiniteDuration)
   extends ZookeeperService(discovery, serviceName) {
 
-  private def createUrl(rb: RequestBuilder) = rb.p("dataset").method("POST").addHeader(("Content-Type", "application/json"))
+  /**
+   * Sends a request to Soda Fountain to create a dataset
+   * and returns the response
+   * @param payload Request POST body
+   * @return HTTP response code and body
+   */
+  def create(payload: JValue): (Int, JValue) = post(createUrl(_), payload)
+
+  /**
+   * Sends a request to Soda Fountain to publish a dataset
+   * and returns the response
+   * @param resourceName Resource name of the dataset to publish
+   * @return HTTP response code and body
+   */
+  def publish(resourceName: String): (Int, JValue) = post(publishUrl(_, resourceName), JNull)
+
+  /**
+   * Sends a request to Soda Fountain to publish a dataset
+   * and returns the response
+   * @param resourceName Resource name of the dataset to publish
+   * @param payload Request POST body
+   * @return HTTP response code and body
+   */
+  def upsert(resourceName: String, payload: JValue): (Int, JValue) = post(upsertUrl(_, resourceName), payload)
+
+  private def createUrl(rb: RequestBuilder) =
+    rb.p("dataset").method("POST").addHeader(("Content-Type", "application/json"))
 
   private def publishUrl(rb: RequestBuilder, resourceName: String) =
     rb.p("dataset-copy", resourceName, "_DEFAULT_").method("POST")
@@ -25,35 +51,21 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
   private def upsertUrl(rb: RequestBuilder, resourceName: String) =
     rb.p("resource", resourceName).method("POST").addHeader(("Content-Type", "application/json"))
 
-  private def post(requestBuilder: RequestBuilder, payload:JValue) = requestBuilder.json(JValueEventIterator(payload))
-
-  def create(payload: JValue): JValue = {
-    query { rb => post(createUrl(rb), payload) } { response =>
-      response.asJValue()
-      // TODO: check for 201 response code and do something sensible with errors
+  private def post(requestBuilder: RequestBuilder => RequestBuilder, payload:JValue): (Int, JValue) =
+    query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
+      val body = response.isJson match {
+        case true => response.asJValue()
+        case false => JNull
+      }
+      (response.resultCode, body)
     }
-  }
-
-  def publish(resourceName: String): JValue = {
-    query { rb => post(publishUrl(rb, resourceName), JNull) } { response =>
-      JNull
-      // TODO : There's no response body from SF for this, but check for 201 response code and do something sensible with errors
-    }
-  }
-
-  def upsert(resourceName: String, payload: JValue): JValue = {
-    query { rb => post(upsertUrl(rb, resourceName), payload) } { response =>
-      response.asJValue()
-      // TODO: check for 200 response code and do something sensible with errors
-    }
-  }
 
   private[this] val connectTimeoutMS = connectTimeout.toMillis.toInt
   if(connectTimeoutMS != connectTimeout.toMillis) {
     throw new IllegalArgumentException("Connect timeout out of range (milliseconds must fit in an int)")
   }
 
-  def query[T](buildRequest: RequestBuilder => SimpleHttpRequest)(f: Response => T) = {
+  private def query[T](buildRequest: RequestBuilder => SimpleHttpRequest)(f: Response => T) = {
     requestBuilder match {
       case Some(rb) => {
         for (response <- httpClient.execute(buildRequest(rb))) yield {
@@ -64,7 +76,7 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
     }
   }
 
-  def requestBuilder: Option[RequestBuilder] = Option(provider.getInstance()).map { serv =>
+  private def requestBuilder: Option[RequestBuilder] = Option(provider.getInstance()).map { serv =>
     RequestBuilder(new java.net.URI(serv.buildUriSpec())).
       livenessCheckInfo(Option(serv.getPayload).flatMap(_.livenessCheckInfo)).
       connectTimeoutMS(connectTimeoutMS)

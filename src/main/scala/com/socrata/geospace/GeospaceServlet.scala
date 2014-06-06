@@ -33,9 +33,16 @@ class GeospaceServlet(config: GeospaceConfig, sodaFountain: SodaFountainClient) 
   }
 
   // TODO : Return a nice JSON body instead of plain text
-  // TODO : Handle all the different kinds of errors that we know about/expect and return an appropriate response code
+  // TODO : We probably shouldn't be throwing exceptions everywhere and using Option[] instead
   error {
-    case e: IllegalArgumentException => BadRequest(s"${e.getClass.getSimpleName}: ${e.getMessage}\n")
+    case e: IllegalArgumentException => BadRequest(makeErrorMessage(e))
+    case e: InvalidShapefileSet => BadRequest(makeErrorMessage(e))
+    case e: ServiceDiscoveryException => ServiceUnavailable(makeErrorMessage(e))
+    case e: SodaFountainException => InternalServerError(makeErrorMessage(e))
     case e => InternalServerError(s"${e.getClass.getSimpleName}: ${e.getMessage}\n${e.getStackTraceString}\n")
+  }
+
+  private def makeErrorMessage(e: Throwable) = {
+    s"${e.getClass.getSimpleName}: ${e.getMessage}\n"
   }
 }

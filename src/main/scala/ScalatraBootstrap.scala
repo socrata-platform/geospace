@@ -30,10 +30,10 @@ class ScalatraBootstrap extends LifeCycle {
     basePath(config.curator.serviceBasePath).
     build()
 
-  // TODO : Add real liveness checking and other goodness
-  // (involves factoring out a whole bunch of code from Soda Fountain)
   lazy val httpClient = new HttpClientHttpClient(
     NoopLivenessChecker, Executors.newCachedThreadPool(), userAgent = "geospace")
+  // TODO : Add real liveness checking and other goodness
+  // (involves factoring out a whole bunch of code from Soda Fountain)
 
   lazy val sodaFountain =  new SodaFountainClient(
     httpClient, discovery, config.sodaFountain.serviceName, config.curator.connectTimeout)
