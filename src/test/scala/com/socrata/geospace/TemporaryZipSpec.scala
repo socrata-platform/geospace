@@ -53,7 +53,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
 
   test("Empty byte array") {
     an [IllegalArgumentException] should be thrownBy {
-      for { zip <- managed(new TemporaryZip(Array[Byte](0))) } {
+      for { zip <- managed(new TemporaryZip(Array[Byte]())) } {
         zip.contents.listFiles
       }
     }

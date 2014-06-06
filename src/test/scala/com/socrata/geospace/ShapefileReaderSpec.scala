@@ -43,14 +43,14 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
     copyToTmp(tmp.toFile, "data/parks.dbf", "extra.dbf")
     copyToTmp(tmp.toFile, "data/parks.prj", "extra.prj")
 
-    an [IllegalArgumentException] should be thrownBy ShapefileReader.validate(tmp.toFile)
+    an [InvalidShapefileSet] should be thrownBy ShapefileReader.validate(tmp.toFile)
   }
 
   test("Validation - files missing") {
     for (required <- ShapefileReader.RequiredFiles) {
       Files.delete(Paths.get(tmp.toString, s"parks.$required"))
 
-      an [IllegalArgumentException] should be thrownBy ShapefileReader.validate(tmp.toFile)
+      an [InvalidShapefileSet] should be thrownBy ShapefileReader.validate(tmp.toFile)
 
       copyToTmp(tmp.toFile, s"data/parks.$required", s"parks.$required")
     }
