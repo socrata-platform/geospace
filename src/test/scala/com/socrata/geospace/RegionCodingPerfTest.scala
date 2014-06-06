@@ -38,13 +38,13 @@ trait RegionCodingPerfTester {
  */
 object RegionCodingPerfShapefileTest extends App with RegionCodingPerfTester {
 
-  val TestShapefile = "data/Wards.shp"
+  val shapefile = if (args.length > 0) args(0) else "data/Wards.shp"
   val NumPoints = 50000
 
-  println("Loading shapefile...")
-  val layer = Shapefile(TestShapefile)
+  println("Loading shapefile $shapefile...")
+  val layer = Shapefile(shapefile)
 
   val millis = benchmark(layer, NumPoints)
-  println(s"Coding $NumPoints points with shapefile $TestShapefile took $millis millis")
+  println(s"Coding $NumPoints points with shapefile $shapefile took $millis millis")
   println(s"Geo-region-coding speed: ${NumPoints / (millis / 1000.0)} points/sec/core")
 }
