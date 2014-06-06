@@ -18,14 +18,15 @@ object GeoToSoda2Converter {
   val soda2TypeMap = Map[Class[_], String](
     classOf[MultiPolygon] -> "multipolygon",
     classOf[String] -> "text",
-    classOf[Int] -> "number",
-    classOf[Double] -> "double"
+    classOf[java.lang.Integer] -> "number",
+    classOf[java.lang.Double] -> "double"
   )
 
   /**
    * Generates a Soda2 create request body
    * @param resourceName Resource identifier in Dataspace
    * @param schema Schema definition
+   * @return Soda2 create request body
    */
   def getCreateBody(resourceName: String, schema: Schema): JValue = {
     val columnSchemata = schema.getDescriptors.asScala.map(columnToJObject(_))
@@ -42,6 +43,7 @@ object GeoToSoda2Converter {
    * @param resourceName Resource identifier in Dataspace
    * @param features Features representing the rows to upsert
    * @param schema Schema definition
+   * @return Soda2 upsert request body
    */
   def getUpsertBody(resourceName: String, features: Traversable[Feature], schema: Schema): JValue = {
     val attrNames = schema.getDescriptors.asScala.map(_.getName.toString.toLowerCase)
@@ -54,7 +56,7 @@ object GeoToSoda2Converter {
    * @param attr Attribute to be converted to a column
    * @return JSON representation of the column
    */
-  private def columnToJObject(attr: PropertyDescriptor) = {
+  private def columnToJObject(attr: PropertyDescriptor): JValue = {
     val name = attr.getName.toString.toLowerCase
     val typ = soda2TypeMap.getOrElse(
       attr.getType.getBinding,
@@ -73,7 +75,7 @@ object GeoToSoda2Converter {
    * @param attrNames List of column names
    * @return JSON representation of the row
    */
-  private def rowToJObject(feature: Feature, attrNames: Seq[String]) = {
+  private def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
     val geoJsonWriter = new GeometryJSON()
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
     val fields = feature.getAttributes.asScala.zip(attrNames).map {
