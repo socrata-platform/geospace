@@ -1,17 +1,19 @@
 package com.socrata.geospace
 
-import org.scalatra.test.specs2._
+import org.scalatra.test.scalatest._
+import org.scalatest.FunSuiteLike
 
-// TODO(velvia): Rewrite or get rid of this test.  Useless and format is weird.
-// For more on Specs2, see http://etorreborre.github.com/specs2/guide/org.specs2.guide.QuickStart.html
-class GeospaceServletSpec extends ScalatraSpec { def is =
-  "GET / on GeospaceServlet"                     ^
-    "should return status 200"                  ! root200^
-                                                end
-
+/**
+ * Test Geospace HTTP routes
+ */
+class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike {
   addServlet(classOf[GeospaceServlet], "/*")
 
-  def root200 = get("/") {
-    status must_== 200
+  test("get of index page") {
+    get("/") {
+      status should equal (200)
+    }
   }
+
+  test("post zipfile for ingress") (pending)
 }
