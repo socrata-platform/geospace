@@ -64,6 +64,8 @@ object ShapefileReader {
   /**
    * Validates that the shapefile directory contains the expected set of files and nothing else
    * @param directory Directory containing the set of files that make up the shapefile
+   *
+   * TODO(velvia): Change the API to return invalid result instead of throw an exception
    */
   def validate(directory: File): Unit = {
     // TODO : Should we just let the Geotools shapefile parser throw an (albeit slightly more ambiguous) error?
@@ -85,6 +87,8 @@ object ShapefileReader {
    * Assumes that validate() has already been called on the shapefile contents.
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
+   *
+   * TODO(velvia): Change the API to return invalid result /  errors instead of throw exception
    */
   def getContents(directory: File): (Traversable[Feature], Schema) = {
     val shpFile = getFile(directory, ShapeFormat).get
