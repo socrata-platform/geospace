@@ -1,25 +1,17 @@
 package com.socrata.geospace
 
 import com.rojoma.simplearm.util._
-import org.json4s.{DefaultFormats, Formats}
 import org.scalatra._
 import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
-import org.scalatra.json._
+import scala.concurrent.Future
 import scala.util.Try
 
-class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport with JacksonJsonSupport {
+class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
   final val MaxFileSizeMegabytes = 5  // TODO : Make this configurable
 
-  // Sets up automatic case class to JSON output serialization, required by
-  // the JValueResult trait.
-  protected implicit val jsonFormats: Formats = DefaultFormats
+  val regionCache = new RegionCache()
 
   configureMultipartHandling(MultipartConfig(maxFileSize = Some(MaxFileSizeMegabytes*1024*1024)))
-
-  // Before every action runs, set the content type to be in JSON format.
-  before() {
-    contentType = formats("json")
-  }
 
   get("/") {
     <html>
@@ -41,6 +33,9 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport w
           case Some(file) => {
             for { zip <- managed(new TemporaryZip(file.get)) } {
               val (features, schema) = ShapefileReader.read(zip.contents)
+              // Cache the reprojected features in our region cache for immediate geocoding
+              // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
+              regionCache.getFromFeatures(resourceName, features.toSeq)
               FeatureIngester.createDataset(resourceName, schema)
               FeatureIngester.upsert(resourceName, features, schema)
             }
@@ -58,6 +53,21 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport w
     val regionResource = params.getOrElse("regionResource", halt(400, "No regionResource param provided"))
     val points = Try(parsedBody.extract[Seq[Seq[Double]]]).
                    getOrElse(halt(400, "Could not parse request body.  Must be in the form [[x, y]...]"))
-    Map("Number of points" -> points.length, "Points" -> points)
+    new AsyncResult { val is =
+      geoRegionCode(regionResource, points)
+    }
+  }
+
+  // TODO: probably move this to some Object
+  // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
+  // Also describe how the getting the region file is async and thus the coding happens afterwards
+  private def geoRegionCode(resourceName: String, points: Seq[Seq[Double]]): Future[Seq[String]] = {
+    import org.geoscript.geometry.builder
+
+    val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
+    val futureIndex = regionCache.getFromSoda(resourceName)
+    futureIndex.map { index =>
+      geoPoints.map { pt => index.firstContains(pt).map(_.item).getOrElse("") }
+    }
   }
 }

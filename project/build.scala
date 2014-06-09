@@ -20,6 +20,7 @@ object Dependencies {
 
   lazy val socrataResolvers = Seq(
     "Open Source Geospatial Foundation Repository" at "http://download.osgeo.org/webdav/geotools",
+    "spray repo" at "http://repo.spray.io",
     "velvia maven" at "http://dl.bintray.com/velvia/maven"
   )
 
@@ -40,6 +41,7 @@ object Dependencies {
   lazy val socrataDeps = Seq(
     "org.apache.commons"        % "commons-io"          % "1.3.2",
     "org.velvia"               %% "geoscript"           % "0.8.3",
+    "io.spray"                  % "spray-caching"       % "1.2.1",
     "com.rojoma"               %% "simple-arm"          % "[1.2.0,2.0.0)",
     "com.rojoma"               %% "rojoma-json"         % "[2.0.0,3.0.0)",
     "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test"
