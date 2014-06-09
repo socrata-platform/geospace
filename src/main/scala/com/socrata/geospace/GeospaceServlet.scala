@@ -51,8 +51,8 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
   post("/experimental/georegions") {
     val regionResource = params.getOrElse("regionResource", halt(400, "No regionResource param provided"))
-    val points = Try(parsedBody.extract[Seq[Seq[Double]]]).
-                   getOrElse(halt(400, "Could not parse request body.  Must be in the form [[x, y]...]"))
+    val points = parsedBody.extract[Seq[Seq[Double]]]
+    if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     new AsyncResult { val is =
       geoRegionCode(regionResource, points)
     }
