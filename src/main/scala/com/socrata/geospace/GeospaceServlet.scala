@@ -42,6 +42,15 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
     }
   }
 
+  // A test route only for loading a Shapefile to cache; body = full path to Shapefile unzipped directory
+  post("/experimental/regions/:resourceName/local-shp") {
+    val (features, schema) = ShapefileReader.read(new java.io.File(request.body))
+    // Cache the reprojected features in our region cache for immediate geocoding
+    // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
+    regionCache.getFromFeatures(params("resourceName"), features.toSeq)
+    Map("rows-ingested" -> features.toSeq.length)
+  }
+
   // NOTE: Tricky to find a good REST endpoint.  What is the resource?  geo-regions?
   // TODO: Add Swagger support so routes are documented.
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
