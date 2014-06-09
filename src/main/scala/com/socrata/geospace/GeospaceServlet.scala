@@ -25,36 +25,31 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
   // TODO The service needs to gracefully handle exceptions thrown by called methods and return the appropriate HTTP response code.
   // TODO Return some kind of meaningful JSON response
-  post("/ingress-rename-me") {
-    params.get("resourceName") match {
-      case Some(resourceName) =>
-        // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
-        fileParams.get("file") match {
-          case Some(file) => {
-            for { zip <- managed(new TemporaryZip(file.get)) } {
-              val (features, schema) = ShapefileReader.read(zip.contents)
-              // Cache the reprojected features in our region cache for immediate geocoding
-              // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-              regionCache.getFromFeatures(resourceName, features.toSeq)
-              FeatureIngester.createDataset(resourceName, schema)
-              FeatureIngester.upsert(resourceName, features, schema)
-            }
-          }
-          case None => BadRequest("No zip file provided in the request")
+  post("/experimental/regions/:resourceName/shapefile") {
+    // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
+    fileParams.get("file") match {
+      case Some(file) => {
+        for { zip <- managed(new TemporaryZip(file.get)) } {
+          val (features, schema) = ShapefileReader.read(zip.contents)
+          // Cache the reprojected features in our region cache for immediate geocoding
+          // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
+          regionCache.getFromFeatures(params("resourceName"), features.toSeq)
+          FeatureIngester.createDataset(params("resourceName"), schema)
+          FeatureIngester.upsert(params("resourceName"), features, schema)
         }
-      case None => BadRequest("No resource name provided in the request")
+      }
+      case None => BadRequest("No zip file provided in the request")
     }
   }
 
   // NOTE: Tricky to find a good REST endpoint.  What is the resource?  geo-regions?
   // TODO: Add Swagger support so routes are documented.
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
-  post("/experimental/georegions") {
-    val regionResource = params.getOrElse("regionResource", halt(400, "No regionResource param provided"))
+  post("/experimental/regions/:resourceName/geocode") {
     val points = parsedBody.extract[Seq[Seq[Double]]]
     if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     new AsyncResult { val is =
-      geoRegionCode(regionResource, points)
+      geoRegionCode(params("resourceName"), points)
     }
   }
 
