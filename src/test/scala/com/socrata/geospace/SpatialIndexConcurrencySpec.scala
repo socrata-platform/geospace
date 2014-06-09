@@ -12,7 +12,7 @@ import scala.concurrent.Future
 class SpatialIndexConcurrencySpec extends FunSpec with ShouldMatchers {
   import collection.JavaConverters._
 
-  val layer = Shapefile("data/Wards.shp")
+  val layer = Shapefile("data/chicago_wards/Wards.shp")
   val bbox = layer.getBounds
   val numPoints = 1000
   val points = Array.fill(numPoints)(build.Point(bbox.getMinX + util.Random.nextDouble * bbox.getWidth,

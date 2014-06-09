@@ -38,7 +38,7 @@ trait RegionCodingPerfTester {
  */
 object RegionCodingPerfShapefileTest extends App with RegionCodingPerfTester {
 
-  val shapefile = if (args.length > 0) args(0) else "data/Wards.shp"
+  val shapefile = if (args.length > 0) args(0) else "data/chicago_wards/Wards.shp"
   val NumPoints = 50000
 
   println("Loading shapefile $shapefile...")
