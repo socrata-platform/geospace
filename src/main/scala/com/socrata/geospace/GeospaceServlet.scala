@@ -26,9 +26,9 @@ class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroser
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
 
     val ingressResult =
-      for {zip <- managed(new TemporaryZip(file.get))
-           (features, schema) <- ShapefileReader.read(zip.contents)
-           response <- FeatureIngester.ingest(sodaFountain, resourceName, features, schema)
+      for { zip                <- managed(new TemporaryZip(file.get))
+            (features, schema) <- ShapefileReader.read(zip.contents)
+            response           <- FeatureIngester.ingest(sodaFountain, resourceName, features, schema)
       } yield {
         // Cache the reprojected features in our region cache for immediate geocoding
         // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
@@ -40,12 +40,9 @@ class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroser
     // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
     // Refactor to do that and handle IOExceptions cleanly.
     ingressResult match {
-      case Success(payload) => halt(Ok())
-      case Failure(e: InvalidShapefileSet) => halt(BadRequest(e.getMessage))
-      case Failure(e: IOException) => halt(InternalServerError(e.getMessage))
-      case Failure(e: SodaFountainException) => halt(InternalServerError(e.getMessage))
-      case Failure(e: ReprojectionException) => halt(InternalServerError(e.getMessage))
-      case Failure(e) => halt(InternalServerError(e.getMessage))
+      case Success(payload)                  => halt(Ok())
+      case Failure(e: InvalidShapefileSet)   => halt(BadRequest(e.getMessage))
+      case Failure(e)                        => halt(InternalServerError(e.getMessage))
     }
   }
 
