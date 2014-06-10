@@ -1,9 +1,28 @@
 package com.socrata.geospace
 
+import org.json4s.{DefaultFormats, Formats}
 import org.scalatra._
+import org.scalatra.json._
 import scalate.ScalateSupport
 
-trait GeospaceMicroserviceStack extends ScalatraServlet with ScalateSupport {
+trait GeospaceMicroserviceStack extends ScalatraServlet
+with ScalateSupport with JacksonJsonSupport with FutureSupport {
+
+  // Sets up automatic case class to JSON output serialization, required by
+  // the JValueResult trait.
+  protected implicit val jsonFormats: Formats = DefaultFormats
+
+  // For FutureSupport / async stuff
+  protected implicit def executor = concurrent.ExecutionContext.Implicits.global
+
+  // Before every action runs, set the content type to be in JSON format.
+  before() {
+    contentType = formats("json")
+  }
+
+  error {
+    case e => InternalServerError(s"${e.getClass.getSimpleName}: ${e.getMessage}\n${e.getStackTraceString}\n")
+  }
 
   // What to do in case a route is not found.  This is from the Scalatra template
   notFound {

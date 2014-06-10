@@ -64,6 +64,8 @@ object ShapefileReader {
   /**
    * Validates that the shapefile directory contains the expected set of files and nothing else
    * @param directory Directory containing the set of files that make up the shapefile
+   *
+   * TODO(velvia): Change the API to return invalid result instead of throw an exception
    */
   def validate(directory: File): Unit = {
     // TODO : Should we just let the Geotools shapefile parser throw an (albeit slightly more ambiguous) error?
@@ -85,6 +87,8 @@ object ShapefileReader {
    * Assumes that validate() has already been called on the shapefile contents.
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
+   *
+   * TODO(velvia): Change the API to return invalid result /  errors instead of throw exception
    */
   def getContents(directory: File): (Traversable[Feature], Schema) = {
     val shpFile = getFile(directory, ShapeFormat).get
@@ -93,13 +97,17 @@ object ShapefileReader {
     // looking through the Geotools API.
     // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
     val shapefile = Shapefile(shpFile)
-    lookupEPSG(StandardProjection) match {
-      case Some(proj) => {
-        val features = shapefile.features.map(feature => reproject(feature, proj))
-        val schema = reproject(shapefile.schema, proj)
-        (features, schema)
+    try {
+      lookupEPSG(StandardProjection) match {
+        case Some(proj) => {
+          val features = shapefile.features.map(feature => reproject(feature, proj))
+          val schema = reproject(shapefile.schema, proj)
+          (features, schema)
+        }
+        case _ => throw new RuntimeException(s"Unable to lookup projection $StandardProjection")
       }
-      case _ => throw new RuntimeException(s"Unable to lookup projection $StandardProjection")
+    } finally {
+      shapefile.getDataStore.dispose
     }
   }
 }
