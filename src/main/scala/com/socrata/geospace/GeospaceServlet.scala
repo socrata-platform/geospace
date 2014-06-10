@@ -1,8 +1,10 @@
 package com.socrata.geospace
 
 import com.rojoma.simplearm.util._
+import java.io.IOException
 import org.scalatra._
 import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
+import scala.util.{Failure, Success}
 
 class GeospaceServlet(config: GeospaceConfig, sodaFountain: SodaFountainClient) extends GeospaceMicroserviceStack with FileUploadSupport {
   configureMultipartHandling(MultipartConfig(maxFileSize = Some(config.maxFileSizeMegabytes*1024*1024)))
@@ -19,30 +21,28 @@ class GeospaceServlet(config: GeospaceConfig, sodaFountain: SodaFountainClient) 
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
   // TODO Return some kind of meaningful JSON response
   post("/ingress-rename-me") {
-    require(!params.get("resourceName").isEmpty, "No resource name provided in the request")
+    val resourceName = params.getOrElse("resourceName", halt(BadRequest("No resourceName param provided in the request")))
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
-    require(!fileParams.get("file").isEmpty, "No zip file provided in the request")
+    val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
 
-    val resourceName = params.get("resourceName").get
-    val file = fileParams.get("file").get
+    val publishResponse =
+      for { zip                <- managed(new TemporaryZip(file.get))
+            (features, schema) <- ShapefileReader.read(zip.contents)
+            response           <- FeatureIngester.ingest(sodaFountain, resourceName, features, schema)
+      } yield {
+        response
+      }
 
-    for {zip <- managed(new TemporaryZip(file.get))} {
-      val (features, schema) = ShapefileReader.read(zip.contents)
-      FeatureIngester.ingest(sodaFountain, resourceName, features, schema)
+    publishResponse match {
+      case Success(payload) => halt(Ok())
+      case Failure(thrown) => thrown match {
+        // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
+        // Refactor to do that and handle IOExceptions cleanly.
+        case e: IOException           => halt(InternalServerError(e.getMessage))
+        case e: InvalidShapefileSet   => halt(BadRequest(e.getMessage))
+        case e: SodaFountainException => halt(InternalServerError(e.getMessage))
+        case e: ReprojectionException => halt(InternalServerError(e.getMessage))
+      }
     }
-  }
-
-  // TODO : Return a nice JSON body instead of plain text
-  // TODO : We probably shouldn't be throwing exceptions everywhere and using Option[] instead
-  error {
-    case e: IllegalArgumentException => BadRequest(makeErrorMessage(e))
-    case e: InvalidShapefileSet => BadRequest(makeErrorMessage(e))
-    case e: ServiceDiscoveryException => ServiceUnavailable(makeErrorMessage(e))
-    case e: SodaFountainException => InternalServerError(makeErrorMessage(e))
-    case e => InternalServerError(s"${e.getClass.getSimpleName}: ${e.getMessage}\n${e.getStackTraceString}\n")
-  }
-
-  private def makeErrorMessage(e: Throwable) = {
-    s"${e.getClass.getSimpleName}: ${e.getMessage}\n"
   }
 }

@@ -6,6 +6,7 @@ import org.geoscript.feature._
 import org.geoscript.feature.schemaBuilder._
 import org.geoscript.layer._
 import org.geoscript.projection._
+import scala.util.{Failure, Success, Try}
 
 /**
  * Validates and extracts shape and schema data from a shapefile directory.
@@ -47,8 +48,12 @@ object ShapefileReader {
    * @param extension The desired file extension
    * @return The first file in the directory that matches the specified extension, or None if there are no matches.
    */
-  def getFile(directory: File, extension: String): Option[File] = {
-    directory.listFiles.find(f => FilenameUtils.getExtension(f.getName).equals(extension))
+  def getFile(directory: File, extension: String): Try[File] = {
+    val file = directory.listFiles.find(f => FilenameUtils.getExtension(f.getName).equals(extension))
+    file match {
+      case Some(f) => Success(f)
+      case None => Failure(new InvalidShapefileSet(s".$extension file is missing"))
+    }
   }
 
   /**
@@ -56,28 +61,28 @@ object ShapefileReader {
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
    */
-  def read(directory: File) = {
-    validate(directory)
-    getContents(directory)
+  def read(directory: File): Try[(Traversable[Feature], Schema)] = {
+    validate(directory).flatMap { Unit => getContents(directory) }
   }
 
   /**
    * Validates that the shapefile directory contains the expected set of files and nothing else
    * @param directory Directory containing the set of files that make up the shapefile
    */
-  def validate(directory: File): Unit = {
+  def validate(directory: File): Try[Unit] = {
     // TODO : Should we just let the Geotools shapefile parser throw an (albeit slightly more ambiguous) error?
     val files = directory.listFiles
 
     // 1. All files in the set must have the same prefix (eg. foo.shp, foo.shx,...).
-    val namedGroups = files.groupBy { f => FilenameUtils.getBaseName(f.getName) }
-    if (namedGroups.size != 1) {
-      throw new InvalidShapefileSet(
-        "Expected a single set of consistently named shapefiles")
-    }
     // 2. All required file types should be in the zip
-    RequiredFiles.filter(rf => getFile(directory, rf).isEmpty).foreach(
-      rf => throw new InvalidShapefileSet(s".$rf file not found"))
+    val namedGroups = files.groupBy { f => FilenameUtils.getBaseName(f.getName) }
+    namedGroups.size match {
+      case 1 => {
+        val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
+        missing match { case Some(file) => Failure(file.failed.get) case None => Success() }
+      }
+      case _ => Failure(new InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
+    }
   }
 
   /**
@@ -86,20 +91,22 @@ object ShapefileReader {
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
    */
-  def getContents(directory: File): (Traversable[Feature], Schema) = {
-    val shpFile = getFile(directory, ShapeFormat).get
-    // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
-    // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
-    // looking through the Geotools API.
-    // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
-    val shapefile = Shapefile(shpFile)
-    lookupEPSG(StandardProjection) match {
-      case Some(proj) => {
-        val features = shapefile.features.map(feature => reproject(feature, proj))
-        val schema = reproject(shapefile.schema, proj)
-        (features, schema)
+  def getContents(directory: File): Try[(Traversable[Feature], Schema)] = {
+    getFile(directory, ShapeFormat).flatMap { shpFile =>
+      // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
+      // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
+      // looking through the Geotools API.
+      // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
+      Try(Shapefile(shpFile)).flatMap { shapefile =>
+        lookupEPSG(StandardProjection) match {
+          case Some(proj) => {
+            val features = shapefile.features.map(feature => reproject(feature, proj))
+            val schema = reproject(shapefile.schema, proj)
+            Success((features, schema))
+          }
+          case _ => Failure(new ReprojectionException(s"Unable to lookup projection $StandardProjection"))
+        }
       }
-      case _ => throw new RuntimeException(s"Unable to lookup projection $StandardProjection")
     }
   }
 }

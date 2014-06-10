@@ -6,6 +6,7 @@ import com.socrata.http.client.{Response, SimpleHttpRequest, HttpClient, Request
 import com.socrata.http.common.AuxiliaryData
 import org.apache.curator.x.discovery.ServiceDiscovery
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Try, Failure, Success}
 
 /**
  * Manages connections and requests to the Soda Fountain service
@@ -23,7 +24,7 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
    * @param payload Request POST body
    * @return HTTP response code and body
    */
-  def create(payload: JValue): (Int, JValue) = post(createUrl(_), payload)
+  def create(payload: JValue): Try[JValue] = post(createUrl(_), payload, 201)
 
   /**
    * Sends a request to Soda Fountain to publish a dataset
@@ -31,7 +32,7 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
    * @param resourceName Resource name of the dataset to publish
    * @return HTTP response code and body
    */
-  def publish(resourceName: String): (Int, JValue) = post(publishUrl(_, resourceName), JNull)
+  def publish(resourceName: String): Try[JValue] = post(publishUrl(_, resourceName), JNull, 201)
 
   /**
    * Sends a request to Soda Fountain to publish a dataset
@@ -40,7 +41,7 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
    * @param payload Request POST body
    * @return HTTP response code and body
    */
-  def upsert(resourceName: String, payload: JValue): (Int, JValue) = post(upsertUrl(_, resourceName), payload)
+  def upsert(resourceName: String, payload: JValue): Try[JValue] = post(upsertUrl(_, resourceName), payload, 200)
 
   private def createUrl(rb: RequestBuilder) =
     rb.p("dataset").method("POST").addHeader(("Content-Type", "application/json"))
@@ -51,13 +52,17 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
   private def upsertUrl(rb: RequestBuilder, resourceName: String) =
     rb.p("resource", resourceName).method("POST").addHeader(("Content-Type", "application/json"))
 
-  private def post(requestBuilder: RequestBuilder => RequestBuilder, payload:JValue): (Int, JValue) =
+  private def post(requestBuilder: RequestBuilder => RequestBuilder, payload:JValue, expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
       val body = response.isJson match {
         case true => response.asJValue()
         case false => JNull
       }
-      (response.resultCode, body)
+
+      response.resultCode match {
+        case `expectedResponseCode` => Success(body)
+        case _ => Failure(new SodaFountainException(s"Soda fountain response: ${response.resultCode} Payload: $body"))
+      }
     }
 
   private[this] val connectTimeoutMS = connectTimeout.toMillis.toInt
