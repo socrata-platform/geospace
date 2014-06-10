@@ -1,17 +1,14 @@
 package com.socrata.geospace
 
 import com.rojoma.simplearm.util._
+import java.io.IOException
 import org.scalatra._
 import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
+import scala.util.{Failure, Success}
 import scala.concurrent.Future
-import scala.util.Try
 
-class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
-  final val MaxFileSizeMegabytes = 5  // TODO : Make this configurable
-
+class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroserviceStack with FileUploadSupport {
   val regionCache = new RegionCache()
-
-  configureMultipartHandling(MultipartConfig(maxFileSize = Some(MaxFileSizeMegabytes*1024*1024)))
 
   get("/") {
     <html>
@@ -21,30 +18,40 @@ class GeospaceServlet extends GeospaceMicroserviceStack with FileUploadSupport {
     </html>
   }
 
-  // TODO Finalize the name for the shapefile ingress endpoint
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
-  // TODO The service needs to gracefully handle exceptions thrown by called methods and return the appropriate HTTP response code.
   // TODO Return some kind of meaningful JSON response
   post("/experimental/regions/:resourceName/shapefile") {
+    val resourceName = params.getOrElse("resourceName", halt(BadRequest("No resourceName param provided in the request")))
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
-    fileParams.get("file") match {
-      case Some(file) => {
-        for { zip <- managed(new TemporaryZip(file.get)) } {
-          val (features, schema) = ShapefileReader.read(zip.contents)
-          // Cache the reprojected features in our region cache for immediate geocoding
-          // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-          regionCache.getFromFeatures(params("resourceName"), features.toSeq)
-          FeatureIngester.createDataset(params("resourceName"), schema)
-          FeatureIngester.upsert(params("resourceName"), features, schema)
-        }
+    val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
+
+    val ingressResult =
+      for { zip                <- managed(new TemporaryZip(file.get))
+            (features, schema) <- ShapefileReader.read(zip.contents)
+            response           <- FeatureIngester.ingest(sodaFountain, resourceName, features, schema)
+      } yield {
+        // Cache the reprojected features in our region cache for immediate geocoding
+        // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
+        regionCache.getFromFeatures(params("resourceName"), features.toSeq)
+
+        response
       }
-      case None => BadRequest("No zip file provided in the request")
+
+    // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
+    // Refactor to do that and handle IOExceptions cleanly.
+    ingressResult match {
+      case Success(payload)                  => halt(Ok())
+      case Failure(e: InvalidShapefileSet)   => halt(BadRequest(e.getMessage))
+      case Failure(e)                        => halt(InternalServerError(e.getMessage))
     }
   }
 
   // A test route only for loading a Shapefile to cache; body = full path to Shapefile unzipped directory
   post("/experimental/regions/:resourceName/local-shp") {
-    val (features, schema) = ShapefileReader.read(new java.io.File(request.body))
+    val readResult = ShapefileReader.read(new java.io.File(request.body))
+    assert(readResult.isSuccess)
+    val (features, schema) = readResult.get
+
     // Cache the reprojected features in our region cache for immediate geocoding
     // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
     regionCache.getFromFeatures(params("resourceName"), features.toSeq)

@@ -5,6 +5,7 @@ import java.io.{IOException, File}
 import java.nio.file.{Files, Path, Paths}
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import org.scalatest.{BeforeAndAfterEach, FunSuite, Matchers}
+import scala.util.{Failure, Success}
 
 class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach {
   private var tmp: Path = _
@@ -30,7 +31,8 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
 
   test("Get file by extension - file doesn't exist") {
     val file = ShapefileReader.getFile(tmp.toFile, "giraffe")
-    file should be (None)
+    file.isFailure should be (true)
+    file.failed.get.getClass should be (classOf[InvalidShapefileSet])
   }
 
   test("Validation - shouldn't fail on a correctly structured shapefile set") {
@@ -43,21 +45,28 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
     copyToTmp(tmp.toFile, "data/nyc_parks/parks.dbf", "extra.dbf")
     copyToTmp(tmp.toFile, "data/nyc_parks/parks.prj", "extra.prj")
 
-    an [IllegalArgumentException] should be thrownBy ShapefileReader.validate(tmp.toFile)
+    val result = ShapefileReader.validate(tmp.toFile)
+    result.isFailure should be (true)
+    result.failed.get.getClass should be (classOf[InvalidShapefileSet])
   }
 
   test("Validation - files missing") {
     for (required <- ShapefileReader.RequiredFiles) {
       Files.delete(Paths.get(tmp.toString, s"parks.$required"))
 
-      an [IllegalArgumentException] should be thrownBy ShapefileReader.validate(tmp.toFile)
+      val result = ShapefileReader.validate(tmp.toFile)
+      result.isFailure should be (true)
+      result.failed.get.getClass should be (classOf[InvalidShapefileSet])
 
       copyToTmp(tmp.toFile, s"data/nyc_parks/parks.$required", s"parks.$required")
     }
   }
 
   test("Get shapefile contents - layer and schema data should be returned correctly") {
-    val (features, schema) = ShapefileReader.getContents(tmp.toFile)
+    val result = ShapefileReader.getContents(tmp.toFile)
+    result.isSuccess should be (true)
+
+    val (features, schema) = result.get
     features should not be (empty)
     features.foreach { feature =>
       feature.getDefaultGeometry.getClass should be (classOf[Point])
@@ -71,7 +80,9 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
     val invalidContent = "mayhem"
     Files.write(shpFile, invalidContent.getBytes());
 
-    an [IOException] should be thrownBy ShapefileReader.getContents(tmp.toFile)
+    val result = ShapefileReader.getContents(tmp.toFile)
+    result.isFailure should be (true)
+    result.failed.get.getClass should be (classOf[IOException])
   }
 
   private def copyToTmp(tmp: File, from: String, renameTo: String) {

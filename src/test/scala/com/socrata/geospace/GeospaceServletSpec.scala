@@ -7,7 +7,7 @@ import org.scalatest.FunSuiteLike
  * Test Geospace HTTP routes
  */
 class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike {
-  addServlet(classOf[GeospaceServlet], "/*")
+  addServlet(new GeospaceServlet(null), "/*")
 
   test("get of index page") {
     get("/") {

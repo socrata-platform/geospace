@@ -39,11 +39,14 @@ object Dependencies {
   )
 
   lazy val socrataDeps = Seq(
-    "org.apache.commons"        % "commons-io"          % "1.3.2",
-    "org.velvia"               %% "geoscript"           % "0.8.3",
-    "io.spray"                  % "spray-caching"       % "1.2.1",
-    "com.rojoma"               %% "simple-arm"          % "[1.2.0,2.0.0)",
     "com.rojoma"               %% "rojoma-json"         % "[2.0.0,3.0.0)",
+    "com.rojoma"               %% "simple-arm"          % "[1.2.0,2.0.0)",
+    "com.socrata"              %% "socrata-http-client" % "2.0.0-SNAPSHOT",
+    "com.typesafe"              % "config"              % "1.0.2",
+    "io.spray"                  % "spray-caching"       % "1.2.1",
+    "org.apache.commons"        % "commons-io"          % "1.3.2",
+    "org.apache.curator"        % "curator-x-discovery" % "2.4.2",
+    "org.velvia"               %% "geoscript"           % "0.8.3",
     "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test"
   )
 }
@@ -76,6 +79,6 @@ object GeospaceMicroserviceBuild extends Build {
           )
         )
       }
-    )
+    ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings
   )
 }
