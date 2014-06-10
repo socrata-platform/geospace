@@ -94,20 +94,23 @@ object ShapefileReader {
    * @return The shapefile shape layer and schema
    */
   def getContents(directory: File): Try[(Traversable[Feature], Schema)] = {
-    // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
-    // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
-    // looking through the Geotools API.
-    // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
     for { shp <- getFile(directory, ShapeFormat)
           shapefile <- Try(Shapefile(shp))
     } yield {
-      lookupEPSG(StandardProjection) match {
-        case Some(proj) => {
-          val features = shapefile.features.map(feature => reproject(feature, proj))
-          val schema = reproject(shapefile.schema, proj)
-          (features, schema)
+      try {
+        lookupEPSG(StandardProjection) match {
+          case Some(proj) => {
+            val features = shapefile.features.map(feature => reproject(feature, proj))
+            val schema = reproject(shapefile.schema, proj)
+            (features, schema)
+          }
+          case _ => return Failure(new ReprojectionException(s"Unable to lookup projection $StandardProjection"))
         }
-        case _ => return Failure(new ReprojectionException(s"Unable to lookup projection $StandardProjection"))
+      } finally {
+        // Geotools holds a lock on the .shp file if the above blows up.
+        // Releasing resources cleanly in case of an exception.
+        // TODO : We still aren't 100% sure this actually works.
+        shapefile.getDataStore.dispose
       }
     }
   }
