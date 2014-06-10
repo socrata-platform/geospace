@@ -25,24 +25,21 @@ class GeospaceServlet(config: GeospaceConfig, sodaFountain: SodaFountainClient) 
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
 
-    val publishResponse =
+    val ingressResult =
       for { zip                <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents)
             response           <- FeatureIngester.ingest(sodaFountain, resourceName, features, schema)
-      } yield {
-        response
-      }
+      } yield response
 
-    publishResponse match {
-      case Success(payload) => halt(Ok())
-      case Failure(thrown) => thrown match {
-        // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
-        // Refactor to do that and handle IOExceptions cleanly.
-        case e: IOException           => halt(InternalServerError(e.getMessage))
-        case e: InvalidShapefileSet   => halt(BadRequest(e.getMessage))
-        case e: SodaFountainException => halt(InternalServerError(e.getMessage))
-        case e: ReprojectionException => halt(InternalServerError(e.getMessage))
-      }
+    // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
+    // Refactor to do that and handle IOExceptions cleanly.
+    ingressResult match {
+      case Success(payload)                    => halt(Ok())
+      case Failure(e: InvalidShapefileSet)     => halt(BadRequest(e.getMessage))
+      case Failure(e: IOException)             => halt(InternalServerError(e.getMessage))
+      case Failure(e: SodaFountainException)   => halt(InternalServerError(e.getMessage))
+      case Failure(e: ReprojectionException)   => halt(InternalServerError(e.getMessage))
+      case Failure(e)                          => halt(InternalServerError(e.getMessage))
     }
   }
 }

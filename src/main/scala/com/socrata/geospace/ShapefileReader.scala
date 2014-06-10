@@ -76,12 +76,14 @@ object ShapefileReader {
     // 1. All files in the set must have the same prefix (eg. foo.shp, foo.shx,...).
     // 2. All required file types should be in the zip
     val namedGroups = files.groupBy { f => FilenameUtils.getBaseName(f.getName) }
-    namedGroups.size match {
-      case 1 => {
-        val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
-        missing match { case Some(file) => Failure(file.failed.get) case None => Success() }
-      }
-      case _ => Failure(new InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
+    if (namedGroups.size != 1) {
+      return Failure(new InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
+    }
+
+    val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
+    missing match {
+      case Some(file) => Failure(file.failed.get)
+      case None       => Success()
     }
   }
 
@@ -92,20 +94,16 @@ object ShapefileReader {
    * @return The shapefile shape layer and schema
    */
   def getContents(directory: File): Try[(Traversable[Feature], Schema)] = {
-    getFile(directory, ShapeFormat).flatMap { shpFile =>
-      // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
-      // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
-      // looking through the Geotools API.
-      // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
-      Try(Shapefile(shpFile)).flatMap { shapefile =>
-        lookupEPSG(StandardProjection) match {
-          case Some(proj) => {
-            val features = shapefile.features.map(feature => reproject(feature, proj))
-            val schema = reproject(shapefile.schema, proj)
-            Success((features, schema))
-          }
-          case _ => Failure(new ReprojectionException(s"Unable to lookup projection $StandardProjection"))
+    for { shp <- getFile(directory, ShapeFormat)
+          shapefile <- Try(Shapefile(shp))
+    } yield {
+      lookupEPSG(StandardProjection) match {
+        case Some(proj) => {
+          val features = shapefile.features.map(feature => reproject(feature, proj))
+          val schema = reproject(shapefile.schema, proj)
+          (features, schema)
         }
+        case _ => return Failure(new ReprojectionException(s"Unable to lookup projection $StandardProjection"))
       }
     }
   }

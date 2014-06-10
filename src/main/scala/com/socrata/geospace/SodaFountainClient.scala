@@ -52,12 +52,9 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
   private def upsertUrl(rb: RequestBuilder, resourceName: String) =
     rb.p("resource", resourceName).method("POST").addHeader(("Content-Type", "application/json"))
 
-  private def post(requestBuilder: RequestBuilder => RequestBuilder, payload:JValue, expectedResponseCode: Int): Try[JValue] =
+  private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
-      val body = response.isJson match {
-        case true => response.asJValue()
-        case false => JNull
-      }
+      val body = if (response.isJson) response.asJValue() else JNull
 
       response.resultCode match {
         case `expectedResponseCode` => Success(body)

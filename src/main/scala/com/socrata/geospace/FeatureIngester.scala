@@ -16,10 +16,9 @@ object FeatureIngester {
    * @param schema Schema definition
    */
   def ingest(sodaFountain: SodaFountainClient, resourceName: String, features: Traversable[Feature], schema: Schema): Try[JValue] = {
-    sodaFountain.create(GeoToSoda2Converter.getCreateBody(resourceName, schema)).flatMap { create =>
-      sodaFountain.upsert(resourceName, GeoToSoda2Converter.getUpsertBody(resourceName, features, schema)).flatMap { upsert =>
-        sodaFountain.publish(resourceName)
-      }
-    }
+    for { create  <- sodaFountain.create(GeoToSoda2Converter.getCreateBody(resourceName, schema))
+          upsert  <- sodaFountain.upsert(resourceName, GeoToSoda2Converter.getUpsertBody(resourceName, features, schema))
+          publish <- sodaFountain.publish(resourceName)
+    } yield publish
   }
 }

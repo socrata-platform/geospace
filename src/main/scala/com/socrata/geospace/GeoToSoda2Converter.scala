@@ -16,10 +16,10 @@ object GeoToSoda2Converter {
    * Maps shapefile types to Soda2 types
    */
   val soda2TypeMap = Map[Class[_], String](
-    classOf[MultiPolygon] -> "multipolygon",
-    classOf[String] -> "text",
+    classOf[MultiPolygon]      -> "multipolygon",
+    classOf[String]            -> "text",
     classOf[java.lang.Integer] -> "number",
-    classOf[java.lang.Double] -> "double"
+    classOf[java.lang.Double]  -> "double"
   )
 
   /**
@@ -33,8 +33,8 @@ object GeoToSoda2Converter {
 
     JObject(Map(
       "resource_name" -> JString(resourceName),
-      "name" -> JString(resourceName),
-      "columns" -> JArray(columnSchemata.toSeq)
+      "name"          -> JString(resourceName),
+      "columns"       -> JArray(columnSchemata.toSeq)
     ))
   }
 
@@ -64,8 +64,8 @@ object GeoToSoda2Converter {
 
     JObject(Map(
       "field_name" -> JString(name),
-      "datatype" -> JString(typ),
-      "name" -> JString(name)
+      "datatype"   -> JString(typ),
+      "name"       -> JString(name)
     ))
   }
 
@@ -80,7 +80,7 @@ object GeoToSoda2Converter {
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
     val fields = feature.getAttributes.asScala.zip(attrNames).map {
       case (g: Geometry, name) => name -> JsonReader.fromString(geoJsonWriter.toString(g))
-      case (attr, name) => name -> JString(attr.toString)
+      case (attr, name)        => name -> JString(attr.toString)
     }
 
     JObject(fields.toMap)
