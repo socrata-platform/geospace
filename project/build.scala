@@ -20,13 +20,16 @@ object Dependencies {
 
   lazy val socrataResolvers = Seq(
     "Open Source Geospatial Foundation Repository" at "http://download.osgeo.org/webdav/geotools",
+    "spray repo" at "http://repo.spray.io",
     "velvia maven" at "http://dl.bintray.com/velvia/maven"
   )
 
   lazy val scalatraDeps = Seq(
     "org.scalatra"             %% "scalatra"            % ScalatraVersion,
     "org.scalatra"             %% "scalatra-scalate"    % ScalatraVersion,
-    "org.scalatra"             %% "scalatra-specs2"     % ScalatraVersion       % "test"
+    "org.scalatra"             %% "scalatra-json"       % ScalatraVersion,
+    "org.json4s"               %% "json4s-jackson"      % "3.2.6",
+    "org.scalatra"             %% "scalatra-scalatest"  % ScalatraVersion   % "test"
   )
 
   lazy val jettyDeps = Seq(
@@ -36,14 +39,15 @@ object Dependencies {
   )
 
   lazy val socrataDeps = Seq(
-    "org.apache.commons"        % "commons-io"          % "1.3.2",
-    "org.velvia"               %% "geoscript"           % "0.8.3",
-    "com.rojoma"               %% "simple-arm"          % "[1.2.0,2.0.0)",
     "com.rojoma"               %% "rojoma-json"         % "[2.0.0,3.0.0)",
+    "com.rojoma"               %% "simple-arm"          % "[1.2.0,2.0.0)",
     "com.socrata"              %% "socrata-http-client" % "2.0.0-SNAPSHOT",
     "com.typesafe"              % "config"              % "1.0.2",
+    "io.spray"                  % "spray-caching"       % "1.2.1",
+    "org.apache.commons"        % "commons-io"          % "1.3.2",
     "org.apache.curator"        % "curator-x-discovery" % "2.4.2",
-    "org.scalatest"            %% "scalatest"           % "2.1.0-RC2"           % "test"
+    "org.velvia"               %% "geoscript"           % "0.8.3",
+    "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test"
   )
 }
 
@@ -75,6 +79,6 @@ object GeospaceMicroserviceBuild extends Build {
           )
         )
       }
-    )
+    ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings
   )
 }

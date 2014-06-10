@@ -94,6 +94,10 @@ object ShapefileReader {
    * @return The shapefile shape layer and schema
    */
   def getContents(directory: File): Try[(Traversable[Feature], Schema)] = {
+    // TODO : Geotools seems to be holding a lock on the .shp file if the below line throws an exception.
+    // Figure out how to release resources cleanly in case of an exception. I couldn't find this on first pass
+    // looking through the Geotools API.
+    // http://stackoverflow.com/questions/11398627/geotools-severe-the-following-locker-still-has-a-lock-read-on-file
     for { shp <- getFile(directory, ShapeFormat)
           shapefile <- Try(Shapefile(shp))
     } yield {

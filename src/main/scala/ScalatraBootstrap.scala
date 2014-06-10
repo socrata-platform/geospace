@@ -42,7 +42,7 @@ class ScalatraBootstrap extends LifeCycle {
     curator.start
     discovery.start
     sodaFountain.start
-    context.mount(new GeospaceServlet(config, sodaFountain), "/*")
+    context.mount(new GeospaceServlet(sodaFountain), "/*")
   }
 
   override def destroy(context: ServletContext) {

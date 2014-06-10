@@ -13,10 +13,10 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
   override def beforeEach() {
     // Set up a valid shapefile directory
     tmp = Files.createTempDirectory("shapefilereaderspec_")
-    copyToTmp(tmp.toFile, "data/parks.shp", "parks.shp")
-    copyToTmp(tmp.toFile, "data/parks.shx", "parks.shx")
-    copyToTmp(tmp.toFile, "data/parks.dbf", "parks.dbf")
-    copyToTmp(tmp.toFile, "data/parks.prj", "parks.prj")
+    copyToTmp(tmp.toFile, "data/nyc_parks/parks.shp", "parks.shp")
+    copyToTmp(tmp.toFile, "data/nyc_parks/parks.shx", "parks.shx")
+    copyToTmp(tmp.toFile, "data/nyc_parks/parks.dbf", "parks.dbf")
+    copyToTmp(tmp.toFile, "data/nyc_parks/parks.prj", "parks.prj")
   }
 
   override def afterEach() {
@@ -40,10 +40,10 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
   }
 
   test("Validation - more than one file group in directory") {
-    copyToTmp(tmp.toFile, "data/parks.shp", "extra.shp")
-    copyToTmp(tmp.toFile, "data/parks.shx", "extra.shx")
-    copyToTmp(tmp.toFile, "data/parks.dbf", "extra.dbf")
-    copyToTmp(tmp.toFile, "data/parks.prj", "extra.prj")
+    copyToTmp(tmp.toFile, "data/nyc_parks/parks.shp", "extra.shp")
+    copyToTmp(tmp.toFile, "data/nyc_parks/parks.shx", "extra.shx")
+    copyToTmp(tmp.toFile, "data/nyc_parks/parks.dbf", "extra.dbf")
+    copyToTmp(tmp.toFile, "data/nyc_parks/parks.prj", "extra.prj")
 
     val result = ShapefileReader.validate(tmp.toFile)
     result.isFailure should be (true)
@@ -58,7 +58,7 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
       result.isFailure should be (true)
       result.failed.get.getClass should be (classOf[InvalidShapefileSet])
 
-      copyToTmp(tmp.toFile, s"data/parks.$required", s"parks.$required")
+      copyToTmp(tmp.toFile, s"data/nyc_parks/parks.$required", s"parks.$required")
     }
   }
 
