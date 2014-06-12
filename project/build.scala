@@ -2,13 +2,14 @@ import sbt._
 import Keys._
 import org.scalatra.sbt._
 import org.scalatra.sbt.PluginKeys._
+import com.socrata.cloudbeessbt.SocrataCloudbeesSbt
 import com.mojolly.scalate.ScalatePlugin._
 import ScalateKeys._
 
 object BuildParameters {
   val Organization = "com.socrata"
   val Name = "GeoSpace microservice"
-  val Version = "0.0.1"
+  val Version = "0.0.1-SNAPSHOT"
   val ScalaVersion = "2.10.3"
   val ScalatraVersion = "2.2.2"
   val port = SettingKey[Int]("port")
@@ -79,6 +80,6 @@ object GeospaceMicroserviceBuild extends Build {
           )
         )
       }
-    ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings
+    ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings ++ SocrataCloudbeesSbt.socrataBuildSettings
   )
 }
