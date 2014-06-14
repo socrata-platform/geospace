@@ -12,6 +12,8 @@ import org.opengis.feature.`type`.PropertyDescriptor
  * Generates Soda2 requests from geo schemata and feature collections
  */
 object GeoToSoda2Converter {
+  // The feature ID needs to be a part of every row of the shape dataset so we can correlate other datasets
+  // such as points to the belonging feature.
   // Note: is there a better way to come up with a column name for feature ID?
   // This here is a hack.
   val FeatureIdColName = "_feature_id"
