@@ -12,6 +12,15 @@ import org.opengis.feature.`type`.PropertyDescriptor
  * Generates Soda2 requests from geo schemata and feature collections
  */
 object GeoToSoda2Converter {
+  // Note: is there a better way to come up with a column name for feature ID?
+  // This here is a hack.
+  val FeatureIdColName = "_feature_id"
+  val FeatureIdColumnDef = JObject(Map(
+      "field_name" -> JString(FeatureIdColName),
+      "datatype"   -> JString("text"),
+      "name"       -> JString(FeatureIdColName)
+    ))
+
   /**
    * Maps shapefile types to Soda2 types
    */
@@ -29,12 +38,12 @@ object GeoToSoda2Converter {
    * @return Soda2 create request body
    */
   def getCreateBody(resourceName: String, schema: Schema): JValue = {
-    val columnSchemata = schema.getDescriptors.asScala.map(columnToJObject(_))
+    val columnSchemata = Seq(FeatureIdColumnDef) ++ schema.getDescriptors.asScala.map(columnToJObject(_))
 
     JObject(Map(
       "resource_name" -> JString(resourceName),
       "name"          -> JString(resourceName),
-      "columns"       -> JArray(columnSchemata.toSeq)
+      "columns"       -> JArray(columnSchemata)
     ))
   }
 
@@ -83,6 +92,6 @@ object GeoToSoda2Converter {
       case (attr, name)        => name -> JString(attr.toString)
     }
 
-    JObject(fields.toMap)
+    JObject(fields.toMap + (FeatureIdColName -> JString(feature.getID)))
   }
 }
