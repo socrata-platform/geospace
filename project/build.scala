@@ -8,6 +8,7 @@ import ScalateKeys._
 
 import sbtassembly.Plugin.AssemblyKeys._
 import sbtassembly.Plugin.MergeStrategy
+import sbtassembly.Plugin.PathList
 import sbtassembly.AssemblyUtils._
 
 object BuildParameters {
@@ -38,7 +39,7 @@ object Dependencies {
   )
 
   lazy val jettyDeps = Seq(
-    "ch.qos.logback"            % "logback-classic"     % "1.0.6"               % "runtime",
+    //"ch.qos.logback"            % "logback-classic"     % "1.0.6"               % "runtime",
     "org.eclipse.jetty"         % "jetty-webapp"        % "8.1.8.v20121106"     % "container",
     "org.eclipse.jetty.orbit"   % "javax.servlet"       % "3.0.0.v201112011016" % "container;provided;test" artifacts (Artifact("javax.servlet", "jar", "jar"))
   )
@@ -51,7 +52,7 @@ object Dependencies {
     "io.spray"                  % "spray-caching"       % "1.2.1",
     "org.apache.commons"        % "commons-io"          % "1.3.2",
     "org.apache.curator"        % "curator-x-discovery" % "2.4.2",
-    "org.velvia"               %% "geoscript"           % "0.8.3",
+    "org.velvia"               %% "geoscript"           % "0.8.3" exclude("xml-apis","xml-apis"),
     "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test"
   )
 }
@@ -63,36 +64,49 @@ object GeospaceMicroserviceBuild extends Build {
   lazy val project = Project (
     "geospace-microservice",
     file("."),
-    settings = Defaults.defaultSettings ++ ScalatraPlugin.scalatraWithJRebel ++ scalateSettings ++ Seq(
-      organization := Organization,
-      name := Name,
-      version := Version,
-      scalaVersion := ScalaVersion,
-      port in Conf := 2020,
-      resolvers += Classpaths.typesafeReleases,
-      resolvers ++= socrataResolvers,
-      libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps,
-      mergeStrategy in assembly <<= (mergeStrategy in assembly) { old =>
-        {
-          case "about.html" => MergeStrategy.rename
-          case x => old(x)
-        }
-      },
-      scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
-        Seq(
-          TemplateConfig(
-            base / "webapp" / "WEB-INF" / "templates",
-            Seq.empty,  /* default imports should be added here */
-            Seq(
-              Binding("context", "_root_.org.scalatra.scalate.ScalatraRenderContext", importMembers = true, isImplicit = true)
-            ),  /* add extra bindings here */
-            Some("templates")
-          )
-        )
-      }
+    settings = Defaults.defaultSettings ++ 
+               ScalatraPlugin.scalatraWithJRebel ++ 
+               scalateSettings ++
+               sbtassembly.Plugin.assemblySettings ++ Seq(
+                 organization := Organization,
+                 name := Name,
+                 version := Version,
+                 scalaVersion := ScalaVersion,
+                 port in Conf := 2020,
+                 resolvers += Classpaths.typesafeReleases,
+                 resolvers ++= socrataResolvers,
+                 libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps,
+                 scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
+                   Seq(
+                     TemplateConfig(
+                       base / "webapp" / "WEB-INF" / "templates",
+                       Seq.empty,  /* default imports should be added here */
+                       Seq(
+                         Binding("context", "_root_.org.scalatra.scalate.ScalatraRenderContext", importMembers = true, isImplicit = true)
+                       ),  /* add extra bindings here */
+                       Some("templates")
+                     )
+                   )
+                 }
     ) ++
+      Seq(jarName in assembly := "geospace-assembly.jar") ++ 
       net.virtualvoid.sbt.graph.Plugin.graphSettings ++
-      SocrataCloudbeesSbt.socrataBuildSettings ++
-      sbtassembly.Plugin.assemblySettings
+      SocrataCloudbeesSbt.socrataBuildSettings 
+  ) settings( // Workaround for https://github.com/sbt/sbt-assembly/issues/63
+     mergeStrategy in assembly <<= (mergeStrategy in assembly) { old =>
+     {
+       case "about.html" => MergeStrategy.rename
+       case "about.properties" => MergeStrategy.rename
+       case "about.mappings" => MergeStrategy.rename
+       case "plugin.properties" => MergeStrategy.rename
+       case "plugin.xml" => MergeStrategy.rename
+       case x @ PathList("META-INF", xs @ _*) =>
+        (xs map {_.toLowerCase}) match {
+          case ps @ (y :: xs) if ps.last.endsWith(".rsa") || ps.last.endsWith(".jai") => MergeStrategy.discard
+          case _ => old(x)
+        }
+       case x => old(x)
+     }
+    }
   )
 }
