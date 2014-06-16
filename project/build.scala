@@ -6,6 +6,10 @@ import com.socrata.cloudbeessbt.SocrataCloudbeesSbt
 import com.mojolly.scalate.ScalatePlugin._
 import ScalateKeys._
 
+import sbtassembly.Plugin.AssemblyKeys._
+import sbtassembly.Plugin.MergeStrategy
+import sbtassembly.AssemblyUtils._
+
 object BuildParameters {
   val Organization = "com.socrata"
   val Name = "GeoSpace microservice"
@@ -68,6 +72,12 @@ object GeospaceMicroserviceBuild extends Build {
       resolvers += Classpaths.typesafeReleases,
       resolvers ++= socrataResolvers,
       libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps,
+      mergeStrategy in assembly <<= (mergeStrategy in assembly) { old =>
+        {
+          case "about.html" => MergeStrategy.rename
+          case x => old(x)
+        }
+      },
       scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
         Seq(
           TemplateConfig(
@@ -80,6 +90,9 @@ object GeospaceMicroserviceBuild extends Build {
           )
         )
       }
-    ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings ++ SocrataCloudbeesSbt.socrataBuildSettings
+    ) ++
+      net.virtualvoid.sbt.graph.Plugin.graphSettings ++
+      SocrataCloudbeesSbt.socrataBuildSettings ++
+      sbtassembly.Plugin.assemblySettings
   )
 }
