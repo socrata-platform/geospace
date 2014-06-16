@@ -40,7 +40,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroser
     // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
     // Refactor to do that and handle IOExceptions cleanly.
     ingressResult match {
-      case Success(payload)                  => halt(Ok())
+      case Success(payload)                  => Map("response" -> payload)
       case Failure(e: InvalidShapefileSet)   => halt(BadRequest(e.getMessage))
       case Failure(e)                        => halt(InternalServerError(e.getMessage))
     }
