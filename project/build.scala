@@ -12,7 +12,7 @@ import sbtassembly.AssemblyUtils._
 
 object BuildParameters {
   val Organization = "com.socrata"
-  val Name = "GeoSpace microservice"
+  val Name = "geospace"
   val Version = "0.0.1-SNAPSHOT"
   val ScalaVersion = "2.10.3"
   val ScalatraVersion = "2.2.2"
@@ -52,7 +52,7 @@ object Dependencies {
     "io.spray"                  % "spray-caching"       % "1.2.1",
     "org.apache.commons"        % "commons-io"          % "1.3.2",
     "org.apache.curator"        % "curator-x-discovery" % "2.4.2" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"),
-    "org.velvia"               %% "geoscript"           % "0.8.3",
+    "org.velvia"               %% "geoscript"           % "0.8.3" exclude("org.geotools", "gt-xml") exclude("org.geotools", "gt-render"),
     "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test"
   )
 }
