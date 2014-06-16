@@ -38,7 +38,8 @@ object Dependencies {
   )
 
   lazy val jettyDeps = Seq(
-    "ch.qos.logback"            % "logback-classic"     % "1.0.6"               % "runtime",
+    "ch.qos.logback"            % "logback-classic"     % "1.0.6"               % "container;runtime",
+    "org.slf4j"                 % "log4j-over-slf4j"    % "1.7.7",
     "org.eclipse.jetty"         % "jetty-webapp"        % "8.1.8.v20121106"     % "container",
     "org.eclipse.jetty.orbit"   % "javax.servlet"       % "3.0.0.v201112011016" % "container;provided;test" artifacts (Artifact("javax.servlet", "jar", "jar"))
   )
@@ -50,7 +51,7 @@ object Dependencies {
     "com.typesafe"              % "config"              % "1.0.2",
     "io.spray"                  % "spray-caching"       % "1.2.1",
     "org.apache.commons"        % "commons-io"          % "1.3.2",
-    "org.apache.curator"        % "curator-x-discovery" % "2.4.2",
+    "org.apache.curator"        % "curator-x-discovery" % "2.4.2" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"),
     "org.velvia"               %% "geoscript"           % "0.8.3",
     "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test"
   )
