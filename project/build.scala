@@ -67,8 +67,7 @@ object GeospaceMicroserviceBuild extends Build {
     file("."),
     settings = Defaults.defaultSettings ++
                ScalatraPlugin.scalatraWithJRebel ++
-               scalateSettings ++
-               sbtassembly.Plugin.assemblySettings ++ Seq(
+               scalateSettings ++ Seq(
                  organization := Organization,
                  name := Name,
                  version := Version,
@@ -89,25 +88,12 @@ object GeospaceMicroserviceBuild extends Build {
                      )
                    )
                  }
-    ) ++
-      Seq(jarName in assembly := "geospace-assembly.jar") ++
+    ) ++ assemblySettings ++
       net.virtualvoid.sbt.graph.Plugin.graphSettings ++
       SocrataCloudbeesSbt.socrataBuildSettings
-  ) settings( // Workaround for https://github.com/sbt/sbt-assembly/issues/63
-     mergeStrategy in assembly <<= (mergeStrategy in assembly) { old =>
-     {
-       case "about.html" => MergeStrategy.rename
-       case "about.properties" => MergeStrategy.rename
-       case "about.mappings" => MergeStrategy.rename
-       case "plugin.properties" => MergeStrategy.rename
-       case "plugin.xml" => MergeStrategy.rename
-       case x @ PathList("META-INF", xs @ _*) =>
-        (xs map {_.toLowerCase}) match {
-          case ps @ (y :: xs) if ps.last.endsWith(".rsa") || ps.last.endsWith(".jai") => MergeStrategy.discard
-          case _ => old(x)
-        }
-       case x => old(x)
-     }
-    }
+  )
+
+  lazy val assemblySettings = sbtassembly.Plugin.assemblySettings ++ Seq(
+    jarName in assembly := "geospace-assembly.jar"
   )
 }
