@@ -8,8 +8,9 @@ import scala.concurrent.duration.FiniteDuration
  * Contains configuration values from the application config file
  * @param config Configuration object
  */
-class GeospaceConfig(config: Config) {
+class GeospaceConfig(val config: Config) {
   val maxFileSizeMegabytes = config.getInt("max-file-size-megabytes")
+  val port = config.getInt("port")
 
   val curator = new CuratorConfig(config, "curator")
   val sodaFountain = new SodaFountainConfig(config, "com.socrata.soda-fountain")

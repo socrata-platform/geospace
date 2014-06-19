@@ -21,6 +21,8 @@ class RegionCache(maxEntries: Int = 100) {
   val logger = LoggerFactory.getLogger(getClass)
   val cache = LruCache[SpatialIndex[String]](maxEntries)
 
+  logger.info("Creating RegionCache with {} entries", maxEntries)
+
   import concurrent.ExecutionContext.Implicits.global
 
   /**

@@ -8,12 +8,17 @@ import org.apache.curator.framework.CuratorFrameworkFactory
 import org.apache.curator.retry
 import org.apache.curator.x.discovery.ServiceDiscoveryBuilder
 import org.scalatra._
+import org.slf4j.LoggerFactory
+
 
 class ScalatraBootstrap extends LifeCycle {
+  val logger = LoggerFactory.getLogger(getClass)
 
   // TODO: Factor out the code from Soda Fountain that already does this into a new library
   // and then use that library instead of repeating ourselves here.
   lazy val config = new GeospaceConfig(ConfigFactory.load())
+  logger.info("Starting Geospace server on port {}... ", config.port)
+  logger.info("Configuration:\n" + config.config.getConfig("com.socrata").root.render())
 
   lazy val curator = CuratorFrameworkFactory.builder.
     connectString(config.curator.ensemble).
