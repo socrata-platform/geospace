@@ -52,8 +52,13 @@ object Dependencies {
     "com.typesafe"              % "config"              % "1.0.2",
     "io.spray"                  % "spray-caching"       % "1.2.1",
     "org.apache.commons"        % "commons-io"          % "1.3.2",
-    "org.apache.curator"        % "curator-x-discovery" % "2.4.2" exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"),
-    "org.velvia"               %% "geoscript"           % "0.8.3" exclude("org.geotools", "gt-xml") exclude("org.geotools", "gt-render"),
+    "org.apache.curator"        % "curator-x-discovery" % "2.4.2"
+      exclude("org.slf4j", "slf4j-log4j12")
+      exclude("log4j", "log4j"),
+    "org.velvia"               %% "geoscript"           % "0.8.3"
+      exclude("org.geotools", "gt-xml")
+      exclude("org.geotools", "gt-render")
+      exclude("org.scala-lang", "scala-swing"),
     "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test"
   )
 }
