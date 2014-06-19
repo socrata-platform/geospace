@@ -6,6 +6,9 @@ import org.eclipse.jetty.servlet.{DefaultServlet, ServletContextHandler}
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 
+/**
+ * This main class is needed to start a Scalatra server standalone with embedded Jetty
+ */
 object Geospace extends App {
   val config = new GeospaceConfig(ConfigFactory.load())
   val port = config.port
