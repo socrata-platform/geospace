@@ -16,9 +16,9 @@ class ScalatraBootstrap extends LifeCycle {
 
   // TODO: Factor out the code from Soda Fountain that already does this into a new library
   // and then use that library instead of repeating ourselves here.
-  lazy val config = new GeospaceConfig(ConfigFactory.load())
+  lazy val config = new GeospaceConfig(ConfigFactory.load().getConfig("com.socrata"))
   logger.info("Starting Geospace server on port {}... ", config.port)
-  logger.info("Configuration:\n" + config.config.getConfig("com.socrata").root.render())
+  logger.info("Configuration:\n" + config.debugString)
 
   lazy val curator = CuratorFrameworkFactory.builder.
     connectString(config.curator.ensemble).

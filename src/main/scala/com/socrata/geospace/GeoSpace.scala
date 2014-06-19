@@ -10,7 +10,7 @@ import org.scalatra.servlet.ScalatraListener
  * This main class is needed to start a Scalatra server standalone with embedded Jetty
  */
 object Geospace extends App {
-  val config = new GeospaceConfig(ConfigFactory.load())
+  val config = new GeospaceConfig(ConfigFactory.load().getConfig("com.socrata"))
   val port = config.port
   val server = new Server(port)
   val context = new WebAppContext()
