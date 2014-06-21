@@ -11,6 +11,7 @@ import scala.concurrent.duration.FiniteDuration
 class GeospaceConfig(config: Config) {
   val maxFileSizeMegabytes = config.getInt("geospace.max-file-size-megabytes")
   val port = config.getInt("geospace.port")
+  val gracefulShutdownMs = config.getMilliseconds("geospace.graceful-shutdown-time").toInt
 
   val curator = new CuratorConfig(config, "curator")
   val sodaFountain = new SodaFountainConfig(config, "soda-fountain")

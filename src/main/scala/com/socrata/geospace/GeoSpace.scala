@@ -21,6 +21,9 @@ object Geospace extends App {
   context.addServlet(classOf[DefaultServlet], "/")
 
   server.setHandler(context)
+  // http://docs.codehaus.org/display/JETTY/How+to+gracefully+shutdown
+  server.setGracefulShutdown(config.gracefulShutdownMs)
+  server.setStopAtShutdown(true)
 
   server.start
   server.join
