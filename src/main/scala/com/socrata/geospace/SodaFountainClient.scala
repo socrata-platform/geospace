@@ -4,6 +4,7 @@ import com.rojoma.json.ast.{JNull, JValue}
 import com.rojoma.json.io.JValueEventIterator
 import com.socrata.http.client.{Response, SimpleHttpRequest, HttpClient, RequestBuilder}
 import com.socrata.http.common.AuxiliaryData
+import com.socrata.thirdparty.curator.CuratorServiceBase
 import org.apache.curator.x.discovery.ServiceDiscovery
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Try, Failure, Success}
@@ -16,7 +17,7 @@ import scala.util.{Try, Failure, Success}
  * @param connectTimeout Timeout setting for connecting to the service
  */
 class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[AuxiliaryData], serviceName: String, connectTimeout: FiniteDuration)
-  extends ZookeeperService(discovery, serviceName) {
+  extends CuratorServiceBase(discovery, serviceName) {
 
   /**
    * Sends a request to Soda Fountain to create a dataset

@@ -1,6 +1,7 @@
 import com.socrata.geospace._
 import com.socrata.http.client.{NoopLivenessChecker, HttpClientHttpClient}
 import com.socrata.http.common.AuxiliaryData
+import com.socrata.thirdparty.curator.{CuratorFromConfig, DiscoveryFromConfig}
 import com.typesafe.config.ConfigFactory
 import java.util.concurrent.Executors
 import javax.servlet.ServletContext
@@ -20,20 +21,8 @@ class ScalatraBootstrap extends LifeCycle {
   logger.info("Starting Geospace server on port {}... ", config.port)
   logger.info("Configuration:\n" + config.debugString)
 
-  lazy val curator = CuratorFrameworkFactory.builder.
-    connectString(config.curator.ensemble).
-    sessionTimeoutMs(config.curator.sessionTimeout.toMillis.toInt).
-    connectionTimeoutMs(config.curator.connectTimeout.toMillis.toInt).
-    retryPolicy(new retry.BoundedExponentialBackoffRetry(config.curator.baseRetryWait.toMillis.toInt,
-    config.curator.maxRetryWait.toMillis.toInt,
-    config.curator.maxRetries)).
-    namespace(config.curator.namespace).
-    build()
-
-  lazy val discovery = ServiceDiscoveryBuilder.builder(classOf[AuxiliaryData]).
-    client(curator).
-    basePath(config.curator.serviceBasePath).
-    build()
+  lazy val curator = CuratorFromConfig.unmanaged(config.curator)
+  lazy val discovery = DiscoveryFromConfig.unmanaged(classOf[AuxiliaryData], curator, config.discovery)
 
   lazy val httpClient = new HttpClientHttpClient(
     NoopLivenessChecker, Executors.newCachedThreadPool(), userAgent = "geospace")
