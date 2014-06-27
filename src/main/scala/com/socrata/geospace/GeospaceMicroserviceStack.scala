@@ -43,7 +43,7 @@ with ScalateSupport with JacksonJsonSupport with FutureSupport with ScalatraLogg
 trait ScalatraLogging extends ScalatraServlet {
   val logger = LoggerFactory.getLogger(getClass)
   before() {
-    logger.info(request.getMethod + " - " + request.getRequestURI)
+    logger.info(request.getMethod + " - " + request.getRequestURI + " ? " + request.getQueryString)
   }
 
   after() {
