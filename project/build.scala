@@ -34,7 +34,6 @@ object Dependencies {
     "org.scalatra"             %% "scalatra"            % ScalatraVersion,
     "org.scalatra"             %% "scalatra-scalate"    % ScalatraVersion,
     "org.scalatra"             %% "scalatra-json"       % ScalatraVersion,
-    "org.scalatra"             %% "scalatra-slf4j"      % ScalatraVersion,
     "org.json4s"               %% "json4s-jackson"      % "3.2.6",
     "org.scalatra"             %% "scalatra-scalatest"  % ScalatraVersion   % "test"
   )
