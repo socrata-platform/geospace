@@ -23,6 +23,8 @@ class ScalatraBootstrap extends LifeCycle {
 
   lazy val curator = CuratorFromConfig.unmanaged(config.curator)
   lazy val discovery = DiscoveryFromConfig.unmanaged(classOf[AuxiliaryData], curator, config.discovery)
+  lazy val broker = new CuratorBroker(discovery, config.service.address, config.service.name, None)
+  lazy val cookie = broker.register(config.port)
 
   lazy val httpClient = new HttpClientHttpClient(
     NoopLivenessChecker, Executors.newCachedThreadPool(), userAgent = "geospace")
@@ -35,12 +37,14 @@ class ScalatraBootstrap extends LifeCycle {
   override def init(context: ServletContext) {
     curator.start
     discovery.start
+    cookie
     sodaFountain.start
     context.mount(new GeospaceServlet(sodaFountain), "/*")
   }
 
   override def destroy(context: ServletContext) {
     sodaFountain.close
+    broker.deregister(cookie)
     httpClient.close
     discovery.close
     curator.close

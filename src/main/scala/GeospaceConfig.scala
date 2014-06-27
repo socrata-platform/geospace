@@ -17,14 +17,22 @@ class GeospaceConfig(config: Config) {
   val curator = new CuratorConfig(config, "curator")
   val discovery = new DiscoveryConfig(config, "curator")
   val sodaFountain = new SodaFountainConfig(config.getConfig("soda-fountain"))
+  val service = new ServiceAdvertisementConfig(config.getConfig("service-advertisement"))
 
   val debugString = config.root.render()
 }
 
 /**
  * Contains Soda Fountain-specific configuration values
- * @param config Configuration object
  */
 class SodaFountainConfig(config: Config) {
   val serviceName = config.getString("service-name")
+}
+
+/**
+ * Contains service advertisement config for ZK/Curator registration
+ */
+class ServiceAdvertisementConfig(config: Config) {
+  val address = config.getString("address")
+  val name = config.getString("name")
 }
