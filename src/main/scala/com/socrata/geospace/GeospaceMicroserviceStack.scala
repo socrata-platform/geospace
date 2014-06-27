@@ -3,10 +3,11 @@ package com.socrata.geospace
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatra._
 import org.scalatra.json._
+import org.slf4j.LoggerFactory
 import scalate.ScalateSupport
 
 trait GeospaceMicroserviceStack extends ScalatraServlet
-with ScalateSupport with JacksonJsonSupport with FutureSupport {
+with ScalateSupport with JacksonJsonSupport with FutureSupport with ScalatraLogging {
 
   // Sets up automatic case class to JSON output serialization, required by
   // the JValueResult trait.
@@ -21,7 +22,9 @@ with ScalateSupport with JacksonJsonSupport with FutureSupport {
   }
 
   error {
-    case e => InternalServerError(s"${e.getClass.getSimpleName}: ${e.getMessage}\n${e.getStackTraceString}\n")
+    case e =>
+      logger.error("Request errored out", e)
+      InternalServerError(s"${e.getClass.getSimpleName}: ${e.getMessage}\n${e.getStackTraceString}\n")
   }
 
   // What to do in case a route is not found.  This is from the Scalatra template
@@ -33,5 +36,17 @@ with ScalateSupport with JacksonJsonSupport with FutureSupport {
       contentType = "text/html"
       layoutTemplate(path)
     } orElse serveStaticResource() getOrElse resourceNotFound()
+  }
+}
+
+// TODO: Move this to thirdparty-utils
+trait ScalatraLogging extends ScalatraServlet {
+  val logger = LoggerFactory.getLogger(getClass)
+  before() {
+    logger.info(request.getMethod + " - " + request.getRequestURI + " ? " + request.getQueryString)
+  }
+
+  after() {
+    logger.info("Status - " + response.getStatus)
   }
 }
