@@ -6,6 +6,7 @@ import com.socrata.http.client.{Response, SimpleHttpRequest, HttpClient, Request
 import com.socrata.http.common.AuxiliaryData
 import com.socrata.thirdparty.curator.CuratorServiceBase
 import org.apache.curator.x.discovery.ServiceDiscovery
+import org.slf4j.LoggerFactory
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Try, Failure, Success}
 
@@ -18,6 +19,8 @@ import scala.util.{Try, Failure, Success}
  */
 class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[AuxiliaryData], serviceName: String, connectTimeout: FiniteDuration)
   extends CuratorServiceBase(discovery, serviceName) {
+
+  val logger = LoggerFactory.getLogger(getClass)
 
   /**
    * Sends a request to Soda Fountain to create a dataset
@@ -70,11 +73,12 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
 
   private def query[T](buildRequest: RequestBuilder => SimpleHttpRequest)(f: Response => T) = {
     requestBuilder match {
-      case Some(rb) => {
-        for (response <- httpClient.execute(buildRequest(rb))) yield {
+      case Some(rb) =>
+        val request = buildRequest(rb)
+        logger.info("Request: " + request)
+        for (response <- httpClient.execute(request)) yield {
           f(response)
         }
-      }
       case None => throw new ServiceDiscoveryException("Could not connect to Soda Fountain")
     }
   }
