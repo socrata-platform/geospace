@@ -65,6 +65,22 @@ object Dependencies {
   )
 }
 
+object BuildInfo {
+  import sbtbuildinfo.Plugin._
+
+  lazy val infoSettings = buildInfoSettings ++
+      Seq(
+          sourceGenerators in Compile <+= buildInfo,
+          buildInfoKeys := Seq[BuildInfoKey](name,
+                                             version,
+                                             scalaVersion,
+                                             libraryDependencies in Compile,
+                                             BuildInfoKey.action("buildTime") { System.currentTimeMillis }
+                                            ),
+          buildInfoPackage := BuildParameters.Organization
+      )
+}
+
 object GeospaceMicroserviceBuild extends Build {
   import BuildParameters._
   import Dependencies._
@@ -97,7 +113,8 @@ object GeospaceMicroserviceBuild extends Build {
                  }
     ) ++ assemblySettings ++
       net.virtualvoid.sbt.graph.Plugin.graphSettings ++
-      SocrataCloudbeesSbt.socrataBuildSettings
+      SocrataCloudbeesSbt.socrataBuildSettings ++
+      BuildInfo.infoSettings
   )
 
   lazy val assemblySettings = sbtassembly.Plugin.assemblySettings ++ Seq(

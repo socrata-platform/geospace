@@ -1,5 +1,6 @@
 package com.socrata.geospace
 
+import com.socrata.BuildInfo
 import com.rojoma.simplearm.util._
 import java.io.IOException
 import org.scalatra._
@@ -17,6 +18,13 @@ class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroser
         <h1>Welcome to Geospace!</h1>
       </body>
     </html>
+  }
+
+  get("/version") {
+    Map("version" -> BuildInfo.version,
+        "scalaVersion" -> BuildInfo.scalaVersion,
+        "dependencies" -> BuildInfo.libraryDependencies,
+        "buildTime" -> BuildInfo.buildTime)
   }
 
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
