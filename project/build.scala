@@ -94,7 +94,7 @@ object GeospaceMicroserviceBuild extends Build {
                  name := Name,
                  version := Version,
                  scalaVersion := ScalaVersion,
-                 port in Conf := 2020,
+                 port in Conf := 2020,         // Needed for container:restart, which uses a custom Jetty instance
                  resolvers += Classpaths.typesafeReleases,
                  resolvers ++= socrataResolvers,
                  libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps,
