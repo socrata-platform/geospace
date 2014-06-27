@@ -11,6 +11,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroser
   val regionCache = new RegionCache()
 
   get("/") {
+    contentType = "text/html"
     <html>
       <body>
         <h1>Welcome to Geospace!</h1>
