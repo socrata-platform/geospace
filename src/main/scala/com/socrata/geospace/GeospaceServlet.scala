@@ -8,7 +8,8 @@ import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
 import scala.util.{Failure, Success}
 import scala.concurrent.Future
 
-class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroserviceStack with FileUploadSupport {
+class GeospaceServlet(sodaFountain: SodaFountainClient,
+                      coreServer: CoreServerClient) extends GeospaceMicroserviceStack with FileUploadSupport {
   val regionCache = new RegionCache()
 
   get("/") {
@@ -25,6 +26,10 @@ class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroser
         "scalaVersion" -> BuildInfo.scalaVersion,
         "dependencies" -> BuildInfo.libraryDependencies,
         "buildTime" -> BuildInfo.buildTime)
+  }
+
+  get("/core-test") {
+    coreServer.version.get
   }
 
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
