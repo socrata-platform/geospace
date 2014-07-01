@@ -34,7 +34,7 @@ class ScalatraBootstrap extends LifeCycle {
   lazy val sodaFountain =  new SodaFountainClient(
     httpClient, discovery, config.sodaFountain.serviceName, config.curator.connectTimeout)
   lazy val coreServer = new CoreServerClient(
-    httpClient, discovery, config.coreServer.serviceName, config.curator.connectTimeout)
+    httpClient, discovery, config.coreServer, config.curator.connectTimeout)
 
   override def init(context: ServletContext) {
     curator.start

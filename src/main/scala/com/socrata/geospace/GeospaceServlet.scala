@@ -29,7 +29,24 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
   }
 
   get("/core-test") {
-    coreServer.version.get
+    val datasetDef = """{ "name" : "hi from geospace" }"""
+    val columnDef  = """{ "name" :"My Freakin' Sweet Column", "dataTypeName" : "text", "fieldName" : "mycolumn" }"""
+    val rowDef = """[ { "mycolumn" : "axolotl" }, { "mycolumn" : "giraffe" }, { "mycolumn" : "marmot" } ]"""
+
+    for { create <- coreServer.create(com.rojoma.json.io.JsonReader.fromString(datasetDef)) } yield {
+      create match {
+        case com.rojoma.json.ast.JObject(response) =>
+          val com.rojoma.json.ast.JString(fourByFour) = response("id")
+          for { 
+            addColumn <- coreServer.addColumn(fourByFour, com.rojoma.json.io.JsonReader.fromString(columnDef))
+            upsert    <- coreServer.upsert(fourByFour, com.rojoma.json.io.JsonReader.fromString(rowDef))
+            publish   <- coreServer.publish(fourByFour)
+          } yield {
+            "w00t"
+          }
+        case _ => "Boo-urns!"
+      }
+    }
   }
 
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)

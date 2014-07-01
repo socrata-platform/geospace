@@ -12,16 +12,40 @@ import com.rojoma.json.io.JValueEventIterator
 
 class CoreServerClient(httpClient: HttpClient,
                        discovery: ServiceDiscovery[AuxiliaryData],
-                       serviceName: String,
+                       config: CoreServerConfig,
                        connectTimeout: FiniteDuration)
-  extends CuratorServiceBase(discovery, serviceName) {
+  extends CuratorServiceBase(discovery, config.serviceName) {
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  def version: Try[JValue] = post(versionUrl(_), JNull, 200)
+  def create(payload: JValue): Try[JValue] = post(createUrl(_), payload, 200)
 
-  private def versionUrl(rb: RequestBuilder) =
-    rb.p("version").method("GET")
+  def addColumn(resourceName: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, resourceName), payload, 200)
+
+  def upsert(resourceName: String, payload: JValue): Try[JValue] = post(upsertUrl(_, resourceName), payload, 200)
+
+  def publish(resourceName: String): Try[JValue] = post(publishUrl(_, resourceName), JNull, 200)
+
+  private def createUrl(rb: RequestBuilder) =
+    basicCoreServerUrl(rb).method("POST").p("views")
+
+  private def addColumnsUrl(rb: RequestBuilder, resourceName: String) =
+    basicCoreServerUrl(rb).method("POST").p("views", resourceName, "columns")
+
+  private def upsertUrl(rb: RequestBuilder, resourceName: String) =
+    basicCoreServerUrl(rb).method("PUT").p("resources", resourceName, "rows")
+
+  private def publishUrl(rb: RequestBuilder, resourceName: String) =
+    basicCoreServerUrl(rb).method("POST").p("views", resourceName, "publication.json")
+
+  // TODO : Ideally, we would not put auth in the config
+  private def basicCoreServerUrl(rb: RequestBuilder) =
+    rb.addHeader("Authorization", config.authToken)
+      .addHeader(("X-App-Token", config.appToken))
+      .addHeader(("X-Socrata-Host", config.geoDomain))
+      .addHeader(("Content-Type", "application/json"))
+      .addParameter(("nbe", "true"))
+
 
   private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
