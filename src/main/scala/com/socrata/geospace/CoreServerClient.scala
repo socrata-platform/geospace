@@ -10,6 +10,13 @@ import com.rojoma.json.ast.{JNull, JValue}
 import scala.util.{Failure, Success, Try}
 import com.rojoma.json.io.JValueEventIterator
 
+/**
+ * Manages connections and requests to the Core server
+ * @param httpClient HttpClient object used to make requests
+ * @param discovery Service discovery object for querying Zookeeper
+ * @param config Core server configuration object
+ * @param connectTimeout Timeout setting for connecting to the service
+ */
 class CoreServerClient(httpClient: HttpClient,
                        discovery: ServiceDiscovery[AuxiliaryData],
                        config: CoreServerConfig,
@@ -18,13 +25,38 @@ class CoreServerClient(httpClient: HttpClient,
 
   val logger = LoggerFactory.getLogger(getClass)
 
+  /**
+   * Sends a request to Core server to create a dataset
+   * and returns the response
+   * @param payload Request POST body
+   * @return HTTP response code and body
+   */
   def create(payload: JValue): Try[JValue] = post(createUrl(_), payload, 200)
 
-  def addColumn(resourceName: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, resourceName), payload, 200)
+  /**
+   * Sends a request to Core server to publish a dataset
+   * and returns the response
+   * @param fourByFour 4x4 of the dataset to publish
+   * @return HTTP response code and body
+   */
+  def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, 200)
 
-  def upsert(resourceName: String, payload: JValue): Try[JValue] = post(upsertUrl(_, resourceName), payload, 200)
+  /**
+   * Sends a request to Core server to upsert rows to a dataset
+   * and returns the response
+   * @param fourByFour 4x4 of the dataset to upsert to
+   * @param payload Request POST body
+   * @return HTTP response code and body
+   */
+  def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, 200)
 
-  def publish(resourceName: String): Try[JValue] = post(publishUrl(_, resourceName), JNull, 200)
+  /**
+   * Sends a request to Core server to publish a dataset
+   * and returns the response
+   * @param fourByFour 4x4 of the dataset to publish
+   * @return HTTP response code and body
+   */
+  def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, 200)
 
   private def createUrl(rb: RequestBuilder) =
     basicCoreServerUrl(rb).method("POST").p("views")
@@ -53,7 +85,7 @@ class CoreServerClient(httpClient: HttpClient,
 
       response.resultCode match {
         case `expectedResponseCode` => Success(body)
-        case _ => Failure(new SodaFountainException(s"Soda fountain response: ${response.resultCode} Payload: $body"))
+        case _ => Failure(new CoreServerException(s"Core server response: ${response.resultCode} Payload: $body"))
       }
     }
 
