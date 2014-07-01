@@ -79,6 +79,7 @@ class CoreServerClient(httpClient: HttpClient,
       .addParameter(("nbe", "true"))
 
 
+  // TODO : Factor out post, query, requestBuilder and connectTimeout shenanigans to third party utils
   private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
       val body = if (response.isJson) response.asJValue() else JNull
