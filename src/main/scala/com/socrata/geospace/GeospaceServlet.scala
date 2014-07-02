@@ -8,7 +8,8 @@ import org.scalatra.servlet.{MultipartConfig, FileUploadSupport}
 import scala.util.{Failure, Success}
 import scala.concurrent.Future
 
-class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroserviceStack with FileUploadSupport {
+class GeospaceServlet(sodaFountain: SodaFountainClient,
+                      coreServer: CoreServerClient) extends GeospaceMicroserviceStack with FileUploadSupport {
   val regionCache = new RegionCache()
 
   get("/") {
@@ -29,21 +30,21 @@ class GeospaceServlet(sodaFountain: SodaFountainClient) extends GeospaceMicroser
 
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
   // TODO Return some kind of meaningful JSON response
-  post("/experimental/regions/:resourceName/shapefile") {
-    val resourceName = params.getOrElse("resourceName", halt(BadRequest("No resourceName param provided in the request")))
+  post("/experimental/regions/shapefile") {
+    val friendlyName = params.getOrElse("friendlyName", halt(BadRequest("No friendlyName param provided in the request")))
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
 
     val ingressResult =
       for { zip                <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents)
-            response           <- FeatureIngester.ingest(sodaFountain, resourceName, features, schema)
+            response           <- FeatureIngester.ingestViaCoreServer(coreServer, friendlyName, features, schema)
       } yield {
         // Cache the reprojected features in our region cache for immediate geocoding
         // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-        regionCache.getFromFeatures(params("resourceName"), features.toSeq)
+        regionCache.getFromFeatures(response.uid, features.toSeq)
 
-        response
+        Map("uid" -> response.uid, "upsert_count" -> response.upsertCount)
       }
 
     // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.

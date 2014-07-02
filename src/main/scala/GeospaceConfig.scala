@@ -16,16 +16,22 @@ class GeospaceConfig(config: Config) {
 
   val curator = new CuratorConfig(config, "curator")
   val discovery = new DiscoveryConfig(config, "curator")
-  val sodaFountain = new SodaFountainConfig(config.getConfig("soda-fountain"))
+  val sodaFountain = new CuratedServiceConfig(config.getConfig("soda-fountain"))
+  val coreServer = new CoreServerConfig(config.getConfig("core-server"))
   val service = new ServiceAdvertisementConfig(config.getConfig("service-advertisement"))
 
   val debugString = config.root.render()
 }
 
+class CoreServerConfig(config: Config) extends CuratedServiceConfig(config) {
+  val geoDomain = config.getString("geo-domain")
+  val authToken = config.getString("auth-token")
+  val appToken  = config.getString("app-token")
+}
 /**
- * Contains Soda Fountain-specific configuration values
+ * Contains configuration values to provision a curated service
  */
-class SodaFountainConfig(config: Config) {
+class CuratedServiceConfig(config: Config) {
   val serviceName = config.getString("service-name")
 }
 

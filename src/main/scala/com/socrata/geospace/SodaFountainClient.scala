@@ -39,9 +39,9 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
   def publish(resourceName: String): Try[JValue] = post(publishUrl(_, resourceName), JNull, 201)
 
   /**
-   * Sends a request to Soda Fountain to publish a dataset
+   * Sends a request to Soda Fountain to upsert rows to a dataset
    * and returns the response
-   * @param resourceName Resource name of the dataset to publish
+   * @param resourceName Resource name of the dataset to upsert to
    * @param payload Request POST body
    * @return HTTP response code and body
    */

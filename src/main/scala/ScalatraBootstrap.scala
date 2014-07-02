@@ -33,16 +33,20 @@ class ScalatraBootstrap extends LifeCycle {
 
   lazy val sodaFountain =  new SodaFountainClient(
     httpClient, discovery, config.sodaFountain.serviceName, config.curator.connectTimeout)
+  lazy val coreServer = new CoreServerClient(
+    httpClient, discovery, config.coreServer, config.curator.connectTimeout)
 
   override def init(context: ServletContext) {
     curator.start
     discovery.start
     cookie
     sodaFountain.start
-    context.mount(new GeospaceServlet(sodaFountain), "/*")
+    coreServer.start
+    context.mount(new GeospaceServlet(sodaFountain, coreServer), "/*")
   }
 
   override def destroy(context: ServletContext) {
+    coreServer.close
     sodaFountain.close
     broker.deregister(cookie)
     httpClient.close
