@@ -42,9 +42,9 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
       } yield {
         // Cache the reprojected features in our region cache for immediate geocoding
         // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-        regionCache.getFromFeatures(response.uid, features.toSeq)
+        regionCache.getFromFeatures(response.resourceName, features.toSeq)
 
-        Map("uid" -> response.uid, "upsert_count" -> response.upsertCount)
+        Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
       }
 
     // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
