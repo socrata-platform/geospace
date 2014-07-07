@@ -6,6 +6,9 @@ import org.geoscript.feature._
 import org.geoscript.feature.schemaBuilder._
 import org.geoscript.layer._
 import org.geoscript.projection._
+import org.geotools.factory.Hints
+import org.geotools.referencing.ReferencingFactoryFinder
+import org.opengis.referencing.crs.CoordinateReferenceSystem
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -61,8 +64,8 @@ object ShapefileReader {
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
    */
-  def read(directory: File): Try[(Traversable[Feature], Schema)] = {
-    validate(directory).flatMap { Unit => getContents(directory) }
+  def read(directory: File, forceLongLat: Boolean): Try[(Traversable[Feature], Schema)] = {
+    validate(directory).flatMap { Unit => getContents(directory, forceLongLat: Boolean) }
   }
 
   /**
@@ -93,19 +96,15 @@ object ShapefileReader {
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
    */
-  def getContents(directory: File): Try[(Traversable[Feature], Schema)] = {
+  def getContents(directory: File, forceLongLat: Boolean): Try[(Traversable[Feature], Schema)] = {
     for { shp <- getFile(directory, ShapeFormat)
           shapefile <- Try(Shapefile(shp))
     } yield {
       try {
-        lookupEPSG(StandardProjection) match {
-          case Some(proj) => {
-            val features = shapefile.features.map(feature => reproject(feature, proj))
-            val schema = reproject(shapefile.schema, proj)
-            (features, schema)
-          }
-          case _ => return Failure(new ReprojectionException(s"Unable to lookup projection $StandardProjection"))
-        }
+        val proj = getTargetProjection(StandardProjection, forceLongLat)
+        val features = shapefile.features.map(feature => reproject(feature, proj))
+        val schema = reproject(shapefile.schema, proj)
+        (features, schema)
       } finally {
         // Geotools holds a lock on the .shp file if the above blows up.
         // Releasing resources cleanly in case of an exception.
@@ -113,5 +112,11 @@ object ShapefileReader {
         shapefile.getDataStore.dispose
       }
     }
+  }
+
+  private def getTargetProjection(epsgCode: String, forceLongLat: Boolean): CoordinateReferenceSystem = {
+    val hints = if (forceLongLat) new Hints(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER, true) else new Hints()
+    val factory = ReferencingFactoryFinder.getCRSAuthorityFactory("EPSG", hints)
+    factory.createCoordinateReferenceSystem(epsgCode)
   }
 }
