@@ -31,14 +31,14 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
   // TODO Return some kind of meaningful JSON response
   post("/experimental/regions/shapefile") {
     val friendlyName = params.getOrElse("friendlyName", halt(BadRequest("No friendlyName param provided in the request")))
-    val forceLongLat = Try(params.getOrElse("forceLongLat", "false").toBoolean)
-                         .getOrElse(halt(BadRequest("Invalid forceLongLat param provided in the request")))
+    val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
+                         .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
 
     val ingressResult =
       for { zip                <- managed(new TemporaryZip(file.get))
-            (features, schema) <- ShapefileReader.read(zip.contents, forceLongLat)
+            (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
             response           <- FeatureIngester.ingestViaCoreServer(coreServer, friendlyName, features, schema)
       } yield {
         // Cache the reprojected features in our region cache for immediate geocoding
@@ -59,9 +59,9 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
 
   // A test route only for loading a Shapefile to cache; body = full path to Shapefile unzipped directory
   post("/experimental/regions/:resourceName/local-shp") {
-    val forceLongLat = Try(params.getOrElse("forceLongLat", "false").toBoolean)
-                         .getOrElse(halt(BadRequest("Invalid forceLongLat param provided in the request")))
-    val readResult = ShapefileReader.read(new java.io.File(request.body), forceLongLat)
+    val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
+                         .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
+    val readResult = ShapefileReader.read(new java.io.File(request.body), forceLonLat)
     assert(readResult.isSuccess)
     val (features, schema) = readResult.get
 

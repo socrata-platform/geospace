@@ -64,8 +64,8 @@ object ShapefileReader {
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
    */
-  def read(directory: File, forceLongLat: Boolean): Try[(Traversable[Feature], Schema)] = {
-    validate(directory).flatMap { Unit => getContents(directory, forceLongLat: Boolean) }
+  def read(directory: File, forceLonLat: Boolean): Try[(Traversable[Feature], Schema)] = {
+    validate(directory).flatMap { Unit => getContents(directory, forceLonLat: Boolean) }
   }
 
   /**
@@ -96,12 +96,12 @@ object ShapefileReader {
    * @param directory Directory containing the set of files that make up the shapefile
    * @return The shapefile shape layer and schema
    */
-  def getContents(directory: File, forceLongLat: Boolean): Try[(Traversable[Feature], Schema)] = {
+  def getContents(directory: File, forceLonLat: Boolean): Try[(Traversable[Feature], Schema)] = {
     for { shp <- getFile(directory, ShapeFormat)
           shapefile <- Try(Shapefile(shp))
     } yield {
       try {
-        val proj = getTargetProjection(StandardProjection, forceLongLat)
+        val proj = getTargetProjection(StandardProjection, forceLonLat)
         val features = shapefile.features.map(feature => reproject(feature, proj))
         val schema = reproject(shapefile.schema, proj)
         (features, schema)
@@ -114,8 +114,8 @@ object ShapefileReader {
     }
   }
 
-  private def getTargetProjection(epsgCode: String, forceLongLat: Boolean): CoordinateReferenceSystem = {
-    val hints = if (forceLongLat) new Hints(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER, true) else new Hints()
+  private def getTargetProjection(epsgCode: String, forceLonLat: Boolean): CoordinateReferenceSystem = {
+    val hints = if (forceLonLat) new Hints(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER, true) else new Hints()
     val factory = ReferencingFactoryFinder.getCRSAuthorityFactory("EPSG", hints)
     factory.createCoordinateReferenceSystem(epsgCode)
   }
