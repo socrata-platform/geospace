@@ -12,7 +12,7 @@ import scala.util.{Success, Failure, Try}
 object FeatureIngester {
   val logger = LoggerFactory.getLogger(getClass)
 
-  case class Response(uid: String, upsertCount: Int)
+  case class Response(resourceName: String, upsertCount: Int)
 
   /**
    * Ingests the shapefile schema and rows into Dataspace
@@ -45,7 +45,11 @@ object FeatureIngester {
           upsert     <- coreServer.upsert(fourByFour, GeoToSoda1Converter.getUpsertBody(features, schema))
           publish    <- coreServer.publish(fourByFour)
     } yield {
-      Response(fourByFour, features.size)
+      // The region cache keys off the Soda Fountain resource name, but we currently
+      // ingress the shapefile rows through Core, so we have to mimic the Core->SF
+      // resource name mapping here. We can remove this once Core goes away.
+      val sodaFountainResourceName = "_" + fourByFour
+      Response(sodaFountainResourceName, features.size)
     }
   }
 
