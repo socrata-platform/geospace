@@ -79,6 +79,11 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     }
   }
 
+  delete("/experimental/regions") {
+    regionCache.reset()
+    Ok("Done")
+  }
+
   // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
   // Also describe how the getting the region file is async and thus the coding happens afterwards
   private def geoRegionCode(resourceName: String, points: Seq[Seq[Double]]): Future[Seq[String]] = {

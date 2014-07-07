@@ -20,8 +20,8 @@ import spray.caching.LruCache
  * TODO: Tune the cache based not on # of entries but on amount of memory available
  */
 class RegionCache(maxEntries: Int = 100) {
-  val logger = LoggerFactory.getLogger(getClass)
-  val cache = LruCache[SpatialIndex[String]](maxEntries)
+  private val logger = LoggerFactory.getLogger(getClass)
+  private val cache = LruCache[SpatialIndex[String]](maxEntries)
 
   logger.info("Creating RegionCache with {} entries", maxEntries)
 
@@ -60,6 +60,11 @@ class RegionCache(maxEntries: Int = 100) {
                     if (sodaResponse.isFailure) sodaResponse.failed.get else null))
       }
     }
+
+  /**
+   * Clears the region cache of all entries.  Mostly used for testing.
+   */
+  def reset() { cache.clear() }
 
   import SpatialIndex.Entry
 

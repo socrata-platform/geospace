@@ -59,9 +59,14 @@ object Dependencies {
     "org.velvia"               %% "geoscript"           % "0.8.3"
       exclude("org.geotools", "gt-xml")
       exclude("org.geotools", "gt-render")
-      exclude("org.scala-lang", "scala-swing"),
-    "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test",
-    "org.mock-server"           % "mockserver-netty"    % "3.0"             % "test"
+      exclude("org.scala-lang", "scala-swing")
+      exclude("com.lowagie", "itext")
+  )
+
+  lazy val testDeps = Seq(
+    "org.scalatest"            %% "scalatest"           % "2.1.0"    % "test",
+    "com.github.tomakehurst"    % "wiremock"            % "1.46"     % "test",
+    "org.apache.curator"        % "curator-test"        % "2.4.2"    % "test"
   )
 }
 
@@ -98,7 +103,8 @@ object GeospaceMicroserviceBuild extends Build {
                  port in Conf := 2020,         // Needed for container:restart, which uses a custom Jetty instance
                  resolvers += Classpaths.typesafeReleases,
                  resolvers ++= socrataResolvers,
-                 libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps,
+                 libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps ++ testDeps,
+                 fork in Test := true,
                  scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
                    Seq(
                      TemplateConfig(
