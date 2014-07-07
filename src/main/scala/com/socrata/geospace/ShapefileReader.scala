@@ -99,9 +99,9 @@ object ShapefileReader {
   def getContents(directory: File, forceLonLat: Boolean): Try[(Traversable[Feature], Schema)] = {
     for { shp <- getFile(directory, ShapeFormat)
           shapefile <- Try(Shapefile(shp))
+          proj <- Try(getTargetProjection(StandardProjection, forceLonLat))
     } yield {
       try {
-        val proj = getTargetProjection(StandardProjection, forceLonLat)
         val features = shapefile.features.map(feature => reproject(feature, proj))
         val schema = reproject(shapefile.schema, proj)
         (features, schema)
