@@ -79,14 +79,13 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     }
   }
 
-  // TODO: probably move this to some Object
   // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
   // Also describe how the getting the region file is async and thus the coding happens afterwards
   private def geoRegionCode(resourceName: String, points: Seq[Seq[Double]]): Future[Seq[String]] = {
     import org.geoscript.geometry.builder
 
     val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
-    val futureIndex = regionCache.getFromSoda(resourceName)
+    val futureIndex = regionCache.getFromSoda(sodaFountain, resourceName)
     futureIndex.map { index =>
       geoPoints.map { pt => index.firstContains(pt).map(_.item).getOrElse("") }
     }

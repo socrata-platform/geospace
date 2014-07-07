@@ -47,6 +47,13 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
    */
   def upsert(resourceName: String, payload: JValue): Try[JValue] = post(upsertUrl(_, resourceName), payload, 200)
 
+  /**
+   * Sends a request to Soda Fountain to query or retrieve rows from a dataset
+   * @param resourceName Resource name of the dataset to query
+   * @param asGeoJson return contents as a GeoJSON blob
+   */
+  def query(resourceName: String, asGeoJson: Boolean = false): Try[JValue] = get(queryUrl(_, resourceName, asGeoJson))
+
   private def createUrl(rb: RequestBuilder) =
     rb.p("dataset").method("POST").addHeader(("Content-Type", "application/json"))
 
@@ -56,6 +63,11 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
   private def upsertUrl(rb: RequestBuilder, resourceName: String) =
     rb.p("resource", resourceName).method("POST").addHeader(("Content-Type", "application/json"))
 
+  private def queryUrl(rb: RequestBuilder, resourceName: String, asGeoJson: Boolean) = {
+    val resource = if (asGeoJson) resourceName + ".geojson" else resourceName
+    rb.p("resource", resource)
+  }
+
   private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
       val body = if (response.isJson) response.asJValue() else JNull
@@ -63,6 +75,14 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
       response.resultCode match {
         case `expectedResponseCode` => Success(body)
         case _ => Failure(new SodaFountainException(s"Soda fountain response: ${response.resultCode} Payload: $body"))
+      }
+    }
+
+  private def get(requestBuilder: RequestBuilder => RequestBuilder): Try[JValue] =
+    query { rb => requestBuilder(rb).get } { response =>
+      response.resultCode match {
+        case 200 => Success(if (response.isJson) response.asJValue() else JNull)
+        case _   => Failure(new SodaFountainException(s"Soda fountain response: ${response.resultCode}"))
       }
     }
 

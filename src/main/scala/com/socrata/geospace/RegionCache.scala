@@ -1,5 +1,7 @@
 package com.socrata.geospace
 
+import com.rojoma.json.ast.JString
+import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import org.geoscript.feature._
 import org.slf4j.LoggerFactory
 import scala.concurrent.Future
@@ -41,8 +43,34 @@ class RegionCache(maxEntries: Int = 100) {
 
   /**
    * gets a SpatialIndex from the cache, populating it from Soda Fountain as needed
-   * TODO: add useful params
+   *
+   * @param sodaFountain the Soda Fountain client
+   * @param resourceName the name of the region dataset to pull from Soda Fountain
    */
-  def getFromSoda(resourceName: String): Future[SpatialIndex[String]] =
-    cache.get(resourceName).get
+  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[String]] =
+    cache(resourceName) {
+      logger.info(s"Populating cache entry for resource [$resourceName] from soda fountain client")
+      Future {
+        // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
+        val sodaResponse = sodaFountain.query(resourceName, asGeoJson = true)
+        sodaResponse.toOption.
+          flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
+          collect { case FeatureCollectionJson(features, _) => getIndexFromFeatureJson(features) }.
+          getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + sodaResponse.get,
+                    if (sodaResponse.isFailure) sodaResponse.failed.get else null))
+      }
+    }
+
+  import SpatialIndex.Entry
+
+  private def getIndexFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[String] = {
+    logger.debug("Converting {} features to SpatialIndex entries...", features.length)
+    val entries = features.flatMap { case FeatureJson(properties, geometry) =>
+      val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
+                       collect { case JString(id) => Entry(geometry, id) }
+      if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
+      entryOpt
+    }
+    new SpatialIndex(entries)
+  }
 }
