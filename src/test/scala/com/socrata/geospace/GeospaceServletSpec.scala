@@ -93,7 +93,9 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
                 |  },
                 |  "properties": {"_feature_id": "poly2"}
                 |}""".stripMargin
-  val geojson = """{"type":"FeatureCollection", "features": [""" + Seq(feat1, feat2).mkString(",") + "]}"
+  val geojson = """{"type":"FeatureCollection",
+                   |"crs" : { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+                   |"features": [""".stripMargin + Seq(feat1, feat2).mkString(",") + "]}"
 
   // Pretty much an end to end functional test, from Servlet route to SF client and region cache
   test("points geocode properly with cache loaded from soda fountain mock") {
