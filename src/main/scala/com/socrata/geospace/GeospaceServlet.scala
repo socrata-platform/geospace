@@ -24,7 +24,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     Map("version" -> BuildInfo.version,
         "scalaVersion" -> BuildInfo.scalaVersion,
         "dependencies" -> BuildInfo.libraryDependencies,
-        "buildTime" -> BuildInfo.buildTime)
+        "buildTime" -> new org.joda.time.DateTime(BuildInfo.buildTime).toString())
   }
 
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
