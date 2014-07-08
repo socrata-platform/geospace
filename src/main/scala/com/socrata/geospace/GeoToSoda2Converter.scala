@@ -30,7 +30,8 @@ object GeoToSoda2Converter {
     classOf[MultiPolygon]      -> "multipolygon",
     classOf[String]            -> "text",
     classOf[java.lang.Integer] -> "number",
-    classOf[java.lang.Double]  -> "double"
+    classOf[java.lang.Double]  -> "double",
+    classOf[java.lang.Long]    -> "double"
   )
 
   /**
