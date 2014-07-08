@@ -49,7 +49,7 @@ object Dependencies {
     "com.rojoma"               %% "rojoma-json"         % "2.4.3",
     "com.rojoma"               %% "simple-arm"          % "1.2.0",
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
-    "com.socrata"              %% "socrata-thirdparty-utils" % "2.2.0",
+    "com.socrata"              %% "socrata-thirdparty-utils" % "2.3.0",
     "com.typesafe"              % "config"              % "1.0.2",
     "io.spray"                  % "spray-caching"       % "1.2.1",
     "org.apache.commons"        % "commons-io"          % "1.3.2",
@@ -59,8 +59,14 @@ object Dependencies {
     "org.velvia"               %% "geoscript"           % "0.8.3"
       exclude("org.geotools", "gt-xml")
       exclude("org.geotools", "gt-render")
-      exclude("org.scala-lang", "scala-swing"),
-    "org.scalatest"            %% "scalatest"           % "2.1.0"           % "test"
+      exclude("org.scala-lang", "scala-swing")
+      exclude("com.lowagie", "itext")
+  )
+
+  lazy val testDeps = Seq(
+    "org.scalatest"            %% "scalatest"           % "2.1.0"    % "test",
+    "com.github.tomakehurst"    % "wiremock"            % "1.46"     % "test",
+    "org.apache.curator"        % "curator-test"        % "2.4.2"    % "test"
   )
 }
 
@@ -97,7 +103,8 @@ object GeospaceMicroserviceBuild extends Build {
                  port in Conf := 2020,         // Needed for container:restart, which uses a custom Jetty instance
                  resolvers += Classpaths.typesafeReleases,
                  resolvers ++= socrataResolvers,
-                 libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps,
+                 libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps ++ testDeps,
+                 fork in Test := true,
                  scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
                    Seq(
                      TemplateConfig(
