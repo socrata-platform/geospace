@@ -63,7 +63,7 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
   }
 
   test("Get shapefile contents - layer and schema data should be returned correctly") {
-    val result = ShapefileReader.getContents(tmp.toFile)
+    val result = ShapefileReader.getContents(tmp.toFile, false)
     result.isSuccess should be (true)
 
     val (features, schema) = result.get
@@ -80,7 +80,7 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
     val invalidContent = "mayhem"
     Files.write(shpFile, invalidContent.getBytes());
 
-    val result = ShapefileReader.getContents(tmp.toFile)
+    val result = ShapefileReader.getContents(tmp.toFile, false)
     result.isFailure should be (true)
     result.failed.get.getClass should be (classOf[IOException])
   }
