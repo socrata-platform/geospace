@@ -39,7 +39,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     val ingressResult =
       for { zip                <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
-            response           <- FeatureIngester.ingestViaCoreServer(coreServer, friendlyName, features, schema)
+            response           <- FeatureIngester.ingestViaCoreServer(coreServer, sodaFountain, friendlyName, features, schema)
       } yield {
         // Cache the reprojected features in our region cache for immediate geocoding
         // TODO: what do we do if the region was previously cached already?  Need to invalidate cache

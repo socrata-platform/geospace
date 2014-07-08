@@ -38,11 +38,17 @@ object FeatureIngester {
    * @param schema Schema definition
    * @return 4x4 created by Core server, plus the number of rows upserted
    */
-  def ingestViaCoreServer(coreServer: CoreServerClient, friendlyName: String, features: Traversable[Feature], schema: Schema): Try[Response] = {
+  def ingestViaCoreServer(coreServer: CoreServerClient,
+                          sodaFountain: SodaFountainClient,
+                          friendlyName: String,
+                          features: Traversable[Feature],
+                          schema: Schema): Try[Response] = {
     logger.info("Creating dataset for schema = {}", schema: Any)
+    // HACK : Core doesn't seem to chunk the upsert payload properly when passing it on to Soda Fountain
+    //        This hack bypasses Core for the upsert. Auth is already validated in the DDL steps, so this should be ok.
     for { fourByFour <- createDatasetViaCoreServer(coreServer, friendlyName)
           addColumns <- addColumnsViaCoreServer(coreServer, schema, fourByFour)
-          upsert     <- coreServer.upsert(fourByFour, GeoToSoda1Converter.getUpsertBody(features, schema))
+          upsert     <- sodaFountain.upsert("_" + fourByFour, GeoToSoda2Converter.getUpsertBody(features, schema))
           publish    <- coreServer.publish(fourByFour)
     } yield {
       // The region cache keys off the Soda Fountain resource name, but we currently
