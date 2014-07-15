@@ -44,7 +44,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
     WM.stubFor(WM.get(WM.urlEqualTo("/resource/" + resourceName)).
                willReturn(WM.aResponse()
                          .withStatus(200)
-                         .withHeader("Content-Type", "application/json; charset=utf-8")
+                         .withHeader("Content-Type", "application/vnd.geo+json; charset=utf-8")
                          .withBody(returnedBody)))
   }
 
