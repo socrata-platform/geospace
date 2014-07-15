@@ -1,7 +1,8 @@
 package com.socrata.geospace
 
 import com.rojoma.json.ast.{JNull, JValue}
-import com.rojoma.json.io.JValueEventIterator
+import com.rojoma.json.io.{JsonReader, JValueEventIterator}
+import com.rojoma.simplearm.util._
 import com.socrata.http.client.{Response, SimpleHttpRequest, HttpClient, RequestBuilder}
 import com.socrata.http.common.AuxiliaryData
 import com.socrata.thirdparty.curator.CuratorServiceBase
@@ -81,7 +82,10 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
   private def get(requestBuilder: RequestBuilder => RequestBuilder): Try[JValue] =
     query { rb => requestBuilder(rb).get } { response =>
       response.resultCode match {
-        case 200 => Success(if (response.isJson) response.asJValue() else JNull)
+        case 200 =>
+          for { reader <- managed(response.asReader())
+                json   <- Try(JsonReader.fromReader(reader))
+          } yield json
         case _   => Failure(new SodaFountainException(s"Soda fountain response: ${response.resultCode}"))
       }
     }
