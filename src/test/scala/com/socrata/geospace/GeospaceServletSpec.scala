@@ -44,7 +44,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
     WM.stubFor(WM.get(WM.urlEqualTo("/resource/" + resourceName)).
                willReturn(WM.aResponse()
                          .withStatus(200)
-                         .withHeader("Content-Type", "application/json; charset=utf-8")
+                         .withHeader("Content-Type", "application/vnd.geo+json; charset=utf-8")
                          .withBody(returnedBody)))
   }
 
@@ -123,6 +123,20 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
     post("/experimental/regions/triangles/geocode",
          "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
          headers = Map("Content-Type" -> "application/json")) {
+      status should equal (500)
+    }
+  }
+
+  test("geocoding service should return 500 if soda fountain server returns something unexpected (non-JSON)") {
+    // First reset the cache to force region to load from soda fountain
+    delete("/experimental/regions") {
+      status should equal (200)
+    }
+
+    mockSodaRoute("nonsense.geojson", "gobbledygook")
+    post("/experimental/regions/nonsense/geocode",
+      "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
+      headers = Map("Content-Type" -> "application/json")) {
       status should equal (500)
     }
   }
