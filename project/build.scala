@@ -14,7 +14,6 @@ import sbtassembly.AssemblyUtils._
 object BuildParameters {
   val Organization = "com.socrata"
   val Name = "geospace"
-  val Version = "0.0.1-SNAPSHOT"
   val ScalaVersion = "2.10.3"
   val ScalatraVersion = "2.2.2"
   val port = SettingKey[Int]("port")
@@ -98,7 +97,6 @@ object GeospaceMicroserviceBuild extends Build {
                scalateSettings ++ Seq(
                  organization := Organization,
                  name := Name,
-                 version := Version,
                  scalaVersion := ScalaVersion,
                  port in Conf := 2020,         // Needed for container:restart, which uses a custom Jetty instance
                  resolvers += Classpaths.typesafeReleases,
