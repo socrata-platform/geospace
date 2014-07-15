@@ -126,4 +126,18 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
       status should equal (500)
     }
   }
+
+  test("geocoding service should return 500 if soda fountain server returns something unexpected (non-JSON)") {
+    // First reset the cache to force region to load from soda fountain
+    delete("/experimental/regions") {
+      status should equal (200)
+    }
+
+    mockSodaRoute("nonsense.geojson", "gobbledygook")
+    post("/experimental/regions/nonsense/geocode",
+      "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
+      headers = Map("Content-Type" -> "application/json")) {
+      status should equal (500)
+    }
+  }
 }
