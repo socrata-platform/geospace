@@ -122,7 +122,6 @@ object GeospaceMicroserviceBuild extends Build {
   )
 
   lazy val assemblySettings = sbtassembly.Plugin.assemblySettings ++ Seq(
-    jarName in assembly := "geospace-assembly.jar",
     mergeStrategy in assembly <<= (mergeStrategy in assembly) { old =>
       {
         case "about.html" => MergeStrategy.rename
