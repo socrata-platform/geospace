@@ -8,6 +8,54 @@ Provides the following services:
 
 The routes are all in `GeospaceServlet.scala`.
 
+#### BEFORE PROCEEDING ####
+
+## Make sure you have updated SODA-FOUNTAIN and DATA-COORDINATOR to the latest from the master branch ##
+
+To do so: perform the follow steps:
+
+# For SODA-FOUNTAIN: #
+
+git checkout master
+git reset --hard
+git pull
+sbt assembly
+
+Ensure that your startup script launches the latest version of the JAR located in:
+
+`soda-fountain-jetty/target/scala-2.10/`
+
+# For DATA-COORDINATOR #
+
+git checkout master
+git reset --hard
+git pull
+sbt assembly
+
+Ensure that your startup script launches the latest version of the JAR located in:
+
+`coordinator/target/scala-2.10/`
+
+## Edit configuration file ##
+
+Replace the following values in the `geospace/src/main/resources/application.conf` file to reflect the values needed for your environment.
+
+For example in your development environment you would replace the keys to look like this:
+
+```
+com.socrata.core-server = {
+  service-name = "core"
+  geo-domain   = "localhost"
+  auth-token   = "Basic cmFuZHkuYW50bGVyQHNvY3JhdGEuY29tOiVhcmdiYXJpbyE="
+  app-token    = "xLG2bj7oT13FqAmpjyeH0Io1K"
+}
+```
+Where app-token is your app token for your localhost domain.
+Where auth-token is the output of using "bto2()" in your browser to create a BASE64 encoded representation of the following string: `email.address@socrata.com:password`
+Where geo-domain is the name of your local development domain (usually localhost).
+
+
+
 ## Build & Run ##
 
 ```sh
