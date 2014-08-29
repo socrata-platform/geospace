@@ -50,11 +50,11 @@ object FeatureValidator {
     val rf = new RichFeature(feature)
     Option(rf.geometry) match {
       case Some(mp: MultiPolygon) =>
-        if (!mp.isValid) return GeometryNotValid
-        if (!offTheMapPoints(mp).isEmpty) return GeometryContainsOffMapPoints
+        if (!mp.isValid) GeometryNotValid
+        if (!offTheMapPoints(mp).isEmpty) GeometryContainsOffMapPoints
         if (mp.getCoordinates.size > maxMultiPolygonComplexity)
-          return GeometryTooComplex(maxMultiPolygonComplexity)
-        Valid
+          GeometryTooComplex(maxMultiPolygonComplexity)
+        else Valid
       case Some(geom: Geometry)   => GeometryNotAMultiPolygon
       case None                   => DefaultGeometryMissing
     }
