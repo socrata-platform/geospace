@@ -26,6 +26,13 @@ object FeatureValidator {
     coords.x > 180 || coords.x < -180 || coords.y > 90 || coords.y < -90
   }
 
+  /** *
+    * For a collection of features, returns user-friendly error messages
+    * for the features that are invalid.
+    * @param features The collection of features to be validated
+    * @param maxMultiPolygonComplexity Max number of points allowed in the multipolygon
+    * @return List of invalid features and a message about why they are invalid
+    */
   def validationErrors(features: Traversable[Feature], maxMultiPolygonComplexity: Int): Traversable[ErrorResponse] = {
     val validations = features.map { f => (f, validate(f, maxMultiPolygonComplexity)) }
     validations.collect {
