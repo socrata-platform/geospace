@@ -10,9 +10,9 @@ import scala.concurrent.duration.FiniteDuration
  * @param config Configuration object
  */
 class GeospaceConfig(config: Config) {
-  val maxFileSizeMegabytes = config.getInt("geospace.max-file-size-megabytes")
   val port = config.getInt("geospace.port")
   val gracefulShutdownMs = config.getMilliseconds("geospace.graceful-shutdown-time").toInt
+  val maxMultiPolygonComplexity = config.getInt("geospace.max-multipolygon-complexity")
 
   val curator = new CuratorConfig(config, "curator")
   val discovery = new DiscoveryConfig(config, "curator")

@@ -29,7 +29,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
     WM.configureFor("localhost", mockServerPort)
     // Really important, otherwise Scalatra's test container does not start up
     super.beforeAll()
-    addServlet(new GeospaceServlet(sodaFountain, null), "/*")
+    addServlet(new GeospaceServlet(sodaFountain, null, 2500), "/*")
   }
 
   override def afterAll {
