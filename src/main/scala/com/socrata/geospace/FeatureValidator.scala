@@ -34,9 +34,11 @@ object FeatureValidator {
     * @return List of invalid features and a message about why they are invalid
     */
   def validationErrors(features: Traversable[Feature], maxMultiPolygonComplexity: Int): Traversable[ErrorResponse] = {
-    val validations = features.map { f => (f, validate(f, maxMultiPolygonComplexity)) }
-    validations.collect {
-      case (f, failed: ValidationFailed) => ErrorResponse(f.getIdentifier.getID, failed.msg)
+    features.foldLeft(List.empty[ErrorResponse]) { (acc, feature) =>
+      validate(feature, maxMultiPolygonComplexity) match {
+        case vf: ValidationFailed => acc :+ ErrorResponse(feature.getIdentifier.getID, vf.msg)
+        case Valid                => acc
+      }
     }
   }
 
