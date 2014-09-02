@@ -57,6 +57,7 @@ object FeatureValidator {
         else if (mp.getCoordinates.size > maxMultiPolygonComplexity)
           GeometryTooComplex(maxMultiPolygonComplexity)
         else Valid
+      // TODO : Do we want to convert polygons to multipolygon at shapefile ingress? Tracked in CORE-3236
       case Some(geom: Geometry)   => GeometryNotAMultiPolygon
       case None                   => DefaultGeometryMissing
     }
