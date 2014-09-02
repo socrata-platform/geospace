@@ -9,7 +9,7 @@ import org.geoscript.feature.{RichFeature, Feature}
 object FeatureValidator {
   sealed trait Result
   case object Valid extends Result
-  sealed abstract class ValidationFailed(var msg: String) extends Result
+  sealed abstract class ValidationFailed(val msg: String) extends Result
   case object DefaultGeometryMissing extends ValidationFailed("Feature is missing a default geometry")
   case object GeometryNotAMultiPolygon extends ValidationFailed("Feature geometry is not a multipolygon")
   case object GeometryNotValid extends ValidationFailed("Feature geometry is invalid")
@@ -51,8 +51,8 @@ object FeatureValidator {
     Option(rf.geometry) match {
       case Some(mp: MultiPolygon) =>
         if (!mp.isValid) GeometryNotValid
-        if (!offTheMapPoints(mp).isEmpty) GeometryContainsOffMapPoints
-        if (mp.getCoordinates.size > maxMultiPolygonComplexity)
+        else if (!offTheMapPoints(mp).isEmpty) GeometryContainsOffMapPoints
+        else if (mp.getCoordinates.size > maxMultiPolygonComplexity)
           GeometryTooComplex(maxMultiPolygonComplexity)
         else Valid
       case Some(geom: Geometry)   => GeometryNotAMultiPolygon

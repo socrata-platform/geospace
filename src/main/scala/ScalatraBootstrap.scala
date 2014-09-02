@@ -42,7 +42,7 @@ class ScalatraBootstrap extends LifeCycle {
     cookie
     sodaFountain.start
     coreServer.start
-    context.mount(new GeospaceServlet(sodaFountain, coreServer, config.maxMultiPolygonComplexity), "/*")
+    context.mount(new GeospaceServlet(sodaFountain, coreServer, config), "/*")
   }
 
   override def destroy(context: ServletContext) {

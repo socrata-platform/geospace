@@ -9,7 +9,7 @@ import scala.util.{Try, Failure, Success}
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
-                      maxMultiPolygonComplexity: Int) extends GeospaceMicroserviceStack with FileUploadSupport {
+                      config: GeospaceConfig) extends GeospaceMicroserviceStack with FileUploadSupport {
   val regionCache = new RegionCache()
 
   get("/") {
@@ -38,10 +38,10 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
 
     val readResult =
-      for { zip <- managed(new TemporaryZip(file.get))
+      for {  zip               <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
       } yield {
-        val validationErrors = FeatureValidator.validationErrors(features, maxMultiPolygonComplexity)
+        val validationErrors = FeatureValidator.validationErrors(features, config.maxMultiPolygonComplexity)
         if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
         (features, schema)
       }

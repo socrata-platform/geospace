@@ -3,6 +3,7 @@ package com.socrata.geospace
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.{WireMock => WM}
+import com.typesafe.config.ConfigFactory
 import org.scalatra.test.scalatest._
 import org.scalatest.FunSuiteLike
 
@@ -29,7 +30,8 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
     WM.configureFor("localhost", mockServerPort)
     // Really important, otherwise Scalatra's test container does not start up
     super.beforeAll()
-    addServlet(new GeospaceServlet(sodaFountain, null, 2500), "/*")
+    val cfg = ConfigFactory.load().getConfig("com.socrata")
+    addServlet(new GeospaceServlet(sodaFountain, null, new GeospaceConfig(cfg)), "/*")
   }
 
   override def afterAll {
