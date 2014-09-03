@@ -1,15 +1,15 @@
 package com.socrata.geospace
 
-import com.socrata.BuildInfo
 import com.rojoma.simplearm.util._
+import com.socrata.BuildInfo
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.concurrent.Future
 import scala.util.{Try, Failure, Success}
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
-                      coreServer: CoreServerClient) extends GeospaceMicroserviceStack with FileUploadSupport {
-
+                      coreServer: CoreServerClient,
+                      config: GeospaceConfig) extends GeospaceMicroserviceStack with FileUploadSupport {
   val regionCache = new RegionCache()
 
   get("/") {
@@ -42,24 +42,35 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("X-Socrata-Host header must be provided in order to ingest a shapefile")))
     val requester = coreServer.requester(CoreServerAuth(authToken, appToken, domain))
 
-    val ingressResult =
-      for { zip                <- managed(new TemporaryZip(file.get))
+    val readResult =
+      for {  zip               <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
-            response           <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema)
       } yield {
-        // Cache the reprojected features in our region cache for immediate geocoding
-        // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-        regionCache.getFromFeatures(response.resourceName, features.toSeq)
-
-        Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
+        val validationErrors = FeatureValidator.validationErrors(features, config.maxMultiPolygonComplexity)
+        if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
+        (features, schema)
       }
 
-    // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
-    // Refactor to do that and handle IOExceptions cleanly.
-    ingressResult match {
-      case Success(payload)                  => Map("response" -> payload)
-      case Failure(e: InvalidShapefileSet)   => halt(BadRequest(e.getMessage))
-      case Failure(e)                        => halt(InternalServerError(e.getMessage))
+    readResult match {
+      case Success((features, schema)) =>
+        val ingressResult =
+          for { response <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
+          yield {
+            // Cache the reprojected features in our region cache for immediate geocoding
+            // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
+            regionCache.getFromFeatures(response.resourceName, features.toSeq)
+
+            Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
+          }
+
+        // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
+        // Refactor to do that and handle IOExceptions cleanly.
+        ingressResult match {
+          case Success(payload)                  => Map("response" -> payload)
+          case Failure(e: InvalidShapefileSet)   => throw e //halt(BadRequest(e.getMessage))
+          case Failure(e)                        => throw e //halt(InternalServerError(e.getMessage))
+        }
+      case Failure(e)                => throw e
     }
   }
 
