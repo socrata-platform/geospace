@@ -9,6 +9,7 @@ import scala.util.{Try, Failure, Success}
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient) extends GeospaceMicroserviceStack with FileUploadSupport {
+
   val regionCache = new RegionCache()
 
   get("/") {
@@ -36,10 +37,15 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
 
+    val authToken = request.headers.getOrElse("Authorization", halt(BadRequest("Core Basic Auth must be provided in order to ingest a shapefile")))
+    val appToken = request.headers.getOrElse("X-App-Token", halt(BadRequest("X-App-Token header must be provided in order to ingest a shapefile")))
+    val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("X-Socrata-Host header must be provided in order to ingest a shapefile")))
+    val requester = coreServer.requester(CoreServerAuth(authToken, appToken, domain))
+
     val ingressResult =
       for { zip                <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
-            response           <- FeatureIngester.ingestViaCoreServer(coreServer, sodaFountain, friendlyName, features, schema)
+            response           <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema)
       } yield {
         // Cache the reprojected features in our region cache for immediate geocoding
         // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
