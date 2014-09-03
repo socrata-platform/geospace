@@ -70,7 +70,7 @@ class CoreServerClient(httpClient: HttpClient,
     def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, 200)
 
     private def createUrl(rb: RequestBuilder) =
-      basicCoreServerUrl(rb).method("POST").p("views")
+      basicCoreServerUrl(rb).method("POST").p("views").addParameter("nbe", "true")
 
     private def addColumnsUrl(rb: RequestBuilder, resourceName: String) =
       basicCoreServerUrl(rb).method("POST").p("views", resourceName, "columns")
@@ -86,7 +86,6 @@ class CoreServerClient(httpClient: HttpClient,
         .addHeader(("X-App-Token", auth.appToken))
         .addHeader(("X-Socrata-Host", auth.domain))
         .addHeader(("Content-Type", "application/json"))
-        .addParameter(("nbe", "true"))
   }
 
   // TODO : Factor out post, query, requestBuilder and connectTimeout shenanigans to third party utils
