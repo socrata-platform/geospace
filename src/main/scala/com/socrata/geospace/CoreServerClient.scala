@@ -10,6 +10,12 @@ import com.rojoma.json.ast.{JNull, JValue}
 import scala.util.{Failure, Success, Try}
 import com.rojoma.json.io.JValueEventIterator
 
+/**
+ * Container for passing auth information from client request to Core Server
+ * @param authToken Authorization header value
+ * @param appToken X-App-Token header value
+ * @param domain X-Socrata-Host header value
+ */
 case class CoreServerAuth(authToken: String, appToken: String, domain: String)
 
 /**
