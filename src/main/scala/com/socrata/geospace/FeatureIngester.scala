@@ -32,13 +32,13 @@ object FeatureIngester {
 
   /**
    * Uses Core server endpoint to ingest shapefile schema and rows into Dataspace
-   * @param coreServer Connection to Core server
+   * @param requester Core server requester object
    * @param friendlyName Human readable name for the created dataset
    * @param features Features representing the rows to upsert
    * @param schema Schema definition
    * @return 4x4 created by Core server, plus the number of rows upserted
    */
-  def ingestViaCoreServer(coreServer: CoreServerClient,
+  def ingestViaCoreServer(requester: CoreServerClient#Requester,
                           sodaFountain: SodaFountainClient,
                           friendlyName: String,
                           features: Traversable[Feature],
@@ -46,10 +46,10 @@ object FeatureIngester {
     logger.info("Creating dataset for schema = {}", schema: Any)
     // HACK : Core doesn't seem to chunk the upsert payload properly when passing it on to Soda Fountain
     //        This hack bypasses Core for the upsert. Auth is already validated in the DDL steps, so this should be ok.
-    for { fourByFour <- createDatasetViaCoreServer(coreServer, friendlyName)
-          addColumns <- addColumnsViaCoreServer(coreServer, schema, fourByFour)
+    for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
+          addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
           upsert     <- sodaFountain.upsert("_" + fourByFour, GeoToSoda2Converter.getUpsertBody(features, schema))
-          publish    <- coreServer.publish(fourByFour)
+          publish    <- requester.publish(fourByFour)
     } yield {
       // The region cache keys off the Soda Fountain resource name, but we currently
       // ingress the shapefile rows through Core, so we have to mimic the Core->SF
@@ -59,8 +59,8 @@ object FeatureIngester {
     }
   }
 
-  private def createDatasetViaCoreServer(coreServer: CoreServerClient, friendlyName: String): Try[String] =
-    for { create <- coreServer.create(GeoToSoda1Converter.getCreateBody(friendlyName)) } yield {
+  private def createDatasetViaCoreServer(requester: CoreServerClient#Requester, friendlyName: String): Try[String] =
+    for { create <- requester.create(GeoToSoda1Converter.getCreateBody(friendlyName)) } yield {
       create match {
         case JObject(map)  =>
           val JString(id) = map("id")
@@ -68,9 +68,9 @@ object FeatureIngester {
       }
     }
 
-  private def addColumnsViaCoreServer(coreServer: CoreServerClient, schema: Schema, fourByFour: String): Try[JValue] = {
+  private def addColumnsViaCoreServer(requester: CoreServerClient#Requester, schema: Schema, fourByFour: String): Try[JValue] = {
     val results = GeoToSoda1Converter.getAddColumnBodies(schema).map { column =>
-      coreServer.addColumn(fourByFour, column)
+      requester.addColumn(fourByFour, column)
     }
 
     // This is kind of gross. There must be a cleaner way to

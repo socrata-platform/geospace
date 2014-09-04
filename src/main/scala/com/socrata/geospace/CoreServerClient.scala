@@ -11,73 +11,82 @@ import scala.util.{Failure, Success, Try}
 import com.rojoma.json.io.JValueEventIterator
 
 /**
+ * Container for passing auth information from client request to Core Server
+ * @param authToken Authorization header value
+ * @param appToken X-App-Token header value
+ * @param domain X-Socrata-Host header value
+ */
+case class CoreServerAuth(authToken: String, appToken: String, domain: String)
+
+/**
  * Manages connections and requests to the Core server
  * @param httpClient HttpClient object used to make requests
  * @param discovery Service discovery object for querying Zookeeper
- * @param config Core server configuration object
+ * @param serviceName Service name as registered in Zookeeper
  * @param connectTimeout Timeout setting for connecting to the service
  */
 class CoreServerClient(httpClient: HttpClient,
                        discovery: ServiceDiscovery[AuxiliaryData],
-                       config: CoreServerConfig,
+                       serviceName: String,
                        connectTimeout: FiniteDuration)
-  extends CuratorServiceBase(discovery, config.serviceName) {
+  extends CuratorServiceBase(discovery, serviceName) {
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  /**
-   * Sends a request to Core server to create a dataset
-   * and returns the response
-   * @param payload Request POST body
-   * @return HTTP response code and body
-   */
-  def create(payload: JValue): Try[JValue] = post(createUrl(_), payload, 200)
+  def requester(auth: CoreServerAuth) = new Requester(auth)
 
-  /**
-   * Sends a request to Core server to publish a dataset
-   * and returns the response
-   * @param fourByFour 4x4 of the dataset to publish
-   * @return HTTP response code and body
-   */
-  def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, 200)
+  class Requester(auth: CoreServerAuth) {
+    /**
+     * Sends a request to Core server to create a dataset
+     * and returns the response
+     * @param payload Request POST body
+     * @return HTTP response code and body
+     */
+    def create(payload: JValue): Try[JValue] = post(createUrl, payload, 200)
 
-  /**
-   * Sends a request to Core server to upsert rows to a dataset
-   * and returns the response
-   * @param fourByFour 4x4 of the dataset to upsert to
-   * @param payload Request POST body
-   * @return HTTP response code and body
-   */
-  def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, 200)
+    /**
+     * Sends a request to Core server to publish a dataset
+     * and returns the response
+     * @param fourByFour 4x4 of the dataset to publish
+     * @return HTTP response code and body
+     */
+    def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, 200)
 
-  /**
-   * Sends a request to Core server to publish a dataset
-   * and returns the response
-   * @param fourByFour 4x4 of the dataset to publish
-   * @return HTTP response code and body
-   */
-  def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, 200)
+    /**
+     * Sends a request to Core server to upsert rows to a dataset
+     * and returns the response
+     * @param fourByFour 4x4 of the dataset to upsert to
+     * @param payload Request POST body
+     * @return HTTP response code and body
+     */
+    def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, 200)
 
-  private def createUrl(rb: RequestBuilder) =
-    basicCoreServerUrl(rb).method("POST").p("views")
+    /**
+     * Sends a request to Core server to publish a dataset
+     * and returns the response
+     * @param fourByFour 4x4 of the dataset to publish
+     * @return HTTP response code and body
+     */
+    def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, 200)
 
-  private def addColumnsUrl(rb: RequestBuilder, resourceName: String) =
-    basicCoreServerUrl(rb).method("POST").p("views", resourceName, "columns")
+    private def createUrl(rb: RequestBuilder) =
+      basicCoreServerUrl(rb).method("POST").p("views").addParameter("nbe", "true")
 
-  private def upsertUrl(rb: RequestBuilder, resourceName: String) =
-    basicCoreServerUrl(rb).method("PUT").p("resources", resourceName, "rows")
+    private def addColumnsUrl(rb: RequestBuilder, resourceName: String) =
+      basicCoreServerUrl(rb).method("POST").p("views", resourceName, "columns")
 
-  private def publishUrl(rb: RequestBuilder, resourceName: String) =
-    basicCoreServerUrl(rb).method("POST").p("views", resourceName, "publication.json")
+    private def upsertUrl(rb: RequestBuilder, resourceName: String) =
+      basicCoreServerUrl(rb).method("PUT").p("resources", resourceName, "rows")
 
-  // TODO : Ideally, we would not put auth in the config
-  private def basicCoreServerUrl(rb: RequestBuilder) =
-    rb.addHeader("Authorization", config.authToken)
-      .addHeader(("X-App-Token", config.appToken))
-      .addHeader(("X-Socrata-Host", config.geoDomain))
-      .addHeader(("Content-Type", "application/json"))
-      .addParameter(("nbe", "true"))
+    private def publishUrl(rb: RequestBuilder, resourceName: String) =
+      basicCoreServerUrl(rb).method("POST").p("views", resourceName, "publication.json")
 
+    private def basicCoreServerUrl(rb: RequestBuilder) =
+      rb.addHeader("Authorization", auth.authToken)
+        .addHeader(("X-App-Token", auth.appToken))
+        .addHeader(("X-Socrata-Host", auth.domain))
+        .addHeader(("Content-Type", "application/json"))
+  }
 
   // TODO : Factor out post, query, requestBuilder and connectTimeout shenanigans to third party utils
   private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
