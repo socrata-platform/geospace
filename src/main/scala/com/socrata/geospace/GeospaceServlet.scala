@@ -112,7 +112,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
     val futureIndex = regionCache.getFromSoda(sodaFountain, resourceName)
     futureIndex.map { index =>
-      geoPoints.map { pt => index.firstContains(pt).map { entry => Some(entry.item) }.getOrElse(None) }
+      geoPoints.map { pt => index.firstContains(pt).map(_.item) }
     }
   }
 }

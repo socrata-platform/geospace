@@ -75,7 +75,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
          "[[41.76893907923, -87.62005689261], [10, 20]]",
          headers = Map("Content-Type" -> "application/json")) {
       status should equal (200)
-      body should equal ("""["Wards.31",""]""")
+      body should equal ("""[31,null]""")
     }
   }
 
@@ -85,7 +85,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
                 |    "type": "Polygon",
                 |    "coordinates": [[[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 0.0]]]
                 |  },
-                |  "properties": {"_feature_id": "poly1"}
+                |  "properties": {"_feature_id": "1" }
                 |}""".stripMargin
   val feat2 = """{
                 |  "type": "Feature",
@@ -93,7 +93,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
                 |    "type": "Polygon",
                 |    "coordinates": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 0.0]]]
                 |  },
-                |  "properties": {"_feature_id": "poly2"}
+                |  "properties": {"_feature_id": "2" }
                 |}""".stripMargin
   val geojson = """{"type":"FeatureCollection",
                    |"crs" : { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
@@ -111,7 +111,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
          "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
          headers = Map("Content-Type" -> "application/json")) {
       status should equal (200)
-      body should equal ("""["poly1","poly2",""]""")
+      body should equal ("""[1,2,null]""")
     }
   }
 

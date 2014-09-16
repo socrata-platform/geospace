@@ -4,7 +4,7 @@ import org.geoscript.feature._
 import scala.util.Try
 
 object FeatureExtensions {
-  val FeatureNumericIdPattern = """(\d+)$""".r
+  val FeatureNumericIdPattern = """.+\.(\d+)$""".r
 
   implicit def featureToExtendedFeature(feature: Feature) = FeatureExtensions(feature)
 }
@@ -12,13 +12,11 @@ object FeatureExtensions {
 case class FeatureExtensions(feature: Feature) {
   import FeatureExtensions._
 
-  def numericId: Int = {
-    FeatureNumericIdPattern.findFirstIn(feature.getID) match {
-      case Some(idString) =>
-        Try(idString.toInt).toOption.getOrElse(
-          throw new IllegalArgumentException("Could not extract numeric ID from feature ID " + feature.getID))
-      case None           =>
-        throw new IllegalArgumentException("Could not extract numeric ID from feature ID " + feature.getID)
-    }
+  def numericId: Int = feature.getID match {
+    case FeatureNumericIdPattern(idString) =>
+      Try(idString.toInt).getOrElse(
+        throw new IllegalArgumentException("Could not extract numeric ID from feature ID " + feature.getID))
+    case _ =>
+      throw new IllegalArgumentException("Could not extract numeric ID from feature ID " + feature.getID)
   }
 }
