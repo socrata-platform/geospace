@@ -19,8 +19,15 @@ object GeoToSoda1Converter {
   val FeatureIdColName = "_feature_id"
   val FeatureIdColumnDef = JObject(Map(
     "fieldName"    -> JString(FeatureIdColName),
-    "dataTypeName" -> JString("text"),
+    "dataTypeName" -> JString("number"),
     "name"         -> JString(FeatureIdColName)
+  ))
+
+  val FeatureIdStringColName = "_feature_id_string"
+  val FeatureIdStringColumnDef = JObject(Map(
+    "fieldName"    -> JString(FeatureIdStringColName),
+    "dataTypeName" -> JString("text"),
+    "name"         -> JString(FeatureIdStringColName)
   ))
 
   /**
@@ -48,7 +55,9 @@ object GeoToSoda1Converter {
    */
 
   def getAddColumnBodies(schema: Schema): Iterable[JValue] =
-    Seq(FeatureIdColumnDef) ++ schema.getDescriptors.asScala.map(columnToJObject)
+    // Storing both the original shapefile feature ID (just in case - might go away later)
+    // and an ID that's more efficient to do group by queries on
+    Seq(FeatureIdColumnDef, FeatureIdStringColumnDef) ++ schema.getDescriptors.asScala.map(columnToJObject)
 
   /**
    * Generates a Soda1 upsert request body
@@ -87,6 +96,8 @@ object GeoToSoda1Converter {
    * @return JSON representation of the row
    */
   private def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
+    import FeatureExtensions._
+
     val geoJsonWriter = new GeometryJSON()
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
     val fields = feature.getAttributes.asScala.zip(attrNames).map {
@@ -94,6 +105,8 @@ object GeoToSoda1Converter {
       case (attr, name)        => name -> JString(attr.toString)
     }
 
-    JObject(fields.toMap + (FeatureIdColName -> JString(feature.getID)))
+    JObject(fields.toMap +
+            (FeatureIdStringColName -> JString(feature.getID)) +
+            (FeatureIdColName -> JNumber(feature.numericId)))
   }
 }

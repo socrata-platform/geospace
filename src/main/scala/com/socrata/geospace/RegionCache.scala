@@ -21,7 +21,7 @@ import spray.caching.LruCache
  */
 class RegionCache(maxEntries: Int = 100) {
   private val logger = LoggerFactory.getLogger(getClass)
-  private val cache = LruCache[SpatialIndex[String]](maxEntries)
+  private val cache = LruCache[SpatialIndex[Int]](maxEntries)
 
   logger.info("Creating RegionCache with {} entries", maxEntries)
 
@@ -34,7 +34,7 @@ class RegionCache(maxEntries: Int = 100) {
    * @param features a Seq of Features to use to create a SpatialIndex if it doesn't exist
    * @return a Future[SpatialIndex] which will hold the SpatialIndex object when populated
    */
-  def getFromFeatures(resourceName: String, features: Seq[Feature]): Future[SpatialIndex[String]] = {
+  def getFromFeatures(resourceName: String, features: Seq[Feature]): Future[SpatialIndex[Int]] = {
     cache(resourceName) {
       logger.info(s"Populating cache entry for resource [$resourceName] from features")
       Future { SpatialIndex(features) }
@@ -47,7 +47,7 @@ class RegionCache(maxEntries: Int = 100) {
    * @param sodaFountain the Soda Fountain client
    * @param resourceName the name of the region dataset to pull from Soda Fountain
    */
-  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[String]] =
+  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[Int]] =
     cache(resourceName) {
       logger.info(s"Populating cache entry for resource [$resourceName] from soda fountain client")
       Future {
@@ -68,11 +68,11 @@ class RegionCache(maxEntries: Int = 100) {
 
   import SpatialIndex.Entry
 
-  private def getIndexFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[String] = {
+  private def getIndexFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[Int] = {
     logger.debug("Converting {} features to SpatialIndex entries...", features.length)
     val entries = features.flatMap { case FeatureJson(properties, geometry) =>
       val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
-                       collect { case JString(id) => Entry(geometry, id) }
+                       collect { case JString(id) => Entry(geometry, id.toInt) }
       if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
       entryOpt
     }

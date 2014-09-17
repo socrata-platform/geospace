@@ -7,11 +7,11 @@ import org.slf4j.LoggerFactory
 import scalate.ScalateSupport
 
 trait GeospaceMicroserviceStack extends ScalatraServlet
-with ScalateSupport with JacksonJsonSupport with FutureSupport with ScalatraLogging {
+  with ScalateSupport with JacksonJsonSupport with FutureSupport with ScalatraLogging {
 
   // Sets up automatic case class to JSON output serialization, required by
   // the JValueResult trait.
-  protected implicit val jsonFormats: Formats = DefaultFormats
+  protected implicit val jsonFormats: Formats = DefaultFormats + new NoneSerializer
 
   // For FutureSupport / async stuff
   protected implicit def executor = concurrent.ExecutionContext.Implicits.global
