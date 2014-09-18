@@ -42,6 +42,8 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("X-Socrata-Host header must be provided in order to ingest a shapefile")))
     val requester = coreServer.requester(CoreServerAuth(authToken, appToken, domain))
 
+    val readReprojectStartTime = System.currentTimeMillis
+
     val readResult =
       for {  zip               <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
@@ -51,8 +53,13 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
         (features, schema)
       }
 
+
+    logger.info(s"Decompressed and reprojected shapefile '$friendlyName' " +
+                s"(${System.currentTimeMillis - readReprojectStartTime} milliseconds)");
+
     readResult match {
       case Success((features, schema)) =>
+        val ingressStartTime = System.currentTimeMillis
         val ingressResult =
           for { response <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
           yield {
@@ -60,6 +67,9 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
             // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
             regionCache.getFromFeatures(response.resourceName, features.toSeq)
 
+            logger.info(s"Ingressed shapefile '$friendlyName' to domain ${domain} : " +
+                        s"(resource name '${response.resourceName}', " +
+                        s"${response.upsertCount} rows, ${System.currentTimeMillis - ingressStartTime} milliseconds)");
             Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
           }
 
