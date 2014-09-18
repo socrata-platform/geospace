@@ -1,13 +1,12 @@
 import com.socrata.geospace._
+import com.socrata.geospace.client.{CoreServerClient, SodaFountainClient}
+import com.socrata.geospace.config.GeospaceConfig
 import com.socrata.http.client.{NoopLivenessChecker, HttpClientHttpClient}
 import com.socrata.http.common.AuxiliaryData
-import com.socrata.thirdparty.curator.{CuratorFromConfig, DiscoveryFromConfig}
+import com.socrata.thirdparty.curator._
 import com.typesafe.config.ConfigFactory
 import java.util.concurrent.Executors
 import javax.servlet.ServletContext
-import org.apache.curator.framework.CuratorFrameworkFactory
-import org.apache.curator.retry
-import org.apache.curator.x.discovery.ServiceDiscoveryBuilder
 import org.scalatra._
 import org.slf4j.LoggerFactory
 

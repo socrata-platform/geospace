@@ -1,8 +1,9 @@
-package com.socrata.geospace
+package com.socrata.geospace.client
 
 import com.rojoma.json.ast.{JNull, JValue}
 import com.rojoma.json.io.{JsonReader, JValueEventIterator}
 import com.rojoma.simplearm.util._
+import com.socrata.geospace.errors._
 import com.socrata.http.client.{Response, SimpleHttpRequest, HttpClient, RequestBuilder}
 import com.socrata.http.common.AuxiliaryData
 import com.socrata.thirdparty.curator.CuratorServiceBase

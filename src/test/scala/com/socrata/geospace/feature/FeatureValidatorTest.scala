@@ -1,6 +1,6 @@
-package com.socrata.geospace
+package com.socrata.geospace.feature
 
-import com.socrata.geospace.FeatureValidator._
+import FeatureValidator._
 import org.geoscript.geometry.builder
 import org.geotools.data.DataUtilities
 import org.geotools.feature.simple.SimpleFeatureBuilder

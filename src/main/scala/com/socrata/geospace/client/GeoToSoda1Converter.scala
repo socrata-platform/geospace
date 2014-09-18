@@ -1,71 +1,70 @@
-package com.socrata.geospace
+package com.socrata.geospace.client
 
 import collection.JavaConverters._
 import com.rojoma.json.ast._
-import com.rojoma.json.io.JsonReader
+import com.socrata.geospace.feature.FeatureExtensions._
 import com.vividsolutions.jts.geom.{Geometry, MultiPolygon}
 import org.geoscript.feature._
-import org.geotools.geojson.geom.GeometryJSON
 import org.opengis.feature.`type`.PropertyDescriptor
-import scala.util.Try
+import org.geotools.geojson.geom.GeometryJSON
+import com.rojoma.json.io.JsonReader
 
 /**
- * Generates Soda2 requests from geo schemata and feature collections
+ * Generates Soda1 requests from geo schemata and feature collections
  */
-object GeoToSoda2Converter {
+object GeoToSoda1Converter {
   // The feature ID needs to be a part of every row of the shape dataset so we can correlate other datasets
   // such as points to the belonging feature.
   // Note: is there a better way to come up with a column name for feature ID?
   // This here is a hack.
   val FeatureIdColName = "_feature_id"
   val FeatureIdColumnDef = JObject(Map(
-      "field_name" -> JString(FeatureIdColName),
-      "datatype"   -> JString("number"),
-      "name"       -> JString(FeatureIdColName)
-    ))
+    "fieldName"    -> JString(FeatureIdColName),
+    "dataTypeName" -> JString("number"),
+    "name"         -> JString(FeatureIdColName)
+  ))
 
   val FeatureIdStringColName = "_feature_id_string"
   val FeatureIdStringColumnDef = JObject(Map(
-    "field_name" -> JString(FeatureIdColName),
-    "datatype"   -> JString("text"),
-    "name"       -> JString(FeatureIdColName)
+    "fieldName"    -> JString(FeatureIdStringColName),
+    "dataTypeName" -> JString("text"),
+    "name"         -> JString(FeatureIdStringColName)
   ))
 
   /**
-   * Maps shapefile types to Soda2 types
+   * Maps shapefile types to Soda1 types
    */
-  val soda2TypeMap = Map[Class[_], String](
+  val soda1TypeMap = Map[Class[_], String](
     classOf[MultiPolygon]      -> "multipolygon",
     classOf[String]            -> "text",
     classOf[java.lang.Integer] -> "number",
-    classOf[java.lang.Double]  -> "double",
-    classOf[java.lang.Long]    -> "double"
+    classOf[java.lang.Double]  -> "number",
+    classOf[java.lang.Long]    -> "number"
   )
 
   /**
-   * Generates a Soda2 create request body
-   * @param resourceName Resource identifier in Dataspace
-   * @param schema Schema definition
+   * Generates a Soda1 create request body
+   * @param friendlyName Human readable name of the dataset
    * @return Soda2 create request body
    */
-  def getCreateBody(resourceName: String, schema: Schema): JValue = {
-    // Storing both the original shapefile feature ID (just in case - might go away later)
-    // and an ID that's more efficient to do group by queries on
-    val columnSchemata = Seq(FeatureIdColumnDef, FeatureIdStringColumnDef) ++
-                          schema.getDescriptors.asScala.map(columnToJObject)
-
-    JObject(Map(
-      "resource_name" -> JString(resourceName),
-      "name"          -> JString(resourceName),
-      "columns"       -> JArray(columnSchemata)
-    ))
-  }
+  def getCreateBody(friendlyName: String): JValue = JObject(Map("name" -> JString(friendlyName)))
 
   /**
-   * Generates a Soda2 upsert request body
-   * @param features Features to upsert
+   * Generates a Soda1 add column request body for each column in the schema
    * @param schema Schema definition
-   * @return Soda2 upsert request body
+   * @return List of Soda1 add column request bodies
+   */
+
+  def getAddColumnBodies(schema: Schema): Iterable[JValue] =
+    // Storing both the original shapefile feature ID (just in case - might go away later)
+    // and an ID that's more efficient to do group by queries on
+    Seq(FeatureIdColumnDef, FeatureIdStringColumnDef) ++ schema.getDescriptors.asScala.map(columnToJObject)
+
+  /**
+   * Generates a Soda1 upsert request body
+   * @param features Features representing the rows to upsert
+   * @param schema Schema definition
+   * @return Soda1 upsert request body
    */
   def getUpsertBody(features: Traversable[Feature], schema: Schema): JValue = {
     val attrNames = schema.getDescriptors.asScala.map(_.getName.toString.toLowerCase)
@@ -80,26 +79,24 @@ object GeoToSoda2Converter {
    */
   private def columnToJObject(attr: PropertyDescriptor): JValue = {
     val name = attr.getName.toString.toLowerCase
-    val typ = soda2TypeMap.getOrElse(
+    val typ = soda1TypeMap.getOrElse(
       attr.getType.getBinding,
       throw new IllegalArgumentException(s"Unsupported type in shapefile: '${attr.getType.getBinding.getCanonicalName}'"))
 
     JObject(Map(
-      "field_name" -> JString(name),
-      "datatype"   -> JString(typ),
-      "name"       -> JString(name)
+      "fieldName"    -> JString(name),
+      "dataTypeName" -> JString(typ),
+      "name"         -> JString(name)
     ))
   }
 
   /**
-   * Converts a geo feature to a Dataspace JSON row definition
+   * Converts a geo feature to a Core server JSON row definition
    * @param feature Feature to be converted to a row
    * @param attrNames List of column names
    * @return JSON representation of the row
    */
   private def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
-    import FeatureExtensions._
-
     val geoJsonWriter = new GeometryJSON()
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
     val fields = feature.getAttributes.asScala.zip(attrNames).map {

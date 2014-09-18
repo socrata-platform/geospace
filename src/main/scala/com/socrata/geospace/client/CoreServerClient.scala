@@ -1,14 +1,15 @@
-package com.socrata.geospace
+package com.socrata.geospace.client
 
-import com.socrata.thirdparty.curator.CuratorServiceBase
-import com.socrata.http.client.{Response, SimpleHttpRequest, RequestBuilder, HttpClient}
-import org.apache.curator.x.discovery.ServiceDiscovery
-import com.socrata.http.common.AuxiliaryData
-import scala.concurrent.duration.FiniteDuration
-import org.slf4j.LoggerFactory
 import com.rojoma.json.ast.{JNull, JValue}
-import scala.util.{Failure, Success, Try}
 import com.rojoma.json.io.JValueEventIterator
+import com.socrata.geospace.errors.{ServiceDiscoveryException, CoreServerException}
+import com.socrata.http.client.{Response, SimpleHttpRequest, RequestBuilder, HttpClient}
+import com.socrata.http.common.AuxiliaryData
+import com.socrata.thirdparty.curator.CuratorServiceBase
+import org.apache.curator.x.discovery.ServiceDiscovery
+import org.slf4j.LoggerFactory
+import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success, Try}
 
 /**
  * Container for passing auth information from client request to Core Server

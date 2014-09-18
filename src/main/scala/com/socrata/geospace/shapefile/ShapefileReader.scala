@@ -1,5 +1,6 @@
-package com.socrata.geospace
+package com.socrata.geospace.shapefile
 
+import com.socrata.geospace.errors.InvalidShapefileSet
 import java.io.File
 import org.apache.commons.io.FilenameUtils
 import org.geoscript.feature._

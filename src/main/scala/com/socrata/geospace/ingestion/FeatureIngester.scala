@@ -1,6 +1,7 @@
-package com.socrata.geospace
+package com.socrata.geospace.ingestion
 
 import com.rojoma.json.ast._
+import com.socrata.geospace.client._
 import org.geoscript.feature.{Feature, Schema}
 import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}

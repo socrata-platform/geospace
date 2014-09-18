@@ -1,4 +1,4 @@
-package com.socrata.geospace
+package com.socrata.geospace.feature
 
 import org.geoscript.feature._
 import scala.util.Try

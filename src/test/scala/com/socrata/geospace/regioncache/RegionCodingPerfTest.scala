@@ -1,4 +1,4 @@
-package com.socrata.geospace
+package com.socrata.geospace.regioncache
 
 import org.geoscript.geometry.{builder => build}
 import org.geoscript.layer._

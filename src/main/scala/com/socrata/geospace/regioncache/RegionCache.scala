@@ -1,6 +1,7 @@
-package com.socrata.geospace
+package com.socrata.geospace.regioncache
 
 import com.rojoma.json.ast.JString
+import com.socrata.geospace.client.{GeoToSoda2Converter, SodaFountainClient}
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import org.geoscript.feature._
 import org.slf4j.LoggerFactory
@@ -70,7 +71,7 @@ class RegionCache(maxEntries: Int = 100) {
 
   private def getIndexFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[Int] = {
     logger.debug("Converting {} features to SpatialIndex entries...", features.length)
-    val entries = features.flatMap { case FeatureJson(properties, geometry) =>
+    val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>
       val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
                        collect { case JString(id) => Entry(geometry, id.toInt) }
       if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")

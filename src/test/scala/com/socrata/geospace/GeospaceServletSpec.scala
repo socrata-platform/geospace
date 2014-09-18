@@ -3,9 +3,12 @@ package com.socrata.geospace
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.{WireMock => WM}
+import com.socrata.geospace.client.SodaFountainClient
+import com.socrata.geospace.config.GeospaceConfig
 import com.typesafe.config.ConfigFactory
 import org.scalatra.test.scalatest._
 import org.scalatest.FunSuiteLike
+import com.socrata.thirdparty.curator.{CuratorBroker, CuratorServiceIntegration}
 
 /**
  * Test Geospace HTTP routes

@@ -1,4 +1,4 @@
-package com.socrata.geospace
+package com.socrata.geospace.shapefile
 
 import com.rojoma.simplearm.util._
 import java.io.IOException

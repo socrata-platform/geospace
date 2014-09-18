@@ -1,4 +1,4 @@
-package com.socrata.geospace
+package com.socrata.geospace.regioncache
 
 import org.scalatest.{FunSpec, ShouldMatchers}
 import org.geoscript.geometry.{builder => build}
