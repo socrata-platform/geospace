@@ -5,6 +5,7 @@ import org.geoscript.geometry.builder
 import org.geotools.data.DataUtilities
 import org.geotools.feature.simple.SimpleFeatureBuilder
 import org.scalatest.{Matchers, FunSuite}
+import com.vividsolutions.jts.geom.Coordinate
 
 class FeatureValidatorTest extends FunSuite with Matchers {
   val featureType = DataUtilities.createType("unit-test", "the_geom:MultiPolygon:srid=4326,name:String")
@@ -41,7 +42,17 @@ class FeatureValidatorTest extends FunSuite with Matchers {
                                          (-122.322192, 47.615205),
                                          (-122.315972, 47.617889)))
     val feature = featureBuilder.buildFeature(null, Array(mp, "Polygon with an unmappable point"))
-    FeatureValidator.validate(feature, 5) should be (GeometryContainsOffMapPoints)
+
+    val result = FeatureValidator.validate(feature, 5)
+    result shouldBe a [GeometryContainsOffMapPoints]
+    result.asInstanceOf[GeometryContainsOffMapPoints].pts should be (Array(new Coordinate(-1122.322481, 47.611165)))
+  }
+
+  test("Feature geometry contains one or more coordinates on the world map boundary") {
+    val mp = buildSimpleMultiPolygon(
+      Seq((-180.0, 90.0), (180.0, 90.0), (180.0, -90.0), (-180.0, -90.0), (-180.0, 90.0)))
+    val feature = featureBuilder.buildFeature(null, Array(mp, "Polygon with points on the boundary"))
+    FeatureValidator.validate(feature, 5) should be (Valid)
   }
 
   test("Feature geometry is too complex") {
