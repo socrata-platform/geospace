@@ -1,4 +1,4 @@
-package com.socrata.geospace
+package com.socrata.geospace.config
 
 import com.socrata.thirdparty.curator.{CuratorConfig, DiscoveryConfig}
 import com.typesafe.config.Config

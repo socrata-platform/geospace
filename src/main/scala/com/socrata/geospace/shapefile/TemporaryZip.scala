@@ -1,4 +1,4 @@
-package com.socrata.geospace
+package com.socrata.geospace.shapefile
 
 import collection.JavaConverters._
 import com.rojoma.simplearm.util._

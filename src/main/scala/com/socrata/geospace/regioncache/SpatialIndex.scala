@@ -1,5 +1,6 @@
-package com.socrata.geospace
+package com.socrata.geospace.regioncache
 
+import com.socrata.geospace.feature.FeatureExtensions._
 import com.vividsolutions.jts.geom.{Envelope, Geometry}
 import com.vividsolutions.jts.index.strtree.STRtree
 import SpatialIndex.Entry
@@ -71,8 +72,6 @@ object SpatialIndex {
    * @return a SpatialIndex[String] where each entry is the geometry and ID from each feature
    */
   def apply(features: Seq[Feature]): SpatialIndex[Int] = {
-    import FeatureExtensions._
-
     val items = features.map { feature =>
         Entry(feature.getDefaultGeometry.asInstanceOf[Geometry], feature.numericId)
       }

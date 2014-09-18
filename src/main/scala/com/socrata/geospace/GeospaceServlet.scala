@@ -2,6 +2,13 @@ package com.socrata.geospace
 
 import com.rojoma.simplearm.util._
 import com.socrata.BuildInfo
+import com.socrata.geospace.client._
+import com.socrata.geospace.config.GeospaceConfig
+import com.socrata.geospace.errors._
+import com.socrata.geospace.feature.FeatureValidator
+import com.socrata.geospace.ingestion.FeatureIngester
+import com.socrata.geospace.regioncache.RegionCache
+import com.socrata.geospace.shapefile._
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.concurrent.Future

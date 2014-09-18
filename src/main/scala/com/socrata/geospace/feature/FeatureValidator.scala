@@ -1,4 +1,4 @@
-package com.socrata.geospace
+package com.socrata.geospace.feature
 
 import com.vividsolutions.jts.geom.{Geometry, MultiPolygon}
 import org.geoscript.feature.{RichFeature, Feature}

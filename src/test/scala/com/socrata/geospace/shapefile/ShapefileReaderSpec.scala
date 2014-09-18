@@ -1,11 +1,11 @@
-package com.socrata.geospace
+package com.socrata.geospace.shapefile
 
+import com.socrata.geospace.errors.InvalidShapefileSet
 import com.vividsolutions.jts.geom.Point
 import java.io.{IOException, File}
 import java.nio.file.{Files, Path, Paths}
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 import org.scalatest.{BeforeAndAfterEach, FunSuite, Matchers}
-import scala.util.{Failure, Success}
 
 class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach {
   private var tmp: Path = _
