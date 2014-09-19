@@ -1,7 +1,7 @@
 package com.socrata.geospace.feature
 
+import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Coordinate, Geometry, MultiPolygon}
-import grizzled.slf4j.Logging
 import org.geoscript.feature.{RichFeature, Feature}
 
 /** *
