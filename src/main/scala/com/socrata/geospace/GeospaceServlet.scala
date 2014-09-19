@@ -75,9 +75,9 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
             // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
             regionCache.getFromFeatures(response.resourceName, features.toSeq)
 
-            logger.info(s"Ingressed shapefile '$friendlyName' to domain ${domain} : " +
-                        s"(resource name '${response.resourceName}', " +
-                        s"${response.upsertCount} rows, ${System.currentTimeMillis - ingressStartTime} milliseconds)");
+            val ingressTime = System.currentTimeMillis - ingressStartTime
+            logger.info(s"Ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
+                        friendlyName, domain, response.resourceName, response.upsertCount, ingressTime.toString);
             Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
           }
 

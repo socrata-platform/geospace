@@ -1,7 +1,7 @@
 package com.socrata.geospace.shapefile
 
 import com.socrata.geospace.errors.InvalidShapefileSet
-import grizzled.slf4j.Logging
+import com.typesafe.scalalogging.slf4j.Logging
 import java.io.File
 import org.apache.commons.io.FilenameUtils
 import org.geoscript.feature._
@@ -107,11 +107,10 @@ object ShapefileReader extends Logging {
           proj <- Try(getTargetProjection(StandardProjection, forceLonLat))
     } yield {
       try {
-        logger.info(s"Reprojecting shapefile features and schema to ${proj.getName}")
+        logger.info(s"Reprojecting shapefile schema and {} features to {}", shapefile.features.size.toString, proj.getName)
         val features = shapefile.features.map(feature => reproject(feature, proj))
-        logger.info("Feature reprojection succeeded")
         val schema = reproject(shapefile.schema, proj)
-        logger.info("Schema reprojection succeeded")
+        logger.info(s"Reprojection succeeded")
         (features, schema)
       } finally {
         // Geotools holds a lock on the .shp file if the above blows up.
