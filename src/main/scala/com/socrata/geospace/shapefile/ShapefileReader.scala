@@ -107,10 +107,10 @@ object ShapefileReader extends Logging {
           proj <- Try(getTargetProjection(StandardProjection, forceLonLat))
     } yield {
       try {
-        logger.info(s"Reprojecting shapefile schema and {} features to {}", shapefile.features.size.toString, proj.getName)
+        logger.info("Reprojecting shapefile schema and {} features to {}", shapefile.features.size.toString, proj.getName)
         val features = shapefile.features.map(feature => reproject(feature, proj))
         val schema = reproject(shapefile.schema, proj)
-        logger.info(s"Reprojection succeeded")
+        logger.info("Reprojection succeeded")
         (features, schema)
       } finally {
         // Geotools holds a lock on the .shp file if the above blows up.

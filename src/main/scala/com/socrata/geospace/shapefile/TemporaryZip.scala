@@ -27,7 +27,7 @@ class TemporaryZip(compressed: Array[Byte]) extends Closeable with Logging {
       out <- managed(new FileOutputStream(tmpFile))
     } {
       IOUtils.copy(in, out)
-      logger.info(s"Temporarily copied shapefile zip to {}", tmpFile.getAbsolutePath)
+      logger.info("Temporarily copied shapefile zip to {}", tmpFile.getAbsolutePath)
     }
 
     tmpFile
@@ -58,7 +58,7 @@ class TemporaryZip(compressed: Array[Byte]) extends Closeable with Logging {
       }
     }
 
-    logger.info(s"Temporarily extracted contents of zip file to {}", contentsTmpDir.toString)
+    logger.info("Temporarily extracted contents of zip file to {}", contentsTmpDir.toString)
     contentsTmpDir.toFile
   }
 
