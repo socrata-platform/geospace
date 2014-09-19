@@ -2,6 +2,7 @@ package com.socrata.geospace.shapefile
 
 import collection.JavaConverters._
 import com.rojoma.simplearm.util._
+import grizzled.slf4j.Logging
 import java.io._
 import java.nio.file.Files
 import java.util.zip.ZipFile
@@ -13,8 +14,9 @@ import org.apache.commons.io.{FileUtils, FilenameUtils, IOUtils}
  * @constructor create a new temporary zip given the zip file as a byte array.
  * @param compressed byte array representation of the zip file
  */
-class TemporaryZip(compressed: Array[Byte]) extends Closeable {
+class TemporaryZip(compressed: Array[Byte]) extends Closeable with Logging {
   require(compressed != null && compressed.length > 0, "Null or empty zip file")
+
   /**
    * the zip file saved temporarily to disk.
    */
@@ -25,6 +27,7 @@ class TemporaryZip(compressed: Array[Byte]) extends Closeable {
       out <- managed(new FileOutputStream(tmpFile))
     } {
       IOUtils.copy(in, out)
+      logger.info(s"Temporarily copied shapefile zip to ${tmpFile.getAbsolutePath}")
     }
 
     tmpFile
@@ -55,6 +58,7 @@ class TemporaryZip(compressed: Array[Byte]) extends Closeable {
       }
     }
 
+    logger.info(s"Temporarily extracted contents of zip file to ${contentsTmpDir.toString}")
     contentsTmpDir.toFile
   }
 
@@ -63,6 +67,8 @@ class TemporaryZip(compressed: Array[Byte]) extends Closeable {
    */
   def close() {
     FileUtils.deleteDirectory(contents)
+    logger.info("Deleted temporary extracted shapefile contents")
     archive.delete()
+    logger.info("Deleted temporary shapefile zip")
   }
 }

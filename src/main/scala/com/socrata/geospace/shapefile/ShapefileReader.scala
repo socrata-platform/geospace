@@ -1,6 +1,7 @@
 package com.socrata.geospace.shapefile
 
 import com.socrata.geospace.errors.InvalidShapefileSet
+import grizzled.slf4j.Logging
 import java.io.File
 import org.apache.commons.io.FilenameUtils
 import org.geoscript.feature._
@@ -15,7 +16,7 @@ import scala.util.{Failure, Success, Try}
 /**
  * Validates and extracts shape and schema data from a shapefile directory.
  */
-object ShapefileReader {
+object ShapefileReader extends Logging {
   /**
    * Shape file extension
    */
@@ -75,6 +76,7 @@ object ShapefileReader {
    */
   def validate(directory: File): Try[Unit] = {
     // TODO : Should we just let the Geotools shapefile parser throw an (albeit slightly more ambiguous) error?
+    logger.info("Validating shapefile zip contents")
     val files = directory.listFiles
 
     // 1. All files in the set must have the same prefix (eg. foo.shp, foo.shx,...).
@@ -87,7 +89,9 @@ object ShapefileReader {
     val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
     missing match {
       case Some(file) => Failure(file.failed.get)
-      case None       => Success()
+      case None       =>
+        logger.info("Validated that the shapefile contains all the right files")
+        Success()
     }
   }
 
@@ -103,8 +107,11 @@ object ShapefileReader {
           proj <- Try(getTargetProjection(StandardProjection, forceLonLat))
     } yield {
       try {
+        logger.info(s"Reprojecting shapefile features and schema to ${proj.getName}")
         val features = shapefile.features.map(feature => reproject(feature, proj))
+        logger.info("Feature reprojection succeeded")
         val schema = reproject(shapefile.schema, proj)
+        logger.info("Schema reprojection succeeded")
         (features, schema)
       } finally {
         // Geotools holds a lock on the .shp file if the above blows up.
