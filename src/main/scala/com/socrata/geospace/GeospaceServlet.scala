@@ -63,7 +63,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
 
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
-    logger.info("Decompressed and reprojected shapefile '{}' ({} milliseconds)", friendlyName, readTime.toString);
+    logger.info("Decompressed and reprojected shapefile '{}' ({} milliseconds)", friendlyName, readTime);
 
     readResult match {
       case Success((features, schema)) =>
@@ -77,7 +77,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
 
             val ingressTime = System.currentTimeMillis - ingressStartTime
             logger.info("Ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
-                        friendlyName, domain, response.resourceName, response.upsertCount, ingressTime.toString);
+                        friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString);
             Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
           }
 

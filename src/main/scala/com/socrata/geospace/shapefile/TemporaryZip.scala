@@ -58,7 +58,7 @@ class TemporaryZip(compressed: Array[Byte]) extends Closeable with Logging {
       }
     }
 
-    logger.info("Temporarily extracted contents of zip file to {}", contentsTmpDir.toString)
+    logger.info("Temporarily extracted contents of zip file to {}", contentsTmpDir)
     contentsTmpDir.toFile
   }
 
