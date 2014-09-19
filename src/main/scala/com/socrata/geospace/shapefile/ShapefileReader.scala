@@ -1,6 +1,7 @@
 package com.socrata.geospace.shapefile
 
 import com.socrata.geospace.errors.InvalidShapefileSet
+import grizzled.slf4j.Logging
 import java.io.File
 import org.apache.commons.io.FilenameUtils
 import org.geoscript.feature._
@@ -10,15 +11,12 @@ import org.geoscript.projection._
 import org.geotools.factory.Hints
 import org.geotools.referencing.ReferencingFactoryFinder
 import org.opengis.referencing.crs.CoordinateReferenceSystem
-import org.slf4j.LoggerFactory
 import scala.util.{Failure, Success, Try}
 
 /**
  * Validates and extracts shape and schema data from a shapefile directory.
  */
-object ShapefileReader {
-  val logger = LoggerFactory.getLogger(getClass)
-
+object ShapefileReader extends Logging {
   /**
    * Shape file extension
    */

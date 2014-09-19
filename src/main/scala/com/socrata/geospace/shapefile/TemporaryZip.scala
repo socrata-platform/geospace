@@ -2,11 +2,11 @@ package com.socrata.geospace.shapefile
 
 import collection.JavaConverters._
 import com.rojoma.simplearm.util._
+import grizzled.slf4j.Logging
 import java.io._
 import java.nio.file.Files
 import java.util.zip.ZipFile
 import org.apache.commons.io.{FileUtils, FilenameUtils, IOUtils}
-import org.slf4j.LoggerFactory
 
 /** Saves the contents of a zip file in a single flattened directory
  * and cleans up all temporary files afterwards.
@@ -14,9 +14,7 @@ import org.slf4j.LoggerFactory
  * @constructor create a new temporary zip given the zip file as a byte array.
  * @param compressed byte array representation of the zip file
  */
-class TemporaryZip(compressed: Array[Byte]) extends Closeable {
-  val logger = LoggerFactory.getLogger(getClass)
-
+class TemporaryZip(compressed: Array[Byte]) extends Closeable with Logging {
   require(compressed != null && compressed.length > 0, "Null or empty zip file")
 
   /**

@@ -1,13 +1,13 @@
 package com.socrata.geospace.feature
 
 import com.vividsolutions.jts.geom.{Coordinate, Geometry, MultiPolygon}
+import grizzled.slf4j.Logging
 import org.geoscript.feature.{RichFeature, Feature}
-import org.slf4j.LoggerFactory
 
 /** *
   * Validates whether a feature meets the criteria for ingestion into our system
   */
-object FeatureValidator {
+object FeatureValidator extends Logging {
   sealed trait Result
   case object Valid extends Result
   sealed abstract class ValidationFailed(val msg: String) extends Result
@@ -23,8 +23,6 @@ object FeatureValidator {
     s"Geometry is too complex (>$maxComplexity points)")
 
   case class ErrorResponse(featureId: String, msg: String)
-
-  val logger = LoggerFactory.getLogger(getClass)
 
   // WGS84 valid range to plot on a map is
   // -180 <= lon <= 180
@@ -66,7 +64,7 @@ object FeatureValidator {
         if (!mp.isValid) GeometryNotValid
         else {
           val unplottable = offTheMapPoints(mp)
-          if (!unplottable.isEmpty) GeometryContainsOffMapPoints(unplottable)
+          if (unplottable.nonEmpty) GeometryContainsOffMapPoints(unplottable)
           else if (mp.getCoordinates.size > maxMultiPolygonComplexity)
             GeometryTooComplex(maxMultiPolygonComplexity)
           else Valid
