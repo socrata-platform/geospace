@@ -71,10 +71,6 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
         val ingressResult =
           for { response <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
           yield {
-            // Cache the reprojected features in our region cache for immediate geocoding
-            // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-            regionCache.getFromFeatures(response.resourceName, features.toSeq)
-
             val ingressTime = System.currentTimeMillis - ingressStartTime
             logger.info("Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
                         friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString);
