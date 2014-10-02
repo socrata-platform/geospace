@@ -7,6 +7,7 @@ import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJs
 import com.typesafe.scalalogging.slf4j.Logging
 import org.geoscript.feature._
 import scala.concurrent.Future
+import scala.util.Success
 import spray.caching.LruCache
 
 /**
@@ -34,6 +35,8 @@ class RegionCache(maxEntries: Int = 100) extends Logging {
    * @param resourceName the name of the region dataset resource, also the cache key
    * @param features a Seq of Features to use to create a SpatialIndex if it doesn't exist
    * @return a Future[SpatialIndex] which will hold the SpatialIndex object when populated
+   *         Note that if this fails, then it will return a Failure, and can be processed further with
+   *         onFailure(...) etc.
    */
   def getFromFeatures(resourceName: String, features: Seq[Feature]): Future[SpatialIndex[Int]] = {
     cache(resourceName) {
@@ -63,6 +66,35 @@ class RegionCache(maxEntries: Int = 100) extends Logging {
     }
 
   /**
+   * depressurize - relieves memory pressure by removing cached regions, starting with the biggest.
+   * It goes in a loop, pausing and force running GC to attempt to free memory, and exits if it
+   * runs out of regions to free.
+   *
+   * @param minFreePct - the minimum % (0 - 100) of free memory to try to attain
+   * @param iterationIntervalMs - the time to sleep between iterations.  This is to give time for anybody
+   *            still referencing the removed SpatialIndex to complete the task.
+   */
+  def depressurize(minFreePct: Int = 20, iterationIntervalMs: Int = 100): Unit = synchronized {
+    var indexes = listCompletedIndexes()
+    while (!atLeastFreeMem()) {
+      logMemoryUsage("Attempting to uncache regions to relieve memory pressure")
+      if (indexes.isEmpty) {
+        logger.warn("No more regions to uncache, out of memory!!")
+        throw new RuntimeException("No more regions to uncache, out of memory")
+      }
+      val (regionName, _) = indexes.head
+      logger.info("Removing region {} from cache...", regionName)
+      cache.remove(regionName)
+
+      // Wait a little bit before calling GC to try to force memory to be freed
+      Thread sleep iterationIntervalMs
+      Runtime.getRuntime.gc
+
+      indexes = indexes.drop(1)
+    }
+  }
+
+  /**
    * Clears the region cache of all entries.  Mostly used for testing.
    */
   def reset() { cache.clear() }
@@ -71,12 +103,23 @@ class RegionCache(maxEntries: Int = 100) extends Logging {
 
   private def getIndexFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[Int] = {
     logger.info("Converting {} features to SpatialIndex entries...", features.length.toString)
+    var i = 0
     val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>
       val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
                        collect { case JString(id) => Entry(geometry, id.toInt) }
       if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
+      i += 1
+      if (i % 1000 == 0) depressurize()
       entryOpt
     }
     new SpatialIndex(entries)
+  }
+
+  // returns indexes in descending order of size by # of coordinates
+  private def listCompletedIndexes(): Seq[(String, Int)] = {
+    cache.keys.toSeq.map(key => (key, cache.get(key).get.value)).
+          collect { case (key, Some(Success(index))) => (key.toString, index.numCoordinates) }.
+          sortBy(_._2).
+          reverse
   }
 }

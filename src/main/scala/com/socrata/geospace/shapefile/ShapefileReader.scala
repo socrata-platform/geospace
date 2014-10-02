@@ -112,7 +112,12 @@ object ShapefileReader extends Logging {
       try {
         logger.info("Reprojecting shapefile schema and {} features to {}", shapefile.features.size.toString, proj.getName)
         logMemoryUsage("Before reprojecting features...")
-        val features = shapefile.features.map { feature => reproject(feature, proj) }
+        var i = 0
+        val features = shapefile.features.map { feature =>
+          i += 1
+          if (i % 1000 == 0) checkFreeMemAndDie(runGC = true)
+          reproject(feature, proj)
+        }
         val schema = reproject(shapefile.schema, proj)
         logMemoryUsage("Done with reprojection")
         (features, schema)

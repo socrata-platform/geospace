@@ -19,7 +19,7 @@ import SpatialIndex.Entry
  */
 class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
   private val index = new STRtree(items.size)
-  addItems()
+  val numCoordinates = addItems()
 
   import collection.JavaConverters._
 
@@ -46,7 +46,7 @@ class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
     results.find { entry => entry.geom.covers(geom) }
   }
 
-  private def addItems() {
+  private def addItems(): Int = {
     var numCoords = 0
     items.foreach { entry =>
       index.insert(entry.geom.getEnvelopeInternal, entry)
@@ -54,6 +54,7 @@ class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
     }
     logger.info("Added {} items and {} coordinates to cache", items.size.toString, numCoords.toString)
     logMemoryUsage("After populating SpatialIndex")
+    numCoords
   }
 }
 

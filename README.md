@@ -72,3 +72,27 @@ in a normal run of the test:
 - Curator discovery and ZK Client start up
 - WireMock server start up
 - Geospace server starts and registers requests during the test
+
+## On Memory Usage
+
+The JTS library's Geometry shapes use up 40 bytes per Coordinate, so the rough
+memory usage of reading the shapefiles and doing georegion coding is 40 * the
+total number of coordinates in the layer.
+
+Currently, when Geospace caches region datasets and it experiences memory
+pressure, it will attempt to start uncaching regions from the biggest currently
+cached one in order down to try to free memory.  If it doesn't work then it will
+throw an error.
+
+## Optimizations
+
+Shapefile ingest can be made streaming; right now it loads all features into the heap.  This is a lot of work however;
+
+1. Convert shapefile validation to work off of a FeatureCollection (disk based) rather than a `Traversable[Feature]`.  
+2. Reprojection - validation needs reprojected features, so we'd need to write the reprojected shapefile layer to disk first
+3. Might need to make the ingestion into core more streaming.
+
+One alternative is to do the one part of validation that requires reprojection
+separately.  Shape coordinate bounds checking can be done by using getBounds()
+from the feature source, and throwing an error if the bounds of the entire layer
+is outside expected values.  This requires reprojecting the Envelope first.
