@@ -56,7 +56,7 @@ object Dependencies {
     "org.apache.curator"        % "curator-x-discovery" % "2.4.2"
       exclude("org.slf4j", "slf4j-log4j12")
       exclude("log4j", "log4j"),
-    "org.velvia"               %% "geoscript"           % "0.8.3"
+    "org.velvia"               %% "geoscript"           % "0.8.4-SNAPSHOT"
       exclude("org.geotools", "gt-xml")
       exclude("org.geotools", "gt-render")
       exclude("org.scala-lang", "scala-swing")

@@ -1,6 +1,7 @@
 package com.socrata.geospace.shapefile
 
 import com.socrata.geospace.errors.InvalidShapefileSet
+import com.socrata.geospace.Utils._
 import com.typesafe.scalalogging.slf4j.Logging
 import java.io.File
 import org.apache.commons.io.FilenameUtils
@@ -76,6 +77,7 @@ object ShapefileReader extends Logging {
    */
   def validate(directory: File): Try[Unit] = {
     // TODO : Should we just let the Geotools shapefile parser throw an (albeit slightly more ambiguous) error?
+    logMemoryUsage("Before validating shapefile zip contents")
     logger.info("Validating shapefile zip contents")
     val files = directory.listFiles
 
@@ -99,18 +101,20 @@ object ShapefileReader extends Logging {
    * Extracts the contents of a shapefile.
    * Assumes that validate() has already been called on the shapefile contents.
    * @param directory Directory containing the set of files that make up the shapefile
-   * @return The shapefile shape layer and schema
+   * @return The shapefile features and schema, reprojected to WGS84.
    */
   def getContents(directory: File, forceLonLat: Boolean): Try[(Traversable[Feature], Schema)] = {
+    logMemoryUsage("Before reading Shapefile...")
     for { shp <- getFile(directory, ShapeFormat)
           shapefile <- Try(Shapefile(shp))
           proj <- Try(getTargetProjection(StandardProjection, forceLonLat))
     } yield {
       try {
         logger.info("Reprojecting shapefile schema and {} features to {}", shapefile.features.size.toString, proj.getName)
-        val features = shapefile.features.map(feature => reproject(feature, proj))
+        logMemoryUsage("Before reprojecting features...")
+        val features = shapefile.features.map { feature => reproject(feature, proj) }
         val schema = reproject(shapefile.schema, proj)
-        logger.info("Reprojection succeeded")
+        logger.info("Done with reprojection")
         (features, schema)
       } finally {
         // Geotools holds a lock on the .shp file if the above blows up.

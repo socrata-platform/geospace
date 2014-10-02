@@ -2,9 +2,10 @@ package com.socrata.geospace.regioncache
 
 import com.rojoma.json.ast.JString
 import com.socrata.geospace.client.{GeoToSoda2Converter, SodaFountainClient}
+import com.socrata.geospace.Utils._
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
+import com.typesafe.scalalogging.slf4j.Logging
 import org.geoscript.feature._
-import org.slf4j.LoggerFactory
 import scala.concurrent.Future
 import spray.caching.LruCache
 
@@ -20,11 +21,10 @@ import spray.caching.LruCache
  *
  * TODO: Tune the cache based not on # of entries but on amount of memory available
  */
-class RegionCache(maxEntries: Int = 100) {
-  private val logger = LoggerFactory.getLogger(getClass)
+class RegionCache(maxEntries: Int = 100) extends Logging {
   private val cache = LruCache[SpatialIndex[Int]](maxEntries)
 
-  logger.info("Creating RegionCache with {} entries", maxEntries)
+  logger.info("Creating RegionCache with {} entries", maxEntries.toString)
 
   import concurrent.ExecutionContext.Implicits.global
 
@@ -70,13 +70,15 @@ class RegionCache(maxEntries: Int = 100) {
   import SpatialIndex.Entry
 
   private def getIndexFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[Int] = {
-    logger.debug("Converting {} features to SpatialIndex entries...", features.length)
+    logger.debug("Converting {} features to SpatialIndex entries...", features.length.toString)
+    logMemoryUsage("Before loading region cache...")
     val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>
       val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
                        collect { case JString(id) => Entry(geometry, id.toInt) }
       if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
       entryOpt
     }
+    logMemoryUsage("After loading region cache...")
     new SpatialIndex(entries)
   }
 }
