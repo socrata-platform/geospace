@@ -70,15 +70,13 @@ class RegionCache(maxEntries: Int = 100) extends Logging {
   import SpatialIndex.Entry
 
   private def getIndexFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[Int] = {
-    logger.debug("Converting {} features to SpatialIndex entries...", features.length.toString)
-    logMemoryUsage("Before loading region cache...")
+    logger.info("Converting {} features to SpatialIndex entries...", features.length.toString)
     val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>
       val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
                        collect { case JString(id) => Entry(geometry, id.toInt) }
       if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
       entryOpt
     }
-    logMemoryUsage("After loading region cache...")
     new SpatialIndex(entries)
   }
 }

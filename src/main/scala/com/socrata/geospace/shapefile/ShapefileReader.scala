@@ -114,7 +114,7 @@ object ShapefileReader extends Logging {
         logMemoryUsage("Before reprojecting features...")
         val features = shapefile.features.map { feature => reproject(feature, proj) }
         val schema = reproject(shapefile.schema, proj)
-        logger.info("Done with reprojection")
+        logMemoryUsage("Done with reprojection")
         (features, schema)
       } finally {
         // Geotools holds a lock on the .shp file if the above blows up.

@@ -1,6 +1,8 @@
 package com.socrata.geospace.regioncache
 
 import com.socrata.geospace.feature.FeatureExtensions._
+import com.socrata.geospace.Utils._
+import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Envelope, Geometry}
 import com.vividsolutions.jts.index.strtree.STRtree
 import SpatialIndex.Entry
@@ -15,7 +17,7 @@ import SpatialIndex.Entry
  *
  * @param items A sequence of SpatialIndex.Entry's to index
  */
-class SpatialIndex[T](items: Seq[Entry[T]]) {
+class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
   private val index = new STRtree(items.size)
   addItems()
 
@@ -45,9 +47,13 @@ class SpatialIndex[T](items: Seq[Entry[T]]) {
   }
 
   private def addItems() {
+    var numCoords = 0
     items.foreach { entry =>
       index.insert(entry.geom.getEnvelopeInternal, entry)
+      numCoords += entry.geom.getCoordinates.size
     }
+    logger.info("Added {} items and {} coordinates to cache", items.size.toString, numCoords.toString)
+    logMemoryUsage("After populating SpatialIndex")
   }
 }
 
