@@ -82,7 +82,7 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
 
     val result = ShapefileReader.getContents(tmp.toFile, false)
     result.isFailure should be (true)
-    result.failed.get.getClass should be (classOf[RuntimeException])
+    result.failed.get.getClass should be (classOf[IOException])
   }
 
   private def copyToTmp(tmp: File, from: String, renameTo: String) {
