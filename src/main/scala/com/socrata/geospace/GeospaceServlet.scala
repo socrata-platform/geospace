@@ -17,7 +17,7 @@ import scala.util.{Try, Failure, Success}
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
                       config: GeospaceConfig) extends GeospaceMicroserviceStack with FileUploadSupport {
-  val regionCache = new RegionCache()
+val regionCache = new RegionCache(config.cache)
 
   get("/") {
     contentType = "text/html"

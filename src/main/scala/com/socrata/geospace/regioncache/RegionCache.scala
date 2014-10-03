@@ -4,6 +4,7 @@ import com.rojoma.json.ast.JString
 import com.socrata.geospace.client.{GeoToSoda2Converter, SodaFountainClient}
 import com.socrata.geospace.Utils._
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
 import org.geoscript.feature._
 import scala.concurrent.Future
@@ -20,9 +21,23 @@ import spray.caching.LruCache
  * more than once.  The first party will do the expensive pull, while the other parties will just
  * get the Future which is completed when the first party's pull finishes.
  *
- * TODO: Tune the cache based not on # of entries but on amount of memory available
+ * When a new layer/region dataset is added, the cache will automatically free up existing cached
+ * regions as needed to make room for the new one.  The below parameters control that process.
+ *
+ * @param minFreePct - (0 to 100) when the free memory goes below this %, depressurize() is triggered.
+ *                     Think of this as the "high water mark".
+ * @param iterationIntervalMs - the time to sleep between iterations.  This is to give time for anybody
+ *            still referencing the removed SpatialIndex to complete the task.
  */
-class RegionCache(maxEntries: Int = 100) extends Logging {
+class RegionCache(maxEntries: Int = 100,
+                  minFreePct: Int = 20,
+                  iterationIntervalMs: Int = 100) extends Logging {
+  def this(config: Config) = this(
+                               config.getInt("max-entries"),
+                               config.getInt("min-free-percentage"),
+                               config.getMilliseconds("iteration-interval").toInt
+                             )
+
   private val cache = LruCache[SpatialIndex[Int]](maxEntries)
 
   logger.info("Creating RegionCache with {} entries", maxEntries.toString)
@@ -41,7 +56,7 @@ class RegionCache(maxEntries: Int = 100) extends Logging {
   def getFromFeatures(resourceName: String, features: Seq[Feature]): Future[SpatialIndex[Int]] = {
     cache(resourceName) {
       logger.info(s"Populating cache entry for resource [$resourceName] from features")
-      Future { SpatialIndex(features) }
+      Future { depressurize(); SpatialIndex(features) }
     }
   }
 
@@ -69,12 +84,8 @@ class RegionCache(maxEntries: Int = 100) extends Logging {
    * depressurize - relieves memory pressure by removing cached regions, starting with the biggest.
    * It goes in a loop, pausing and force running GC to attempt to free memory, and exits if it
    * runs out of regions to free.
-   *
-   * @param minFreePct - the minimum % (0 - 100) of free memory to try to attain
-   * @param iterationIntervalMs - the time to sleep between iterations.  This is to give time for anybody
-   *            still referencing the removed SpatialIndex to complete the task.
    */
-  def depressurize(minFreePct: Int = 20, iterationIntervalMs: Int = 100): Unit = synchronized {
+  def depressurize(): Unit = synchronized {
     var indexes = listCompletedIndexes()
     while (!atLeastFreeMem()) {
       logMemoryUsage("Attempting to uncache regions to relieve memory pressure")

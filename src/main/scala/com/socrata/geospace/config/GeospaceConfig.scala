@@ -13,6 +13,7 @@ class GeospaceConfig(config: Config) {
   val port = config.getInt("geospace.port")
   val gracefulShutdownMs = config.getMilliseconds("geospace.graceful-shutdown-time").toInt
   val maxMultiPolygonComplexity = config.getInt("geospace.max-multipolygon-complexity")
+  val cache = config.getConfig("geospace.cache")
 
   val curator = new CuratorConfig(config, "curator")
   val discovery = new DiscoveryConfig(config, "curator")
