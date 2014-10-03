@@ -113,6 +113,12 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     }
   }
 
+  get("/experimental/regions") {
+    regionCache.regions.map { case (name, numCoords) =>
+      Map("name" -> name, "numCoordinates" -> numCoords)
+    }
+  }
+
   delete("/experimental/regions") {
     regionCache.reset()
     Ok("Done")

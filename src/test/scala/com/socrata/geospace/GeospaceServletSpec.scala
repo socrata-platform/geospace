@@ -109,6 +109,10 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
       status should equal (200)
     }
 
+    get("/experimental/regions") {
+      body should equal ("[]")
+    }
+
     mockSodaRoute("triangles.geojson", geojson)
     post("/experimental/regions/triangles/geocode",
          "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",

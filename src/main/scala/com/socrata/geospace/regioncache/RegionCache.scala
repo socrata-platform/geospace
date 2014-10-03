@@ -95,6 +95,12 @@ class RegionCache(maxEntries: Int = 100) extends Logging {
   }
 
   /**
+   * Returns a list of regions as tuples of the form (regionName, numCoordinates)
+   * in order from the biggest to the smallest.
+   */
+  def regions: Seq[(String, Int)] = listCompletedIndexes()
+
+  /**
    * Clears the region cache of all entries.  Mostly used for testing.
    */
   def reset() { cache.clear() }
