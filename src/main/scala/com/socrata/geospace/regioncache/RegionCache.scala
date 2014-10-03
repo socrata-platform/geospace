@@ -25,16 +25,20 @@ import spray.caching.LruCache
  * regions as needed to make room for the new one.  The below parameters control that process.
  *
  * @param minFreePct - (0 to 100) when the free memory goes below this %, depressurize() is triggered.
- *                     Think of this as the "high water mark".
+ *                     Think of this as the "low water mark".
+ * @param targetFreePct - (0 to 100, > minFreePct)  The "high water mark" or target free percentage
+ *                     to attain during depressurization
  * @param iterationIntervalMs - the time to sleep between iterations.  This is to give time for anybody
  *            still referencing the removed SpatialIndex to complete the task.
  */
 class RegionCache(maxEntries: Int = 100,
                   minFreePct: Int = 20,
+                  targetFreePct: Int = 40,
                   iterationIntervalMs: Int = 100) extends Logging {
   def this(config: Config) = this(
                                config.getInt("max-entries"),
                                config.getInt("min-free-percentage"),
+                               config.getInt("target-free-percentage"),
                                config.getMilliseconds("iteration-interval").toInt
                              )
 
@@ -86,8 +90,10 @@ class RegionCache(maxEntries: Int = 100,
    * runs out of regions to free.
    */
   def depressurize(): Unit = synchronized {
+    if (atLeastFreeMem(minFreePct)) return
+
     var indexes = listCompletedIndexes()
-    while (!atLeastFreeMem()) {
+    while (!atLeastFreeMem(targetFreePct)) {
       logMemoryUsage("Attempting to uncache regions to relieve memory pressure")
       if (indexes.isEmpty) {
         logger.warn("No more regions to uncache, out of memory!!")

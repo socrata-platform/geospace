@@ -28,7 +28,7 @@ object Utils extends Logging {
    */
   def atLeastFreeMem(minFreePct: Int = DefaultMinFreePct): Boolean = {
     val (freeMB, freePct) = getFree
-    freePct < minFreePct
+    freePct >= minFreePct
   }
 
   def checkFreeMemAndDie(minFreePct: Int = DefaultMinFreePct, runGC: Boolean = false) {
