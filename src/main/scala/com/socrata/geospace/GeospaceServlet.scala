@@ -17,7 +17,7 @@ import scala.util.{Try, Failure, Success}
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
                       config: GeospaceConfig) extends GeospaceMicroserviceStack with FileUploadSupport {
-  val regionCache = new RegionCache()
+val regionCache = new RegionCache(config.cache)
 
   get("/") {
     contentType = "text/html"
@@ -63,7 +63,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
 
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
-    logger.info("Decompressed and reprojected shapefile '{}' ({} milliseconds)", friendlyName, readTime);
+    logger.info("Decompressed shapefile '{}' ({} milliseconds)", friendlyName, readTime);
 
     readResult match {
       case Success((features, schema)) =>
@@ -71,12 +71,8 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
         val ingressResult =
           for { response <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
           yield {
-            // Cache the reprojected features in our region cache for immediate geocoding
-            // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-            regionCache.getFromFeatures(response.resourceName, features.toSeq)
-
             val ingressTime = System.currentTimeMillis - ingressStartTime
-            logger.info("Ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
+            logger.info("Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
                         friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString);
             Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
           }
@@ -114,6 +110,12 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     new AsyncResult { val is =
       geoRegionCode(params("resourceName"), points)
+    }
+  }
+
+  get("/experimental/regions") {
+    regionCache.regions.map { case (name, numCoords) =>
+      Map("name" -> name, "numCoordinates" -> numCoords)
     }
   }
 

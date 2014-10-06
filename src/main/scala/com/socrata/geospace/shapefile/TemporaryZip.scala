@@ -2,6 +2,7 @@ package com.socrata.geospace.shapefile
 
 import collection.JavaConverters._
 import com.rojoma.simplearm.util._
+import com.socrata.geospace.Utils._
 import com.typesafe.scalalogging.slf4j.Logging
 import java.io._
 import java.nio.file.Files
@@ -39,6 +40,7 @@ class TemporaryZip(compressed: Array[Byte]) extends Closeable with Logging {
    */
   lazy val contents: File = {
     val contentsTmpDir = Files.createTempDirectory("shp_")
+    logMemoryUsage("Before zip file extraction")
 
     for { zip <- managed(new ZipFile(archive)) } {
       // Save zip contents in a single directory.
