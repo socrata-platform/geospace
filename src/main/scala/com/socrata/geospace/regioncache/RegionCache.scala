@@ -24,6 +24,7 @@ import spray.caching.LruCache
  * When a new layer/region dataset is added, the cache will automatically free up existing cached
  * regions as needed to make room for the new one.  The below parameters control that process.
  *
+ * @param enableDepressurize enable the automatic freeing of memory (depressurization)
  * @param minFreePct - (0 to 100) when the free memory goes below this %, depressurize() is triggered.
  *                     Think of this as the "low water mark".
  * @param targetFreePct - (0 to 100, > minFreePct)  The "high water mark" or target free percentage
@@ -32,11 +33,13 @@ import spray.caching.LruCache
  *            still referencing the removed SpatialIndex to complete the task.
  */
 class RegionCache(maxEntries: Int = 100,
+                  enableDepressurize: Boolean = true,
                   minFreePct: Int = 20,
                   targetFreePct: Int = 40,
                   iterationIntervalMs: Int = 100) extends Logging {
   def this(config: Config) = this(
                                config.getInt("max-entries"),
+                               config.getBoolean("enable-depressurize"),
                                config.getInt("min-free-percentage"),
                                config.getInt("target-free-percentage"),
                                config.getMilliseconds("iteration-interval").toInt
@@ -90,7 +93,7 @@ class RegionCache(maxEntries: Int = 100,
    * runs out of regions to free.
    */
   def depressurize(): Unit = synchronized {
-    if (atLeastFreeMem(minFreePct)) return
+    if (!enableDepressurize || atLeastFreeMem(minFreePct)) return
 
     var indexes = listCompletedIndexes()
     while (!atLeastFreeMem(targetFreePct)) {

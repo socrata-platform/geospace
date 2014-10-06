@@ -33,7 +33,8 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
     WM.configureFor("localhost", mockServerPort)
     // Really important, otherwise Scalatra's test container does not start up
     super.beforeAll()
-    val cfg = ConfigFactory.load().getConfig("com.socrata")
+    val cfg = ConfigFactory.parseString("geospace.cache.enable-depressurize = false").
+                            withFallback(ConfigFactory.load().getConfig("com.socrata"))
     addServlet(new GeospaceServlet(sodaFountain, null, new GeospaceConfig(cfg)), "/*")
   }
 
