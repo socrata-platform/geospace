@@ -47,10 +47,10 @@ class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
   }
 
   private def addItems(): Int = {
-    var numCoords = 0
-    items.foreach { entry =>
+
+    val numCoords = items.foldLeft(0) { (numCoords, entry) =>
       index.insert(entry.geom.getEnvelopeInternal, entry)
-      numCoords += entry.geom.getCoordinates.size
+      numCoords + entry.geom.getCoordinates.size
     }
     logger.info("Added {} items and {} coordinates to cache", items.size.toString, numCoords.toString)
     logMemoryUsage("After populating SpatialIndex")
