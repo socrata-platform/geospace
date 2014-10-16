@@ -28,6 +28,8 @@ object FeatureValidator extends Logging {
   // -180 <= lon <= 180
   //  -90 <= lat <= 90
   // If we switch projections, this logic will need to be updated
+  // The values below are slightly relaxed since reprojection can result in rounding to values like 180.00000041
+  // We only care about precision to 6 decimal places so this should be acceptable.
   private def offTheMapPoints(mp: MultiPolygon): Array[Coordinate] = mp.getCoordinates.filter { coords =>
     coords.x >= 180.000001 || coords.x <= -180.000001 || coords.y >= 90.000001 || coords.y <= -90.000001
   }
