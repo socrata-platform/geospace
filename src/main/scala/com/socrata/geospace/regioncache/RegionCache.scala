@@ -78,7 +78,7 @@ class RegionCache(maxEntries: Int = 100,
       logger.info(s"Populating cache entry for resource [$resourceName] from soda fountain client")
       Future {
         // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
-        val sodaResponse = sodaFountain.query(resourceName, asGeoJson = true)
+        val sodaResponse = sodaFountain.query(resourceName, asGeoJson = true, Iterable(("$query", s"select * limit ${Long.MaxValue}")))
         sodaResponse.toOption.
           flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
           collect { case FeatureCollectionJson(features, _) => getIndexFromFeatureJson(features) }.

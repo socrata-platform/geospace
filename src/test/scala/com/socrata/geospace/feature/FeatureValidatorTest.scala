@@ -55,6 +55,13 @@ class FeatureValidatorTest extends FunSuite with Matchers {
     FeatureValidator.validate(feature, 5) should be (Valid)
   }
 
+  test("Feature geometry contains one or more coordinates on the world map boundary - allow for reprojection rounding") {
+    val mp = buildSimpleMultiPolygon(
+      Seq((180.0000009, 90.0000009), (-180.0000009, 90.0000009), (-180.0000009, -90.0000009), (180.0000009, -90.0000009), (180.0000009, 90.0000009)))
+    val feature = featureBuilder.buildFeature(null, Array(mp, "Polygon with points over the boundary by a rounding error"))
+    FeatureValidator.validate(feature, 5) should be (Valid)
+  }
+
   test("Feature geometry is too complex") {
     val mp = buildSimpleMultiPolygon(Seq((-122.312592, 47.628404),
                                          (-122.318106, 47.628404),
