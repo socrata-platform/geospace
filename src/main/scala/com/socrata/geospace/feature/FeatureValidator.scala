@@ -29,7 +29,7 @@ object FeatureValidator extends Logging {
   //  -90 <= lat <= 90
   // If we switch projections, this logic will need to be updated
   private def offTheMapPoints(mp: MultiPolygon): Array[Coordinate] = mp.getCoordinates.filter { coords =>
-    coords.x > 180 || coords.x < -180 || coords.y > 90 || coords.y < -90
+    coords.x >= 180.000001 || coords.x <= -180.000001 || coords.y >= 90.000001 || coords.y <= -90.000001
   }
 
   private def printablePoint(pt: Coordinate): String = s"[${pt.x},${pt.y}]"

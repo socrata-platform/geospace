@@ -43,6 +43,8 @@ val regionCache = new RegionCache(config.cache)
                          .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
+    val bypassValidation = Try(params.getOrElse("bypassValidation", "false").toBoolean)
+      .getOrElse(halt(BadRequest("Invalid bypassValidation param provided in the request")))
 
     val authToken = request.headers.getOrElse("Authorization", halt(BadRequest("Core Basic Auth must be provided in order to ingest a shapefile")))
     val appToken = request.headers.getOrElse("X-App-Token", halt(BadRequest("X-App-Token header must be provided in order to ingest a shapefile")))
@@ -55,9 +57,14 @@ val regionCache = new RegionCache(config.cache)
       for {  zip               <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
       } yield {
-        val validationErrors = FeatureValidator.validationErrors(features, config.maxMultiPolygonComplexity)
-        if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
-        logger.info("Feature validation succeeded")
+        if (bypassValidation) {
+          logger.info("Feature validation bypassed")
+        } else {
+          val validationErrors = FeatureValidator.validationErrors(features, config.maxMultiPolygonComplexity)
+          if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
+          logger.info("Feature validation succeeded")
+        }
+
         (features, schema)
       }
 

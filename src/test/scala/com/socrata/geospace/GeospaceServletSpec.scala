@@ -47,7 +47,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
   }
 
   private def mockSodaRoute(resourceName: String, returnedBody: String) {
-    WM.stubFor(WM.get(WM.urlEqualTo("/resource/" + resourceName)).
+    WM.stubFor(WM.get(WM.urlMatching(s"/resource/$resourceName??.*")).
                willReturn(WM.aResponse()
                          .withStatus(200)
                          .withHeader("Content-Type", "application/vnd.geo+json; charset=utf-8")

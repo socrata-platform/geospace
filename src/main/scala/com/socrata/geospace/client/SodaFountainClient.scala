@@ -54,7 +54,8 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
    * @param resourceName Resource name of the dataset to query
    * @param asGeoJson return contents as a GeoJSON blob
    */
-  def query(resourceName: String, asGeoJson: Boolean = false): Try[JValue] = get(queryUrl(_, resourceName, asGeoJson))
+  def query(resourceName: String, asGeoJson: Boolean = false, params: Iterable[(String, String)] = Iterable.empty): Try[JValue] =
+    get(queryUrl(_, resourceName, asGeoJson, params))
 
   private def createUrl(rb: RequestBuilder) =
     rb.p("dataset").method("POST").addHeader(("Content-Type", "application/json"))
@@ -65,9 +66,9 @@ class SodaFountainClient(httpClient: HttpClient, discovery: ServiceDiscovery[Aux
   private def upsertUrl(rb: RequestBuilder, resourceName: String) =
     rb.p("resource", resourceName).method("POST").addHeader(("Content-Type", "application/json"))
 
-  private def queryUrl(rb: RequestBuilder, resourceName: String, asGeoJson: Boolean) = {
+  private def queryUrl(rb: RequestBuilder, resourceName: String, asGeoJson: Boolean, params: Iterable[(String, String)]) = {
     val resource = if (asGeoJson) resourceName + ".geojson" else resourceName
-    rb.p("resource", resource)
+    rb.p("resource", resource).addParameters(params)
   }
 
   private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
