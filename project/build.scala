@@ -49,6 +49,7 @@ object Dependencies {
     "com.rojoma"               %% "simple-arm"          % "1.2.0",
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
     "com.socrata"              %% "socrata-thirdparty-utils" % "2.4.0",
+    "com.socrata"              %% "soda-fountain-external" % "0.2.6-SNAPSHOT",
     "com.typesafe"              % "config"              % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"  % "1.1.0",
     "io.spray"                  % "spray-caching"       % "1.2.2.velvia",

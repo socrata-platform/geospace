@@ -14,6 +14,8 @@ class GeospaceConfig(config: Config) {
   val gracefulShutdownMs = config.getMilliseconds("geospace.graceful-shutdown-time").toInt
   val maxMultiPolygonComplexity = config.getInt("geospace.max-multipolygon-complexity")
   val cache = config.getConfig("geospace.cache")
+  val curatedDomains = config.getStringList("geospace.curated-domains")
+  val sodaSuggester = new SodaSuggesterConfig(config.getConfig("geospace.soda-suggester"))
 
   val curator = new CuratorConfig(config, "curator")
   val discovery = new DiscoveryConfig(config, "curator")
@@ -22,6 +24,13 @@ class GeospaceConfig(config: Config) {
   val service = new ServiceAdvertisementConfig(config.getConfig("service-advertisement"))
 
   val debugString = config.root.render()
+}
+
+/**
+ * Contains configuration values for getting georegion suggestions through Soda Fountain
+ */
+class SodaSuggesterConfig(config: Config) {
+  val resourceName = config.getString("resource-name")
 }
 
 /**
