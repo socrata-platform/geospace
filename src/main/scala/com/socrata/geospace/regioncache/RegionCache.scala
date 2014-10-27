@@ -1,8 +1,9 @@
 package com.socrata.geospace.regioncache
 
 import com.rojoma.json.ast.JString
-import com.socrata.geospace.client.{GeoToSoda2Converter, SodaFountainClient}
+import com.socrata.geospace.client.{SodaResponse, GeoToSoda2Converter}
 import com.socrata.geospace.Utils._
+import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
@@ -78,12 +79,13 @@ class RegionCache(maxEntries: Int = 100,
       logger.info(s"Populating cache entry for resource [$resourceName] from soda fountain client")
       Future {
         // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
-        val sodaResponse = sodaFountain.query(resourceName, asGeoJson = true, Iterable(("$query", s"select * limit ${Long.MaxValue}")))
-        sodaResponse.toOption.
+        val sodaResponse = sodaFountain.query(resourceName, Some("geojson"), Iterable(("$query", s"select * limit ${Long.MaxValue}")))
+        val payload = SodaResponse.check(sodaResponse, 200)
+        payload.toOption.
           flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
           collect { case FeatureCollectionJson(features, _) => getIndexFromFeatureJson(features) }.
-          getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + sodaResponse.get,
-                    if (sodaResponse.isFailure) sodaResponse.failed.get else null))
+          getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + payload.get,
+                    if (payload.isFailure) payload.failed.get else null))
       }
     }
 

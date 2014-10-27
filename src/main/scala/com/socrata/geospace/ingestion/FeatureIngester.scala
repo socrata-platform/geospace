@@ -2,6 +2,7 @@ package com.socrata.geospace.ingestion
 
 import com.rojoma.json.ast._
 import com.socrata.geospace.client._
+import com.socrata.soda.external.SodaFountainClient
 import org.geoscript.feature.{Feature, Schema}
 import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}
@@ -14,22 +15,6 @@ object FeatureIngester {
   val logger = LoggerFactory.getLogger(getClass)
 
   case class Response(resourceName: String, upsertCount: Int)
-
-  /**
-   * Ingests the shapefile schema and rows into Dataspace
-   * @param sodaFountain Connection to Soda Fountain
-   * @param resourceName Resource identifier in Dataspace
-   * @param features Features representing the rows to upsert
-   * @param schema Schema definition
-   * @return Soda Fountain response
-   */
-  def ingestViaSodaServer(sodaFountain: SodaFountainClient, resourceName: String, features: Traversable[Feature], schema: Schema): Try[JValue] = {
-    logger.info("Ingesting features for resource {}, schema = {}", resourceName, schema: Any)
-    for { create  <- sodaFountain.create(GeoToSoda2Converter.getCreateBody(resourceName, schema))
-          upsert  <- sodaFountain.upsert(resourceName, GeoToSoda2Converter.getUpsertBody(features, schema))
-          publish <- sodaFountain.publish(resourceName)
-    } yield publish
-  }
 
   /**
    * Uses Core server endpoint to ingest shapefile schema and rows into Dataspace
@@ -49,7 +34,8 @@ object FeatureIngester {
     //        This hack bypasses Core for the upsert. Auth is already validated in the DDL steps, so this should be ok.
     for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
           addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
-          upsert     <- sodaFountain.upsert("_" + fourByFour, GeoToSoda2Converter.getUpsertBody(features, schema))
+          upsert     <- SodaResponse.check(sodaFountain.upsert("_" + fourByFour,
+                                                               GeoToSoda2Converter.getUpsertBody(features, schema)), 200)
           publish    <- requester.publish(fourByFour)
     } yield {
       // The region cache keys off the Soda Fountain resource name, but we currently

@@ -38,6 +38,7 @@ class SodaSuggesterConfig(config: Config) {
  */
 class CuratedServiceConfig(config: Config) {
   val serviceName = config.getString("service-name")
+  val maxRetries  = config.getInt("max-retries")
 }
 
 /**

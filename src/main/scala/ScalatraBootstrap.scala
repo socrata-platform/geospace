@@ -1,9 +1,12 @@
 import com.socrata.geospace._
-import com.socrata.geospace.client.{CoreServerClient, SodaFountainClient}
+import com.socrata.geospace.client.CoreServerClient
 import com.socrata.geospace.config.GeospaceConfig
+import com.socrata.geospace.errors.ServiceDiscoveryException
 import com.socrata.http.client.{NoopLivenessChecker, HttpClientHttpClient}
 import com.socrata.http.common.AuxiliaryData
+import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.curator._
+import com.socrata.thirdparty.curator.ServerProvider.RetryOnAllExceptionsDuringInitialRequest
 import com.typesafe.config.ConfigFactory
 import java.util.concurrent.Executors
 import javax.servlet.ServletContext
@@ -30,8 +33,13 @@ class ScalatraBootstrap extends LifeCycle {
   // TODO : Add real liveness checking and other goodness
   // (involves factoring out a whole bunch of code from Soda Fountain)
 
-  lazy val sodaFountain =  new SodaFountainClient(
-    httpClient, discovery, config.sodaFountain.serviceName, config.curator.connectTimeout)
+  lazy val sodaFountain =  new SodaFountainClient(httpClient,
+                                                  discovery,
+                                                  config.sodaFountain.serviceName,
+                                                  config.curator.connectTimeout,
+                                                  config.sodaFountain.maxRetries,
+                                                  RetryOnAllExceptionsDuringInitialRequest,
+                                                  throw new ServiceDiscoveryException("No Soda Fountain servers found"))
   lazy val coreServer = new CoreServerClient(
     httpClient, discovery, config.coreServer.serviceName, config.curator.connectTimeout)
 

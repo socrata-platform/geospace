@@ -3,12 +3,14 @@ package com.socrata.geospace
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.{WireMock => WM}
-import com.socrata.geospace.client.SodaFountainClient
 import com.socrata.geospace.config.GeospaceConfig
+import com.socrata.geospace.errors.ServiceDiscoveryException
+import com.socrata.soda.external.SodaFountainClient
+import com.socrata.thirdparty.curator.{CuratorBroker, CuratorServiceIntegration}
+import com.socrata.thirdparty.curator.ServerProvider.RetryOnAllExceptionsDuringInitialRequest
 import com.typesafe.config.ConfigFactory
 import org.scalatra.test.scalatest._
 import org.scalatest.FunSuiteLike
-import com.socrata.thirdparty.curator.{CuratorBroker, CuratorServiceIntegration}
 
 /**
  * Test Geospace HTTP routes
@@ -23,7 +25,16 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
   lazy val broker = new CuratorBroker(discovery, "localhost", "soda-fountain", None)
   lazy val cookie = broker.register(mockServerPort)
 
-  lazy val sodaFountain = new SodaFountainClient(httpClient, discovery, "soda-fountain", curatorConfig.connectTimeout)
+  // TODO : Use the FakeSodaFountain trait instead of repeating everything here.
+  // Currently blocked on this as I can't figure out this error:
+  // java.lang.IllegalArgumentException: requirement failed: The detected local port is < 1, that's not allowed
+  lazy val sodaFountain = new SodaFountainClient(httpClient,
+                                                 discovery,
+                                                 "soda-fountain",
+                                                 curatorConfig.connectTimeout,
+                                                 curatorConfig.maxRetries,
+                                                 RetryOnAllExceptionsDuringInitialRequest,
+                                                 throw new ServiceDiscoveryException("No Soda Fountain servers found"))
 
   override def beforeAll {
     startServices()            // Start in-process ZK, Curator, service discovery
