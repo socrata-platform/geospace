@@ -1,16 +1,16 @@
 package com.socrata.geospace
 
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.{WireMock => WM}
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.socrata.geospace.config.GeospaceConfig
 import com.socrata.geospace.errors.ServiceDiscoveryException
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.curator.{CuratorBroker, CuratorServiceIntegration}
 import com.socrata.thirdparty.curator.ServerProvider.RetryOnAllExceptionsDuringInitialRequest
 import com.typesafe.config.ConfigFactory
-import org.scalatra.test.scalatest._
 import org.scalatest.FunSuiteLike
+import org.scalatra.test.scalatest._
 
 /**
  * Test Geospace HTTP routes
@@ -159,6 +159,26 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
       "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
       headers = Map("Content-Type" -> "application/json")) {
       status should equal (500)
+    }
+  }
+
+  test("suggestion service - suggestions exist") {
+    val mockSuggestions = """[{"domain":"data.cityofchicago.org","friendly_name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"}]"""
+    mockSodaRoute("georegions_test", mockSuggestions)
+    post("/experimental/regions/suggest",
+         headers = Map("Content-Type" -> "application/json", "X-Socrata-Host" -> "data.cityofchicago.org")) {
+      status should equal(200)
+      body should equal( """{"suggestions":[{"resourceName":"_68tz-dwsn","friendlyName":"Chicago Zipcodes","domain":"data.cityofchicago.org"}]}""")
+    }
+  }
+
+  test("suggestion service - no matching suggestions") {
+    val mockSuggestions = """[]"""
+    mockSodaRoute("georegions_test", mockSuggestions)
+    post("/experimental/regions/suggest",
+         headers = Map("Content-Type" -> "application/json", "X-Socrata-Host" -> "data.cityofchicago.org")) {
+      status should equal(200)
+      body should equal( """{"suggestions":[]}""")
     }
   }
 }

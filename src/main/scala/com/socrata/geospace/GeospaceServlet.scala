@@ -9,9 +9,11 @@ import com.socrata.geospace.feature.FeatureValidator
 import com.socrata.geospace.ingestion.FeatureIngester
 import com.socrata.geospace.regioncache.RegionCache
 import com.socrata.geospace.shapefile._
+import com.socrata.geospace.suggest.SodaSuggester
 import com.socrata.soda.external.SodaFountainClient
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.util.{Try, Failure, Success}
 
@@ -130,6 +132,19 @@ val regionCache = new RegionCache(config.cache)
   delete("/experimental/regions") {
     regionCache.reset()
     Ok("Done")
+  }
+
+  post("/experimental/regions/suggest") {
+    val curatedDomains  = config.curatedDomains.asScala
+    val customerDomains = request.getHeaders("X-Socrata-Host").asScala
+
+    val suggester = new SodaSuggester(sodaFountain, config.sodaSuggester)
+
+    // TODO : Parse polygon
+    suggester.suggest(curatedDomains ++ customerDomains, null) match {
+      case Success(suggestions) => Map("suggestions" -> suggestions)
+      case Failure(e)           => throw e
+    }
   }
 
   // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
