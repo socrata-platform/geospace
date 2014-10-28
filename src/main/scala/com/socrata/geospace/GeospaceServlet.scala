@@ -11,6 +11,7 @@ import com.socrata.geospace.regioncache.RegionCache
 import com.socrata.geospace.shapefile._
 import com.socrata.geospace.suggest.SodaSuggester
 import com.socrata.soda.external.SodaFountainClient
+import com.socrata.soql.types.SoQLMultiPolygon
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.collection.JavaConverters._
@@ -137,11 +138,15 @@ val regionCache = new RegionCache(config.cache)
   post("/experimental/regions/suggest") {
     val curatedDomains  = config.curatedDomains.asScala
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
+    // It's ok if the user doesn't provide a bounding shape at all,
+    // but if they provide invalid GeoJSON, error out.
+    val boundingMultiPolygon = if (request.body.equals("")) None
+                               else Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
+                                           halt(BadRequest("Bounding shape could not be parsed"))))
 
     val suggester = new SodaSuggester(sodaFountain, config.sodaSuggester)
 
-    // TODO : Parse polygon
-    suggester.suggest(curatedDomains ++ customerDomains, null) match {
+    suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon) match {
       case Success(suggestions) => Map("suggestions" -> suggestions)
       case Failure(e)           => throw e
     }

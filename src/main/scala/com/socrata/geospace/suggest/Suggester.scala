@@ -11,5 +11,5 @@ object Suggestion {
 }
 
 trait Suggester {
-  def suggest(domains: Seq[String], overlapWith: MultiPolygon): Try[Seq[Suggestion]]
+  def suggest(domains: Seq[String], overlapWith: Option[MultiPolygon]): Try[Seq[Suggestion]]
 }
