@@ -26,7 +26,7 @@ class SodaSuggesterSoqlizerSpec extends FunSuiteLike with Matchers with SodaSugg
     val query = makeQuery(Seq(), SoQLMultiPolygon.WktRep.unapply(wkt))
 
     query should equal ("SELECT resource_name, friendly_name, domain " +
-                       s"WHERE INTERSECTS(bounding_multipolygon, '$wkt')")
+                       s"WHERE intersects(bounding_multipolygon, '$wkt')")
   }
 
   test("Multiple domains and bounding multipolygon provided") {
@@ -36,6 +36,6 @@ class SodaSuggesterSoqlizerSpec extends FunSuiteLike with Matchers with SodaSugg
 
     query should equal ("SELECT resource_name, friendly_name, domain " +
                         "WHERE domain IN ('geo.socrata.com','data.cityofchicago.gov') AND " +
-                             s"INTERSECTS(bounding_multipolygon, '$wkt')")
+                             s"intersects(bounding_multipolygon, '$wkt')")
   }
 }

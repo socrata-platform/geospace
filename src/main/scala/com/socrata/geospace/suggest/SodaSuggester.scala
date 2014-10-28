@@ -9,7 +9,6 @@ import com.socrata.geospace.config.SodaSuggesterConfig
 import com.vividsolutions.jts.geom.MultiPolygon
 import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}
-import com.socrata.soql.types.SoQLMultiPolygon
 
 object SodaSuggester {
   case class UnknownSodaSuggestionFormat(payload: String) extends Exception(s"Suggestions could not be parsed out of Soda response JSON: $payload")

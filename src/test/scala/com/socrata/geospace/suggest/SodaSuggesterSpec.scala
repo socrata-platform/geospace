@@ -4,12 +4,12 @@ import com.github.tomakehurst.wiremock.client.WireMock
 import com.socrata.geospace.FakeSodaFountain
 import com.socrata.geospace.client.SodaResponse.{UnexpectedResponseCode, JsonParseException}
 import com.socrata.geospace.config.SodaSuggesterConfig
+import com.socrata.geospace.suggest.SodaSuggester.UnknownSodaSuggestionFormat
+import com.socrata.soql.types.SoQLMultiPolygon
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success}
-import com.socrata.geospace.suggest.SodaSuggester.UnknownSodaSuggestionFormat
-import com.socrata.soql.types.SoQLMultiPolygon
 
 class SodaSuggesterSpec extends FakeSodaFountain with Matchers with BeforeAndAfterEach {
   val ssCfg = new SodaSuggesterConfig(ConfigFactory.parseMap(Map(
