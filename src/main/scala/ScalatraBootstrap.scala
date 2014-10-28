@@ -22,7 +22,7 @@ class ScalatraBootstrap extends LifeCycle {
 
   lazy val curator = CuratorFromConfig.unmanaged(config.curator)
   lazy val discovery = DiscoveryFromConfig.unmanaged(classOf[AuxiliaryData], curator, config.discovery)
-  lazy val broker = new CuratorBroker(discovery, config.service.address, config.service.name, None)
+  lazy val broker = new CuratorBroker(discovery, config.discovery.address, config.discovery.name, None)
   lazy val cookie = broker.register(config.port)
 
   lazy val httpClient = new HttpClientHttpClient(

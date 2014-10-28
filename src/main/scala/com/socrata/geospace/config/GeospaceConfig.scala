@@ -16,10 +16,9 @@ class GeospaceConfig(config: Config) {
   val cache = config.getConfig("geospace.cache")
 
   val curator = new CuratorConfig(config, "curator")
-  val discovery = new DiscoveryConfig(config, "curator")
+  val discovery = new DiscoveryConfig(config, "service-advertisement")
   val sodaFountain = new CuratedServiceConfig(config.getConfig("soda-fountain"))
   val coreServer = new CuratedServiceConfig(config.getConfig("core-server"))
-  val service = new ServiceAdvertisementConfig(config.getConfig("service-advertisement"))
 
   val debugString = config.root.render()
 }
@@ -29,12 +28,4 @@ class GeospaceConfig(config: Config) {
  */
 class CuratedServiceConfig(config: Config) {
   val serviceName = config.getString("service-name")
-}
-
-/**
- * Contains service advertisement config for ZK/Curator registration
- */
-class ServiceAdvertisementConfig(config: Config) {
-  val address = config.getString("address")
-  val name = config.getString("name")
 }
