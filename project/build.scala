@@ -51,7 +51,7 @@ object Dependencies {
     "com.socrata"              %% "socrata-thirdparty-utils" % "2.4.0",
     "com.typesafe"              % "config"              % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"  % "1.1.0",
-    "io.spray"                  % "spray-caching"       % "1.2.2.velvia",
+    "io.spray"                  % "spray-caching"       % "1.2.2",
     "org.apache.commons"        % "commons-io"          % "1.3.2",
     "org.apache.curator"        % "curator-x-discovery" % "2.4.2"
       exclude("org.slf4j", "slf4j-log4j12")
@@ -104,7 +104,7 @@ object GeospaceMicroserviceBuild extends Build {
                  resolvers += Classpaths.typesafeReleases,
                  resolvers ++= socrataResolvers,
                  libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps ++ testDeps,
-                 fork in Test := true,
+                 // fork in Test := true,   // SBT 0.13.5 seems to have an issue with this
                  scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
                    Seq(
                      TemplateConfig(
