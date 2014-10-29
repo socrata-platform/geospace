@@ -2,15 +2,19 @@ package com.socrata.geospace
 
 import com.rojoma.simplearm.util._
 import com.socrata.BuildInfo
-import com.socrata.geospace.client._
+import com.socrata.geospace.client.{CoreServerAuth, CoreServerClient}
 import com.socrata.geospace.config.GeospaceConfig
 import com.socrata.geospace.errors._
 import com.socrata.geospace.feature.FeatureValidator
 import com.socrata.geospace.ingestion.FeatureIngester
 import com.socrata.geospace.regioncache.RegionCache
 import com.socrata.geospace.shapefile._
+import com.socrata.geospace.suggest.SodaSuggester
+import com.socrata.soda.external.SodaFountainClient
+import com.socrata.soql.types.SoQLMultiPolygon
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.util.{Try, Failure, Success}
 
@@ -37,7 +41,7 @@ val regionCache = new RegionCache(config.cache)
 
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
   // TODO Return some kind of meaningful JSON response
-  post("/experimental/regions/shapefile") {
+  post("/v1/regions/shapefile") {
     val friendlyName = params.getOrElse("friendlyName", halt(BadRequest("No friendlyName param provided in the request")))
     val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
                          .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
@@ -96,7 +100,7 @@ val regionCache = new RegionCache(config.cache)
   }
 
   // A test route only for loading a Shapefile to cache; body = full path to Shapefile unzipped directory
-  post("/experimental/regions/:resourceName/local-shp") {
+  post("/v1/regions/:resourceName/local-shp") {
     val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
                          .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
     val readResult = ShapefileReader.read(new java.io.File(request.body), forceLonLat)
@@ -112,7 +116,7 @@ val regionCache = new RegionCache(config.cache)
   // NOTE: Tricky to find a good REST endpoint.  What is the resource?  geo-regions?
   // TODO: Add Swagger support so routes are documented.
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
-  post("/experimental/regions/:resourceName/geocode") {
+  post("/v1/regions/:resourceName/geocode") {
     val points = parsedBody.extract[Seq[Seq[Double]]]
     if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     new AsyncResult { val is =
@@ -120,15 +124,31 @@ val regionCache = new RegionCache(config.cache)
     }
   }
 
-  get("/experimental/regions") {
+  get("/v1/regions") {
     regionCache.regions.map { case (name, numCoords) =>
       Map("name" -> name, "numCoordinates" -> numCoords)
     }
   }
 
-  delete("/experimental/regions") {
+  delete("/v1/regions") {
     regionCache.reset()
     Ok("Done")
+  }
+
+  post("/v1/regions/suggest") {
+    val curatedDomains  = config.curatedDomains.asScala
+    val customerDomains = request.getHeaders("X-Socrata-Host").asScala
+    // It's ok if the user doesn't provide a bounding shape at all,
+    // but if they provide invalid GeoJSON, error out.
+    val boundingMultiPolygon = if (request.body.equals("")) None
+                               else Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
+                                           halt(BadRequest("Bounding shape could not be parsed"))))
+
+    val suggester = new SodaSuggester(sodaFountain, config.sodaSuggester)
+
+    suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
+      suggestions => Map("suggestions" -> suggestions)
+    }.get
   }
 
   // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
