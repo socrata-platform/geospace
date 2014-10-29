@@ -50,7 +50,7 @@ object Dependencies {
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
     "com.socrata"              %% "socrata-thirdparty-utils" % "2.4.0",
     "com.socrata"              %% "soda-fountain-external" % "0.3.2",
-    "com.socrata"              %% "soql-types"          % "0.3.3",
+    "com.socrata"              %% "soql-types"          % "0.3.3" exclude("org.jdom", "jdom"),
     "com.typesafe"              % "config"              % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"  % "1.1.0",
     "io.spray"                  % "spray-caching"       % "1.2.2.velvia",
@@ -128,8 +128,9 @@ object GeospaceMicroserviceBuild extends Build {
   lazy val assemblySettings = sbtassembly.Plugin.assemblySettings ++ Seq(
     mergeStrategy in assembly <<= (mergeStrategy in assembly) { old =>
       {
-        case "about.html" => MergeStrategy.rename
-        case x => old(x)
+        case "application.conf" => MergeStrategy.rename
+        case "about.html"       => MergeStrategy.rename
+        case x                  => old(x)
       }
     }
   )
