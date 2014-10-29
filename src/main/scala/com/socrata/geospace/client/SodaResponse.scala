@@ -10,12 +10,9 @@ object SodaResponse {
   case object JsonParseException extends Exception("Soda response could not be parsed as JSON")
 
   def check(result: SodaFountainClient.Result, expectedCode: Int): Try[JValue] = result match {
-    case Response(code, body) if code == expectedCode =>
-      body match {
-        case Some(jValue) => Success(jValue)
-        case None         => Failure(JsonParseException)
-      }
-    case Response(code, body) if code != expectedCode => Failure(UnexpectedResponseCode(code))
-    case Failed(e)                                    => Failure(e)
+    case Response(`expectedCode`, Some(jValue)) => Success(jValue)
+    case Response(`expectedCode`, None)         => Failure(JsonParseException)
+    case Response(code, _)                      => Failure(UnexpectedResponseCode(code))
+    case Failed(e)                              => Failure(e)
   }
 }

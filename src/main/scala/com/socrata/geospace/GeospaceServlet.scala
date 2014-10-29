@@ -146,10 +146,9 @@ val regionCache = new RegionCache(config.cache)
 
     val suggester = new SodaSuggester(sodaFountain, config.sodaSuggester)
 
-    suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon) match {
-      case Success(suggestions) => Map("suggestions" -> suggestions)
-      case Failure(e)           => throw e
-    }
+    suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
+      suggestions => Map("suggestions" -> suggestions)
+    }.get
   }
 
   // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
