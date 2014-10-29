@@ -15,7 +15,7 @@ object SodaResponse {
         case Some(jValue) => Success(jValue)
         case None         => Failure(JsonParseException)
       }
-    case Response(code, body) if code != 200 => Failure(UnexpectedResponseCode(code))
-    case Failed(e)                           => Failure(e)
+    case Response(code, body) if code != expectedCode => Failure(UnexpectedResponseCode(code))
+    case Failed(e)                                    => Failure(e)
   }
 }
