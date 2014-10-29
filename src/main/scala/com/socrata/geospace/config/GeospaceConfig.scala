@@ -1,6 +1,7 @@
 package com.socrata.geospace.config
 
 import com.socrata.thirdparty.curator.{CuratorConfig, DiscoveryConfig}
+import com.socrata.thirdparty.metrics.MetricsOptions
 import com.typesafe.config.Config
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
@@ -19,6 +20,8 @@ class GeospaceConfig(config: Config) {
   val discovery = new DiscoveryConfig(config, "service-advertisement")
   val sodaFountain = new CuratedServiceConfig(config.getConfig("soda-fountain"))
   val coreServer = new CuratedServiceConfig(config.getConfig("core-server"))
+
+  val metrics = MetricsOptions(config.getConfig("metrics"))
 
   val debugString = config.root.render()
 }

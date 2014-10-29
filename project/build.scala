@@ -41,7 +41,12 @@ object Dependencies {
     "ch.qos.logback"            % "logback-classic"     % "1.0.6"               % "container;runtime",
     "org.slf4j"                 % "log4j-over-slf4j"    % "1.7.7",
     "org.eclipse.jetty"         % "jetty-webapp"        % "8.1.8.v20121106"     % "container;compile",
-    "org.eclipse.jetty.orbit"   % "javax.servlet"       % "3.0.0.v201112011016" % "container;provided;test" artifacts (Artifact("javax.servlet", "jar", "jar"))
+    "org.eclipse.jetty.orbit"   % "javax.servlet"       % "3.0.0.v201112011016" %
+        "container;provided;test" artifacts (Artifact("javax.servlet", "jar", "jar")),
+    "io.dropwizard.metrics"     % "metrics-jetty8"      % "3.1.0" exclude(
+        "org.eclipse.jetty", "jetty-server"),
+    // See CORE-3635: use lower version of graphite to work around Graphite reconnect issues
+    "com.codahale.metrics"      % "metrics-graphite"    % "3.0.2" exclude("com.codahale.metrics", "metrics-core")
   )
 
   lazy val socrataDeps = Seq(
@@ -52,6 +57,7 @@ object Dependencies {
     "com.typesafe"              % "config"              % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"  % "1.1.0",
     "io.spray"                  % "spray-caching"       % "1.2.2",
+    "nl.grons"                 %% "metrics-scala"       % "3.3.0",
     "org.apache.commons"        % "commons-io"          % "1.3.2",
     "org.apache.curator"        % "curator-x-discovery" % "2.4.2"
       exclude("org.slf4j", "slf4j-log4j12")

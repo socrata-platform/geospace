@@ -4,6 +4,7 @@ import com.socrata.geospace.config.GeospaceConfig
 import com.socrata.http.client.{NoopLivenessChecker, HttpClientHttpClient}
 import com.socrata.http.common.AuxiliaryData
 import com.socrata.thirdparty.curator._
+import com.socrata.thirdparty.metrics.MetricsReporter
 import com.typesafe.config.ConfigFactory
 import java.util.concurrent.Executors
 import javax.servlet.ServletContext
@@ -35,16 +36,20 @@ class ScalatraBootstrap extends LifeCycle {
   lazy val coreServer = new CoreServerClient(
     httpClient, discovery, config.coreServer.serviceName, config.curator.connectTimeout)
 
+  lazy val metricsReporter = new MetricsReporter(config.metrics)
+
   override def init(context: ServletContext) {
     curator.start
     discovery.start
     cookie
     sodaFountain.start
     coreServer.start
+    metricsReporter
     context.mount(new GeospaceServlet(sodaFountain, coreServer, config), "/*")
   }
 
   override def destroy(context: ServletContext) {
+    metricsReporter.stop()
     coreServer.close
     sodaFountain.close
     broker.deregister(cookie)
