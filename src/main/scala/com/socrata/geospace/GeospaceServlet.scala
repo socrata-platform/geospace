@@ -41,7 +41,7 @@ val regionCache = new RegionCache(config.cache)
 
   // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
   // TODO Return some kind of meaningful JSON response
-  post("/experimental/regions/shapefile") {
+  post("/v1/regions/shapefile") {
     val friendlyName = params.getOrElse("friendlyName", halt(BadRequest("No friendlyName param provided in the request")))
     val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
                          .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
@@ -100,7 +100,7 @@ val regionCache = new RegionCache(config.cache)
   }
 
   // A test route only for loading a Shapefile to cache; body = full path to Shapefile unzipped directory
-  post("/experimental/regions/:resourceName/local-shp") {
+  post("/v1/regions/:resourceName/local-shp") {
     val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
                          .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
     val readResult = ShapefileReader.read(new java.io.File(request.body), forceLonLat)
@@ -116,7 +116,7 @@ val regionCache = new RegionCache(config.cache)
   // NOTE: Tricky to find a good REST endpoint.  What is the resource?  geo-regions?
   // TODO: Add Swagger support so routes are documented.
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
-  post("/experimental/regions/:resourceName/geocode") {
+  post("/v1/regions/:resourceName/geocode") {
     val points = parsedBody.extract[Seq[Seq[Double]]]
     if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     new AsyncResult { val is =
@@ -124,18 +124,18 @@ val regionCache = new RegionCache(config.cache)
     }
   }
 
-  get("/experimental/regions") {
+  get("/v1/regions") {
     regionCache.regions.map { case (name, numCoords) =>
       Map("name" -> name, "numCoordinates" -> numCoords)
     }
   }
 
-  delete("/experimental/regions") {
+  delete("/v1/regions") {
     regionCache.reset()
     Ok("Done")
   }
 
-  post("/experimental/regions/suggest") {
+  post("/v1/regions/suggest") {
     val curatedDomains  = config.curatedDomains.asScala
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
     // It's ok if the user doesn't provide a bounding shape at all,
