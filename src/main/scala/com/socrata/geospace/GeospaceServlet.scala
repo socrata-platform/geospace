@@ -28,6 +28,7 @@ with FileUploadSupport with Metrics {
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")
   val suggestTimer   = metrics.timer("suggestion-requests")
+  val decompressTimer = metrics.timer("shapefile-decompression")
   val freeMem        = metrics.gauge("free-memory-MB") { Utils.getFreeMem }
 
   get("/") {
@@ -64,7 +65,7 @@ with FileUploadSupport with Metrics {
 
     val readReprojectStartTime = System.currentTimeMillis
 
-    val readResult =
+    val readResult = decompressTimer.time {
       for {  zip               <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
       } yield {
@@ -78,6 +79,7 @@ with FileUploadSupport with Metrics {
 
         (features, schema)
       }
+    }
 
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
