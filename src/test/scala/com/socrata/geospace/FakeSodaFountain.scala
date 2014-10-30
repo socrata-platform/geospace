@@ -22,7 +22,7 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
                                                  curatorConfig.connectTimeout,
                                                  1,
                                                  RetryOnAllExceptionsDuringInitialRequest,
-                                                 throw new ServiceDiscoveryException("No Soda Fountain servers found"))
+                                                 throw ServiceDiscoveryException("No Soda Fountain servers found"))
 
   override def beforeAll() {
     startServices()            // Start in-process ZK, Curator, service discovery

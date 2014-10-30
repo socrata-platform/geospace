@@ -1,10 +1,11 @@
 package com.socrata.geospace.suggest
 
 import com.github.tomakehurst.wiremock.client.WireMock
+import com.rojoma.json.io.JsonReader
 import com.socrata.geospace.FakeSodaFountain
 import com.socrata.geospace.client.SodaResponse.{UnexpectedResponseCode, JsonParseException}
 import com.socrata.geospace.config.SodaSuggesterConfig
-import com.socrata.geospace.suggest.SodaSuggester.UnknownSodaSuggestionFormat
+import com.socrata.geospace.errors.UnexpectedSodaResponse
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{BeforeAndAfterEach, Matchers}
@@ -50,7 +51,8 @@ class SodaSuggesterSpec extends FakeSodaFountain with Matchers with BeforeAndAft
     val nonsense = """[ { "name" : "Jean Valjean", "prisoner_number" : 24601 } ]"""
     setFakeSodaResponse(nonsense)
     val result = suggester.suggest(Seq("data.cityofchicago.gov"), polygon)
-    result should be (Failure(UnknownSodaSuggestionFormat(nonsense)))
+    result should be (Failure(UnexpectedSodaResponse(
+      "Suggestions could not be parsed out of Soda response JSON", JsonReader.fromString(nonsense))))
   }
 
   test("Soda Fountain returns non-JSON payload") {

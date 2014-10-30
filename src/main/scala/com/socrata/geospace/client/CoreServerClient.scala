@@ -96,7 +96,7 @@ class CoreServerClient(httpClient: HttpClient,
 
       response.resultCode match {
         case `expectedResponseCode` => Success(body)
-        case _ => Failure(new CoreServerException(s"Core server response: ${response.resultCode} Payload: $body"))
+        case _ => Failure(CoreServerException(s"Core server response: ${response.resultCode} Payload: $body"))
       }
     }
 
@@ -113,7 +113,7 @@ class CoreServerClient(httpClient: HttpClient,
         for (response <- httpClient.execute(request)) yield {
           f(response)
         }
-      case None => throw new ServiceDiscoveryException("Could not connect to Core")
+      case None => throw ServiceDiscoveryException("Could not connect to Core")
     }
   }
 

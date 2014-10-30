@@ -34,7 +34,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
                                                  curatorConfig.connectTimeout,
                                                  curatorConfig.maxRetries,
                                                  RetryOnAllExceptionsDuringInitialRequest,
-                                                 throw new ServiceDiscoveryException("No Soda Fountain servers found"))
+                                                 throw ServiceDiscoveryException("No Soda Fountain servers found"))
 
   override def beforeAll {
     startServices()            // Start in-process ZK, Curator, service discovery
