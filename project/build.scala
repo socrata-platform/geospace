@@ -53,7 +53,7 @@ object Dependencies {
     "com.rojoma"               %% "rojoma-json"         % "2.4.3",
     "com.rojoma"               %% "simple-arm"          % "1.2.0",
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
-    "com.socrata"              %% "socrata-thirdparty-utils" % "2.5.5",
+    "com.socrata"              %% "socrata-thirdparty-utils" % "2.5.6",
     "com.socrata"              %% "soda-fountain-external" % "0.3.2",
     "com.socrata"              %% "soql-types"          % "0.3.3",
     "com.typesafe"              % "config"              % "1.0.2",
@@ -73,7 +73,7 @@ object Dependencies {
 
   lazy val testDeps = Seq(
     "com.github.tomakehurst"    % "wiremock"                      % "1.46"  % "test",
-    "com.socrata"              %% "socrata-thirdparty-test-utils" % "2.5.5" % "test",
+    "com.socrata"              %% "socrata-thirdparty-test-utils" % "2.5.6" % "test",
     "org.apache.curator"        % "curator-test"                  % "2.4.2" % "test",
     "org.scalatest"            %% "scalatest"                     % "2.1.0" % "test"
   )
@@ -112,7 +112,7 @@ object GeospaceMicroserviceBuild extends Build {
                  resolvers += Classpaths.typesafeReleases,
                  resolvers ++= socrataResolvers,
                  libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps ++ testDeps,
-                 // fork in Test := true,   // SBT 0.13.5 seems to have an issue with this
+                 fork in Test := true,
                  scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
                    Seq(
                      TemplateConfig(
