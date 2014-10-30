@@ -1,9 +1,9 @@
-package com.socrata.geospace.suggest
+package com.socrata.geospace.curatedregions
 
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.vividsolutions.jts.geom.MultiPolygon
 
-trait SodaSuggesterSoqlizer {
+trait CuratedRegionSuggesterSoqlizer {
   protected def makeQuery(domains: Seq[String], intersectsWith: Option[MultiPolygon]): String = {
     val conditions = Seq(domainsConditionToSoql(domains), polygonConditionToSoql(intersectsWith)).flatten
     val conditionsString = if (conditions.isEmpty) "" else s" WHERE ${conditions.mkString(" AND ")}"

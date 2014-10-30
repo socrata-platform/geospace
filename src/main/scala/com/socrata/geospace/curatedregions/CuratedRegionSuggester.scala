@@ -1,4 +1,4 @@
-package com.socrata.geospace.suggest
+package com.socrata.geospace.curatedregions
 
 import com.rojoma.json.ast.JValue
 import com.rojoma.json.codec.JsonCodec
@@ -6,7 +6,7 @@ import com.rojoma.json.util.{AutomaticJsonCodecBuilder, Strategy, JsonKeyStrateg
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soda.external.SodaFountainClient.Result
 import com.socrata.geospace.client.SodaResponse
-import com.socrata.geospace.config.SodaSuggesterConfig
+import com.socrata.geospace.config.CuratedRegionsConfig
 import com.socrata.geospace.errors.UnexpectedSodaResponse
 import com.vividsolutions.jts.geom.MultiPolygon
 import org.slf4j.LoggerFactory
@@ -21,8 +21,10 @@ object Suggestion {
 /**
  * Queries a georegion dataset stored in Soda Server
  * to suggest datasets that match the provided criteria.
+ * @param sodaFountain    Soda Fountain instance
+ * @param config          Config information about georegion suggestion
  */
-class SodaSuggester(sodaFountain: SodaFountainClient, config: SodaSuggesterConfig) extends SodaSuggesterSoqlizer {
+class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRegionsConfig) extends CuratedRegionSuggesterSoqlizer {
   val logger = LoggerFactory.getLogger(getClass)
 
   private def getRows(soql: String): Result = sodaFountain.query(config.resourceName, None, Iterable(("$query", soql)))

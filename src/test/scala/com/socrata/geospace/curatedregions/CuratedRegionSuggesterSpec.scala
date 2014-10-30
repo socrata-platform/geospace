@@ -1,34 +1,27 @@
-package com.socrata.geospace.suggest
+package com.socrata.geospace.curatedregions
 
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.rojoma.json.io.JsonReader
 import com.socrata.geospace.FakeSodaFountain
 import com.socrata.geospace.client.SodaResponse.{UnexpectedResponseCode, JsonParseException}
-import com.socrata.geospace.config.SodaSuggesterConfig
+import com.socrata.geospace.config.CuratedRegionsConfig
 import com.socrata.geospace.errors.UnexpectedSodaResponse
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{BeforeAndAfterEach, Matchers}
-import scala.collection.JavaConverters._
+import org.scalatest.Matchers
 import scala.util.{Failure, Success}
 
-class SodaSuggesterSpec extends FakeSodaFountain with Matchers with BeforeAndAfterEach {
-  val ssCfg = new SodaSuggesterConfig(ConfigFactory.parseMap(Map(
-    "resource-name" -> "kangaroo"
-  ).asJava))
+class CuratedRegionSuggesterSpec extends FakeSodaFountain with Matchers {
+  val ssCfg = new CuratedRegionsConfig(ConfigFactory.load().getConfig("com.socrata.geospace.curated-regions"))
 
-  lazy val suggester = new SodaSuggester(sodaFountain, ssCfg)
+  lazy val suggester = new CuratedRegionSuggester(sodaFountain, ssCfg)
 
   private def setFakeSodaResponse(returnedBody: String) {
-    WireMock.stubFor(WireMock.get(WireMock.urlMatching("/resource/kangaroo??.*")).
+    WireMock.stubFor(WireMock.get(WireMock.urlMatching(s"/resource/${ssCfg.resourceName}??.*")).
       willReturn(WireMock.aResponse()
       .withStatus(200)
       .withHeader("Content-Type", "application/json; charset=utf-8")
       .withBody(returnedBody)))
-  }
-
-  override def beforeEach() {
-    WireMock.reset()
   }
 
   val polygon = SoQLMultiPolygon.WktRep.unapply("MULTIPOLYGON (((1 1, 2 1, 2 2, 1 2, 1 1)))")

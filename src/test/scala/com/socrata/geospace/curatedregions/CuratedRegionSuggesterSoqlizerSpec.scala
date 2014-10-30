@@ -1,9 +1,9 @@
-package com.socrata.geospace.suggest
+package com.socrata.geospace.curatedregions
 
 import com.socrata.soql.types.SoQLMultiPolygon
 import org.scalatest.{Matchers, FunSuiteLike}
 
-class SodaSuggesterSoqlizerSpec extends FunSuiteLike with Matchers with SodaSuggesterSoqlizer {
+class CuratedRegionSuggesterSoqlizerSpec extends FunSuiteLike with Matchers with CuratedRegionSuggesterSoqlizer {
   test("No parameters provided") {
     val query = makeQuery(Seq(), None)
     query should equal ("SELECT resource_name, friendly_name, domain")

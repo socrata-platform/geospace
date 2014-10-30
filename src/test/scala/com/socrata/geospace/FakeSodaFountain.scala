@@ -1,15 +1,15 @@
 package com.socrata.geospace
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.{UrlMatchingStrategy, WireMock}
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import com.socrata.geospace.errors.ServiceDiscoveryException
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.curator.{CuratorServiceIntegration, CuratorBroker}
 import com.socrata.thirdparty.curator.ServerProvider.RetryOnAllExceptionsDuringInitialRequest
-import org.scalatest.{FunSuiteLike, BeforeAndAfterAll}
+import org.scalatest.{BeforeAndAfterEach, FunSuiteLike, BeforeAndAfterAll}
 
-trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with BeforeAndAfterAll {
+trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with BeforeAndAfterAll with BeforeAndAfterEach {
   val mockServerPort = 51234
   val mockServer = new WireMockServer(wireMockConfig.port(mockServerPort))
 
@@ -37,5 +37,9 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
     broker.deregister(cookie)
     mockServer.stop()
     stopServices()
+  }
+
+  override def beforeEach() {
+    WireMock.reset()
   }
 }
