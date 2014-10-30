@@ -20,28 +20,27 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
   /**
    * Pulls information about the specified georegion dataset from Soda Server
    * and stores it as a row in the georegion dataset.
-   * @param resourceName
-   * @param geoColumnName
-   * @param domain
+   * @param resourceName  Name of the dataset to mark as a curated georegion dataset
+   * @param geoColumnName Name of the geo column from which to calculate the bounding shape of
+   *                      the georegion dataset
+   * @param domain        Domain in which the dataset should be marked as a curated georegion
    * @return
    */
-  def index(resourceName: String, geoColumnName: String, domain: String) = {
+  def index(resourceName: String, geoColumnName: String, domain: String): Try[JValue] = {
     logger.info("Indexing dataset for suggestion")
     // TODO : Change extent to concave hull once the function is implemented in SoQL
-    val query = s"SELECT resource_name, name, extent($geoColumnName) AS extent WHERE resource_name = '$resourceName'"
-    for { response <- SodaResponse.check(sodaFountain.query(resourceName, None, Iterable(("$query", query))), 200)
-          fields   <- getFieldsForIndexing(response)
-    } yield {
-      // TODO : Upsert dataset information to the georegion dataset
-      //sodaFountain.upsert(suggesterConfig.resourceName, JArray(Seq(fields)))
-    }
+    val query = s"SELECT resource_name, name, extent($geoColumnName) AS bounding_multipolygon WHERE resource_name = '$resourceName'"
+    for { qResponse <- SodaResponse.check(sodaFountain.query(resourceName, None, Iterable(("$query", query))), 200)
+          fields    <- getFieldsForIndexing(qResponse)
+          uResponse <- SodaResponse.check(sodaFountain.upsert(config.resourceName, JArray(Seq(fields))), 200)
+    } yield uResponse
   }
 
   private def getFieldsForIndexing(response: JValue): Try[JObject] = response match {
     case JArray(Seq(JObject(fields))) =>
       def getField(key: String) = key -> fields.getOrElse(
         key, throw UnexpectedSodaResponse(s"Could not parse $key from Soda response", response))
-      Success(JObject(Map(getField("resource_name"), getField("name"), getField("extent"))))
+      Success(JObject(Map(getField("resource_name"), getField("name"), getField("bounding_multipolygon"))))
     case other =>
       Failure(UnexpectedSodaResponse("Could not parse Soda resource information", other))
   }

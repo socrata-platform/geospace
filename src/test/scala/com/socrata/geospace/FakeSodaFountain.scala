@@ -1,7 +1,7 @@
 package com.socrata.geospace
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.{UrlMatchingStrategy, WireMock}
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import com.socrata.geospace.errors.ServiceDiscoveryException
 import com.socrata.soda.external.SodaFountainClient
