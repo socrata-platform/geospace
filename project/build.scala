@@ -41,19 +41,25 @@ object Dependencies {
     "ch.qos.logback"            % "logback-classic"     % "1.0.6"               % "container;runtime",
     "org.slf4j"                 % "log4j-over-slf4j"    % "1.7.7",
     "org.eclipse.jetty"         % "jetty-webapp"        % "8.1.8.v20121106"     % "container;compile",
-    "org.eclipse.jetty.orbit"   % "javax.servlet"       % "3.0.0.v201112011016" % "container;provided;test" artifacts (Artifact("javax.servlet", "jar", "jar"))
+    "org.eclipse.jetty.orbit"   % "javax.servlet"       % "3.0.0.v201112011016" %
+        "container;provided;test" artifacts (Artifact("javax.servlet", "jar", "jar")),
+    "io.dropwizard.metrics"     % "metrics-jetty8"      % "3.1.0" exclude(
+        "org.eclipse.jetty", "jetty-server"),
+    // See CORE-3635: use lower version of graphite to work around Graphite reconnect issues
+    "com.codahale.metrics"      % "metrics-graphite"    % "3.0.2" exclude("com.codahale.metrics", "metrics-core")
   )
 
   lazy val socrataDeps = Seq(
     "com.rojoma"               %% "rojoma-json"         % "2.4.3",
     "com.rojoma"               %% "simple-arm"          % "1.2.0",
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
-    "com.socrata"              %% "socrata-thirdparty-utils" % "2.4.0",
+    "com.socrata"              %% "socrata-thirdparty-utils" % "2.5.6",
     "com.socrata"              %% "soda-fountain-external" % "0.3.2",
     "com.socrata"              %% "soql-types"          % "0.3.3" exclude("org.jdom", "jdom"),
     "com.typesafe"              % "config"              % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"  % "1.1.0",
-    "io.spray"                  % "spray-caching"       % "1.2.2.velvia",
+    "io.spray"                  % "spray-caching"       % "1.2.2",
+    "nl.grons"                 %% "metrics-scala"       % "3.3.0",
     "org.apache.commons"        % "commons-io"          % "1.3.2",
     "org.apache.curator"        % "curator-x-discovery" % "2.4.2"
       exclude("org.slf4j", "slf4j-log4j12")
@@ -67,7 +73,7 @@ object Dependencies {
 
   lazy val testDeps = Seq(
     "com.github.tomakehurst"    % "wiremock"                      % "1.46"  % "test",
-    "com.socrata"              %% "socrata-thirdparty-test-utils" % "2.4.0" % "test",
+    "com.socrata"              %% "socrata-thirdparty-test-utils" % "2.5.6" % "test",
     "org.apache.curator"        % "curator-test"                  % "2.4.2" % "test",
     "org.scalatest"            %% "scalatest"                     % "2.1.0" % "test"
   )
@@ -106,7 +112,7 @@ object GeospaceMicroserviceBuild extends Build {
                  resolvers += Classpaths.typesafeReleases,
                  resolvers ++= socrataResolvers,
                  libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps ++ testDeps,
-                 fork in Test := true,
+                 // fork in Test := true,   // Sometimes this causes sbt test to fail
                  scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
                    Seq(
                      TemplateConfig(

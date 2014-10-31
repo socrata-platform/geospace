@@ -10,7 +10,7 @@ import com.socrata.thirdparty.curator.ServerProvider.RetryOnAllExceptionsDuringI
 import org.scalatest.{FunSuiteLike, BeforeAndAfterAll}
 
 trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with BeforeAndAfterAll {
-  val mockServerPort = 51234
+  val mockServerPort = 51200 + (util.Random.nextInt % 100)
   val mockServer = new WireMockServer(wireMockConfig.port(mockServerPort))
 
   lazy val broker = new CuratorBroker(discovery, "localhost", "soda-fountain", None)

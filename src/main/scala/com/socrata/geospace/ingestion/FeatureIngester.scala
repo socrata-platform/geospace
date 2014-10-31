@@ -3,6 +3,7 @@ package com.socrata.geospace.ingestion
 import com.rojoma.json.ast._
 import com.socrata.geospace.client._
 import com.socrata.soda.external.SodaFountainClient
+import com.socrata.thirdparty.metrics.Metrics
 import org.geoscript.feature.{Feature, Schema}
 import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}
@@ -11,10 +12,12 @@ import scala.util.{Success, Failure, Try}
 /**
  * Ingests a set of features as a Socrata dataset
  */
-object FeatureIngester {
+object FeatureIngester extends Metrics {
   val logger = LoggerFactory.getLogger(getClass)
 
   case class Response(resourceName: String, upsertCount: Int)
+
+  val coreIngestTimer = metrics.timer("core-ingest")
 
   /**
    * Uses Core server endpoint to ingest shapefile schema and rows into Dataspace
@@ -28,7 +31,7 @@ object FeatureIngester {
                           sodaFountain: SodaFountainClient,
                           friendlyName: String,
                           features: Traversable[Feature],
-                          schema: Schema): Try[Response] = {
+                          schema: Schema): Try[Response] = coreIngestTimer.time {
     logger.info("Creating dataset for schema = {}", schema: Any)
     // HACK : Core doesn't seem to chunk the upsert payload properly when passing it on to Soda Fountain
     //        This hack bypasses Core for the upsert. Auth is already validated in the DDL steps, so this should be ok.
