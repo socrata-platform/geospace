@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}
 
 @JsonKeyStrategy(Strategy.Underscore)
-case class Suggestion(resourceName: String, friendlyName: String, domain: String)
+case class Suggestion(resourceName: String, name: String, domain: String)
 object Suggestion {
   implicit val codec = AutomaticJsonCodecBuilder[Suggestion]
 }

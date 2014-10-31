@@ -163,13 +163,13 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
   }
 
   test("suggestion service - suggestions exist") {
-    val mockSuggestions = """[{"domain":"data.cityofchicago.org","friendly_name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"}]"""
+    val mockSuggestions = """[{"domain":"data.cityofchicago.org","name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"}]"""
     mockSodaRoute("georegions", mockSuggestions)
     post("/v1/regions/curated",
          """{"type":"MultiPolygon","coordinates":[[[[0,0],[1,0],[1,1],[0,0]]]]}""",
          headers = Map("Content-Type" -> "application/json", "X-Socrata-Host" -> "data.cityofchicago.org")) {
       status should equal(200)
-      body should equal("""{"suggestions":[{"resourceName":"_68tz-dwsn","friendlyName":"Chicago Zipcodes","domain":"data.cityofchicago.org"}]}""")
+      body should equal("""{"suggestions":[{"resourceName":"_68tz-dwsn","name":"Chicago Zipcodes","domain":"data.cityofchicago.org"}]}""")
     }
   }
 
@@ -185,17 +185,17 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
   }
 
   test("suggestion service - no multipolygon provided in the request body") {
-    val mockSuggestions = """[{"domain":"data.cityofchicago.org","friendly_name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"}]"""
+    val mockSuggestions = """[{"domain":"data.cityofchicago.org","name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"}]"""
     mockSodaRoute("georegions", mockSuggestions)
     post("/v1/regions/curated",
       headers = Map("Content-Type" -> "application/json", "X-Socrata-Host" -> "data.cityofchicago.org")) {
       status should equal(200)
-      body should equal("""{"suggestions":[{"resourceName":"_68tz-dwsn","friendlyName":"Chicago Zipcodes","domain":"data.cityofchicago.org"}]}""")
+      body should equal("""{"suggestions":[{"resourceName":"_68tz-dwsn","name":"Chicago Zipcodes","domain":"data.cityofchicago.org"}]}""")
     }
   }
 
   test("suggestion service - bad multipolygon provided in the request body") {
-    val mockSuggestions = """[{"domain":"data.cityofchicago.org","friendly_name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"}]"""
+    val mockSuggestions = """[{"domain":"data.cityofchicago.org","name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"}]"""
     mockSodaRoute("georegions", mockSuggestions)
     post("/v1/regions/curated",
          "MULTIPOLYGON (((1 1, 2 1, 2 2, 1 2, 1 1)))",

@@ -1,6 +1,6 @@
 package com.socrata.geospace.curatedregions
 
-import com.rojoma.json.ast.{JObject, JValue, JArray}
+import com.rojoma.json.ast.{JString, JObject, JValue, JArray}
 import com.socrata.geospace.config.CuratedRegionsConfig
 import com.socrata.geospace.client.SodaResponse
 import com.socrata.geospace.errors.UnexpectedSodaResponse
@@ -26,29 +26,33 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
    * @param domain        Domain in which the dataset should be marked as a curated georegion
    * @return
    */
-  def index(resourceName: String, geoColumnName: String, domain: String): Try[JValue] = {
-    logger.info("Indexing dataset for suggestion")
+  def index(resourceName: String, geoColumnName: String, domain: String) = {
+    logger.info("Extracting dataset information...")
     // TODO : Change extent to concave hull once the function is implemented in SoQL
-    val query = s"SELECT resource_name, name, extent($geoColumnName) AS bounding_multipolygon WHERE resource_name = '$resourceName'"
+    val query = s"SELECT extent($geoColumnName) AS bounding_multipolygon"
     for { qResponse <- SodaResponse.check(sodaFountain.query(resourceName, None, Iterable(("$query", query))), 200)
-          fields    <- getFieldsForIndexing(qResponse)
-          uResponse <- SodaResponse.check(sodaFountain.upsert(config.resourceName, JArray(Seq(fields))), 200)
-    } yield uResponse
+          extent    <- extractFields(Seq("bounding_multipolygon"), qResponse)
+          sResponse <- SodaResponse.check(sodaFountain.schema(resourceName), 200)
+          names     <- extractFields(Seq("resource_name", "name"), sResponse)
+          allFields <- Try(names ++ extent ++ Map("domain" -> JString(domain)))
+          uResponse <- SodaResponse.check(sodaFountain.upsert(config.resourceName, JArray(Seq(JObject(allFields)))), 200)
+    } yield {
+      logger.info(s"Dataset $resourceName was successfully marked as a curated georegion")
+      Map("resource_name" -> resourceName, "domain" -> domain, "isSuccess" -> true)
+    }
   }
 
-  /*private def getDatasetSchema(resourceName: String) = {
-    for { schemaRaw <- SodaResponse.check(sodaFountain.schema(resourceName), 200)
-    } yield {
+  private def extractFields(keys: Seq[String], from: JValue): Try[Map[String, JValue]] = {
+    def extractField(key: String, fields: Map[String, JValue]) = key -> fields.getOrElse(
+      key, throw UnexpectedSodaResponse(s"Could not parse $key from Soda response", from))
 
+    from match {
+      case JArray(Seq(JObject(fields))) =>
+        Success(keys.map(extractField(_, fields.toMap)).toMap)
+      case JObject(fields)              =>
+        Success(keys.map(extractField(_, fields.toMap)).toMap)
+      case other                        =>
+        Failure(UnexpectedSodaResponse("Could not parse Soda resource information", other))
     }
-  }*/
-
-  private def getFieldsForIndexing(response: JValue): Try[JObject] = response match {
-    case JArray(Seq(JObject(fields))) =>
-      def getField(key: String) = key -> fields.getOrElse(
-        key, throw UnexpectedSodaResponse(s"Could not parse $key from Soda response", response))
-      Success(JObject(Map(getField("resource_name"), getField("name"), getField("bounding_multipolygon"))))
-    case other =>
-      Failure(UnexpectedSodaResponse("Could not parse Soda resource information", other))
   }
 }

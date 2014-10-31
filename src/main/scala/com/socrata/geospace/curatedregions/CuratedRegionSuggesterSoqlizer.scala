@@ -8,7 +8,7 @@ trait CuratedRegionSuggesterSoqlizer {
     val conditions = Seq(domainsConditionToSoql(domains), polygonConditionToSoql(intersectsWith)).flatten
     val conditionsString = if (conditions.isEmpty) "" else s" WHERE ${conditions.mkString(" AND ")}"
 
-    s"SELECT resource_name, friendly_name, domain" + conditionsString
+    s"SELECT resource_name, name, domain" + conditionsString
   }
 
   private def domainsConditionToSoql(domains: Seq[String]): Option[String] =

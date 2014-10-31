@@ -28,8 +28,8 @@ class CuratedRegionSuggesterSpec extends FakeSodaFountain with Matchers {
 
   test("Valid suggestions returned by Soda Fountain") {
     setFakeSodaResponse(
-      """[{"domain":"data.cityofchicago.org","friendly_name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"},
-        | {"domain":"geo.socrata.com","friendly_name":"USA Census Blocks","resource_name":"_co3s-sl2k"}]""".stripMargin)
+      """[{"domain":"data.cityofchicago.org","name":"Chicago Zipcodes","resource_name":"_68tz-dwsn"},
+        | {"domain":"geo.socrata.com","name":"USA Census Blocks","resource_name":"_co3s-sl2k"}]""".stripMargin)
     val result = suggester.suggest(Seq("data.cityofchicago.gov"), polygon)
     result should be (Success(Seq(Suggestion("_68tz-dwsn", "Chicago Zipcodes", "data.cityofchicago.org"),
       Suggestion("_co3s-sl2k", "USA Census Blocks", "geo.socrata.com"))))
