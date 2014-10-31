@@ -112,7 +112,7 @@ object GeospaceMicroserviceBuild extends Build {
                  resolvers += Classpaths.typesafeReleases,
                  resolvers ++= socrataResolvers,
                  libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps ++ testDeps,
-                 // fork in Test := true,   // Sometimes this causes sbt test to fail
+                 fork in Test := true,   // Sometimes this causes sbt test to fail
                  scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
                    Seq(
                      TemplateConfig(
