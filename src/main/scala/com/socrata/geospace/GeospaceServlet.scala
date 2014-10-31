@@ -12,6 +12,7 @@ import com.socrata.geospace.regioncache.RegionCache
 import com.socrata.geospace.shapefile._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
+import com.socrata.thirdparty.metrics.Metrics
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.collection.JavaConverters._
@@ -20,8 +21,15 @@ import scala.util.{Try, Failure, Success}
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
-                      config: GeospaceConfig) extends GeospaceMicroserviceStack with FileUploadSupport {
-val regionCache = new RegionCache(config.cache)
+                      config: GeospaceConfig) extends GeospaceMicroserviceStack
+with FileUploadSupport with Metrics {
+  val regionCache = new RegionCache(config.cache)
+
+  // Metrics
+  val geocodingTimer = metrics.timer("geocoding-requests")
+  val suggestTimer   = metrics.timer("suggestion-requests")
+  val decompressTimer = metrics.timer("shapefile-decompression")
+  val freeMem        = metrics.gauge("free-memory-MB") { Utils.getFreeMem }
 
   get("/") {
     contentType = "text/html"
@@ -57,7 +65,7 @@ val regionCache = new RegionCache(config.cache)
 
     val readReprojectStartTime = System.currentTimeMillis
 
-    val readResult =
+    val readResult = decompressTimer.time {
       for {  zip               <- managed(new TemporaryZip(file.get))
             (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
       } yield {
@@ -71,6 +79,7 @@ val regionCache = new RegionCache(config.cache)
 
         (features, schema)
       }
+    }
 
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
@@ -120,7 +129,7 @@ val regionCache = new RegionCache(config.cache)
     val points = parsedBody.extract[Seq[Seq[Double]]]
     if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     new AsyncResult { val is =
-      geoRegionCode(params("resourceName"), points)
+      geocodingTimer.time { geoRegionCode(params("resourceName"), points) }
     }
   }
 
@@ -146,9 +155,11 @@ val regionCache = new RegionCache(config.cache)
 
     val suggester = new CuratedRegionSuggester(sodaFountain, config.curatedRegions)
 
-    suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
-      suggestions => Map("suggestions" -> suggestions)
-    }.get
+    suggestTimer.time {
+      suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
+        suggestions => Map("suggestions" -> suggestions)
+      }.get
+    }
   }
 
   post("/v1/regions/:resourceName/curated") {
