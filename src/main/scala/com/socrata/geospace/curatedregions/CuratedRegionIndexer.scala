@@ -36,6 +36,13 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
     } yield uResponse
   }
 
+  /*private def getDatasetSchema(resourceName: String) = {
+    for { schemaRaw <- SodaResponse.check(sodaFountain.schema(resourceName), 200)
+    } yield {
+
+    }
+  }*/
+
   private def getFieldsForIndexing(response: JValue): Try[JObject] = response match {
     case JArray(Seq(JObject(fields))) =>
       def getField(key: String) = key -> fields.getOrElse(
