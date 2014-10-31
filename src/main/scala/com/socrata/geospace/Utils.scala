@@ -21,6 +21,8 @@ object Utils extends Logging {
     logger.info("{}: {}% free, {} MB free", context, freePct.toString, freeMB.toString)
   }
 
+  def getFreeMem: Int = getFree._1
+
   def DefaultMinFreePct = 20     // Must have at least 20% free memory
 
   /**

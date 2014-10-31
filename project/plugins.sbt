@@ -2,7 +2,7 @@ resolvers ++= Seq(
   "socrata maven" at "https://repository-socrata-oss.forge.cloudbees.com/release"
 )
 
-addSbtPlugin("com.socrata" % "socrata-cloudbees-sbt" % "1.2.3")
+addSbtPlugin("com.socrata" % "socrata-cloudbees-sbt" % "1.3.1")
 
 addSbtPlugin("com.mojolly.scalate" % "xsbt-scalate-generator" % "0.4.2")
 
@@ -13,3 +13,5 @@ addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.7.4")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.9.2")
 
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.2.5")
+
+addSbtPlugin("com.typesafe.sbt" % "sbt-license-report" % "1.0.0")

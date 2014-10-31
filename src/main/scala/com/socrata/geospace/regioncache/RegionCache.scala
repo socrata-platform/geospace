@@ -5,6 +5,7 @@ import com.socrata.geospace.client.{SodaResponse, GeoToSoda2Converter}
 import com.socrata.geospace.Utils._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
+import com.socrata.thirdparty.metrics.Metrics
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
 import org.geoscript.feature._
@@ -37,7 +38,7 @@ class RegionCache(maxEntries: Int = 100,
                   enableDepressurize: Boolean = true,
                   minFreePct: Int = 20,
                   targetFreePct: Int = 40,
-                  iterationIntervalMs: Int = 100) extends Logging {
+                  iterationIntervalMs: Int = 100) extends Logging with Metrics {
   def this(config: Config) = this(
                                config.getInt("max-entries"),
                                config.getBoolean("enable-depressurize"),
@@ -49,6 +50,11 @@ class RegionCache(maxEntries: Int = 100,
   private val cache = LruCache[SpatialIndex[Int]](maxEntries)
 
   logger.info("Creating RegionCache with {} entries", maxEntries.toString)
+
+  val cacheSizeGauge = metrics.gauge("num-entries") { cache.size }
+  val sodaReadTimer  = metrics.timer("soda-region-read")
+  val regionIndexLoadTimer = metrics.timer("region-index-load")
+  val depressurizeEvents = metrics.timer("depressurize-events")
 
   import concurrent.ExecutionContext.Implicits.global
 
@@ -79,13 +85,17 @@ class RegionCache(maxEntries: Int = 100,
       logger.info(s"Populating cache entry for resource [$resourceName] from soda fountain client")
       Future {
         // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
-        val sodaResponse = sodaFountain.query(resourceName, Some("geojson"), Iterable(("$query", s"select * limit ${Long.MaxValue}")))
+        val sodaResponse = sodaReadTimer.time {
+          sodaFountain.query(resourceName, Some("geojson"), Iterable(("$query", s"select * limit ${Long.MaxValue}")))
+        }
         val payload = SodaResponse.check(sodaResponse, 200)
-        payload.toOption.
-          flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
-          collect { case FeatureCollectionJson(features, _) => getIndexFromFeatureJson(features) }.
-          getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + payload.get,
-                    if (payload.isFailure) payload.failed.get else null))
+        regionIndexLoadTimer.time {
+          payload.toOption.
+            flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
+            collect { case FeatureCollectionJson(features, _) => getIndexFromFeatureJson(features) }.
+            getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + payload.get,
+                      if (payload.isFailure) payload.failed.get else null))
+        }
       }
     }
 
@@ -106,11 +116,13 @@ class RegionCache(maxEntries: Int = 100,
       }
       val (regionName, _) = indexes.head
       logger.info("Removing region {} from cache...", regionName)
-      cache.remove(regionName)
+      depressurizeEvents.time {
+        cache.remove(regionName)
 
-      // Wait a little bit before calling GC to try to force memory to be freed
-      Thread sleep iterationIntervalMs
-      Runtime.getRuntime.gc
+        // Wait a little bit before calling GC to try to force memory to be freed
+        Thread sleep iterationIntervalMs
+        Runtime.getRuntime.gc
+      }
 
       indexes = indexes.drop(1)
     }
