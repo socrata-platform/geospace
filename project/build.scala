@@ -54,7 +54,7 @@ object Dependencies {
     "com.rojoma"               %% "simple-arm"          % "1.2.0",
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
     "com.socrata"              %% "socrata-thirdparty-utils" % "2.5.6",
-    "com.socrata"              %% "soda-fountain-external" % "0.3.2",
+    "com.socrata"              %% "soda-fountain-external" % "0.3.3",
     "com.socrata"              %% "soql-types"          % "0.3.3" exclude("org.jdom", "jdom"),
     "com.typesafe"              % "config"              % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"  % "1.1.0",
@@ -112,7 +112,7 @@ object GeospaceMicroserviceBuild extends Build {
                  resolvers += Classpaths.typesafeReleases,
                  resolvers ++= socrataResolvers,
                  libraryDependencies ++= scalatraDeps ++ jettyDeps ++ socrataDeps ++ testDeps,
-                 fork in Test := true,   // Sometimes this causes sbt test to fail
+                 fork in Test := true,   // Sometimes this causes sbt test to fail,
                  scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){ base =>
                    Seq(
                      TemplateConfig(

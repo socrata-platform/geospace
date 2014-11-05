@@ -40,7 +40,7 @@ class ScalatraBootstrap extends LifeCycle {
                                                   config.curator.connectTimeout,
                                                   config.sodaFountain.maxRetries,
                                                   RetryOnAllExceptionsDuringInitialRequest,
-                                                  throw new ServiceDiscoveryException("No Soda Fountain servers found"))
+                                                  throw ServiceDiscoveryException("No Soda Fountain servers found"))
   lazy val coreServer = new CoreServerClient(
     httpClient, discovery, config.coreServer.serviceName, config.curator.connectTimeout)
 

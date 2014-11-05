@@ -7,9 +7,9 @@ import com.socrata.geospace.errors.ServiceDiscoveryException
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.curator.{CuratorServiceIntegration, CuratorBroker}
 import com.socrata.thirdparty.curator.ServerProvider.RetryOnAllExceptionsDuringInitialRequest
-import org.scalatest.{FunSuiteLike, BeforeAndAfterAll}
+import org.scalatest.{BeforeAndAfterEach, FunSuiteLike, BeforeAndAfterAll}
 
-trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with BeforeAndAfterAll {
+trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with BeforeAndAfterAll with BeforeAndAfterEach {
   val mockServerPort = 51200 + (util.Random.nextInt % 100)
   val mockServer = new WireMockServer(wireMockConfig.port(mockServerPort))
 
@@ -22,7 +22,7 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
                                                  curatorConfig.connectTimeout,
                                                  1,
                                                  RetryOnAllExceptionsDuringInitialRequest,
-                                                 throw new ServiceDiscoveryException("No Soda Fountain servers found"))
+                                                 throw ServiceDiscoveryException("No Soda Fountain servers found"))
 
   override def beforeAll() {
     startServices()            // Start in-process ZK, Curator, service discovery
@@ -37,5 +37,9 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
     broker.deregister(cookie)
     mockServer.stop()
     stopServices()
+  }
+
+  override def beforeEach() {
+    WireMock.reset()
   }
 }

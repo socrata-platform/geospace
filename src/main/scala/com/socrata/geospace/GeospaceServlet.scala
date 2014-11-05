@@ -4,12 +4,12 @@ import com.rojoma.simplearm.util._
 import com.socrata.BuildInfo
 import com.socrata.geospace.client.{CoreServerAuth, CoreServerClient}
 import com.socrata.geospace.config.GeospaceConfig
+import com.socrata.geospace.curatedregions.{CuratedRegionIndexer, CuratedRegionSuggester}
 import com.socrata.geospace.errors._
 import com.socrata.geospace.feature.FeatureValidator
 import com.socrata.geospace.ingestion.FeatureIngester
 import com.socrata.geospace.regioncache.RegionCache
 import com.socrata.geospace.shapefile._
-import com.socrata.geospace.suggest.SodaSuggester
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.socrata.thirdparty.metrics.Metrics
@@ -144,8 +144,8 @@ with FileUploadSupport with Metrics {
     Ok("Done")
   }
 
-  post("/v1/regions/suggest") {
-    val curatedDomains  = config.curatedDomains.asScala
+  post("/v1/regions/curated") {
+    val curatedDomains  = config.curatedRegions.domains
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
     // It's ok if the user doesn't provide a bounding shape at all,
     // but if they provide invalid GeoJSON, error out.
@@ -153,13 +153,21 @@ with FileUploadSupport with Metrics {
                                else Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
                                            halt(BadRequest("Bounding shape could not be parsed"))))
 
-    val suggester = new SodaSuggester(sodaFountain, config.sodaSuggester)
+    val suggester = new CuratedRegionSuggester(sodaFountain, config.curatedRegions)
 
     suggestTimer.time {
       suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
         suggestions => Map("suggestions" -> suggestions)
       }.get
     }
+  }
+
+  post("/v1/regions/:resourceName/curated") {
+    val geoColumn = params.getOrElse("geoColumn", halt(BadRequest("geoColumn param must be provided")))
+    val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("X-Socrata-Host header must be provided")))
+
+    val indexer = CuratedRegionIndexer(sodaFountain, config.curatedRegions)
+    indexer.index(params("resourceName"), geoColumn, domain).get
   }
 
   // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region

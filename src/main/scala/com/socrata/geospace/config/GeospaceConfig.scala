@@ -3,8 +3,7 @@ package com.socrata.geospace.config
 import com.socrata.thirdparty.curator.{CuratorConfig, DiscoveryConfig}
 import com.socrata.thirdparty.metrics.MetricsOptions
 import com.typesafe.config.Config
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
+import scala.collection.JavaConverters._
 
 /**
  * Contains configuration values from the application config file
@@ -15,8 +14,7 @@ class GeospaceConfig(config: Config) {
   val gracefulShutdownMs = config.getMilliseconds("geospace.graceful-shutdown-time").toInt
   val maxMultiPolygonComplexity = config.getInt("geospace.max-multipolygon-complexity")
   val cache = config.getConfig("geospace.cache")
-  val curatedDomains = config.getStringList("geospace.curated-domains")
-  val sodaSuggester = new SodaSuggesterConfig(config.getConfig("geospace.soda-suggester"))
+  val curatedRegions = new CuratedRegionsConfig(config.getConfig("geospace.curated-regions"))
 
   val curator = new CuratorConfig(config, "curator")
   val discovery = new DiscoveryConfig(config, "service-advertisement")
@@ -29,10 +27,12 @@ class GeospaceConfig(config: Config) {
 }
 
 /**
- * Contains configuration values for getting georegion suggestions through Soda Fountain
+ * Contains configuration values for getting curated georegion information through Soda Fountain
  */
-class SodaSuggesterConfig(config: Config) {
-  val resourceName = config.getString("resource-name")
+class CuratedRegionsConfig(config: Config) {
+  val resourceName           = config.getString("resource-name")
+  val domains                = config.getStringList("domains").asScala
+  val boundingShapePrecision = config.getDouble("bounding-shape-precision")
 }
 
 /**

@@ -58,7 +58,7 @@ object ShapefileReader extends Logging {
     val file = directory.listFiles.find(f => FilenameUtils.getExtension(f.getName).equals(extension))
     file match {
       case Some(f) => Success(f)
-      case None => Failure(new InvalidShapefileSet(s".$extension file is missing"))
+      case None => Failure(InvalidShapefileSet(s".$extension file is missing"))
     }
   }
 
@@ -85,7 +85,7 @@ object ShapefileReader extends Logging {
     // 2. All required file types should be in the zip
     val namedGroups = files.groupBy { f => FilenameUtils.getBaseName(f.getName) }
     if (namedGroups.size != 1) {
-      return Failure(new InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
+      return Failure(InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
     }
 
     val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
