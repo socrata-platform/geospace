@@ -3,8 +3,7 @@ package com.socrata.geospace.config
 import com.socrata.thirdparty.curator.{CuratorConfig, DiscoveryConfig}
 import com.socrata.thirdparty.metrics.MetricsOptions
 import com.typesafe.config.Config
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
+import scala.collection.JavaConverters._
 
 /**
  * Contains configuration values from the application config file
@@ -31,8 +30,9 @@ class GeospaceConfig(config: Config) {
  * Contains configuration values for getting curated georegion information through Soda Fountain
  */
 class CuratedRegionsConfig(config: Config) {
-  val resourceName = config.getString("resource-name")
-  val domains      = config.getStringList("domains")
+  val resourceName           = config.getString("resource-name")
+  val domains                = config.getStringList("domains").asScala
+  val boundingShapePrecision = config.getDouble("bounding-shape-precision")
 }
 
 /**

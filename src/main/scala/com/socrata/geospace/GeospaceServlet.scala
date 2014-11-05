@@ -145,7 +145,7 @@ with FileUploadSupport with Metrics {
   }
 
   post("/v1/regions/curated") {
-    val curatedDomains  = config.curatedRegions.domains.asScala
+    val curatedDomains  = config.curatedRegions.domains
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
     // It's ok if the user doesn't provide a bounding shape at all,
     // but if they provide invalid GeoJSON, error out.

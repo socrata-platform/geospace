@@ -28,13 +28,12 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
    */
   def index(resourceName: String, geoColumnName: String, domain: String) = {
     logger.info("Extracting dataset information...")
-    // TODO : Change extent to concave hull once the function is implemented in SoQL
-    val query = s"SELECT extent($geoColumnName) AS bounding_multipolygon"
+    val query = s"SELECT concave_hull($geoColumnName, ${config.boundingShapePrecision}) AS bounding_multipolygon"
     for { qResponse <- SodaResponse.check(sodaFountain.query(resourceName, None, Iterable(("$query", query))), 200)
-          extent    <- extractFields(Seq("bounding_multipolygon"), qResponse)
+          shape     <- extractFields(Seq("bounding_multipolygon"), qResponse)
           sResponse <- SodaResponse.check(sodaFountain.schema(resourceName), 200)
           names     <- extractFields(Seq("resource_name", "name"), sResponse)
-          allFields <- Try(names ++ extent ++ Map("domain" -> JString(domain)))
+          allFields <- Try(names ++ shape ++ Map("domain" -> JString(domain)))
           uResponse <- SodaResponse.check(sodaFountain.upsert(config.resourceName, JArray(Seq(JObject(allFields)))), 200)
     } yield {
       logger.info(s"Dataset $resourceName was successfully marked as a curated georegion")
