@@ -18,14 +18,14 @@ class SpatialRegionCache(config: Config) extends RegionCache[SpatialIndex[Int]](
    * @param features Features from which to generate a SpatialIndex
    * @return SpatialIndex containing the dataset features
    */
-  override def getEntryFromFeatures(features: Seq[Feature]): SpatialIndex[Int] = SpatialIndex(features)
+  override def getEntryFromFeatures(features: Seq[Feature], keyName: String): SpatialIndex[Int] = SpatialIndex(features)
 
   /**
    * Generates a SpatialIndex for the dataset given feature JSON
    * @param features Feature JSON from which to generate a SpatialIndex
    * @return SpatialIndex containing the dataset features
    */
-  override def getEntryFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[Int] = {
+  override def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): SpatialIndex[Int] = {
     logger.info("Converting {} features to SpatialIndex entries...", features.length.toString())
     var i = 0
     val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>

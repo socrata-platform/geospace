@@ -65,16 +65,18 @@ abstract class RegionCache[T](maxEntries: Int = 100,
   /**
    * Generates a cache entry for the dataset given a sequence of features
    * @param features Features from which to generate a cache entry
+   * @param keyName  Name of the field on which to index the dataset features
    * @return Cache entry containing the dataset features
    */
-  protected def getEntryFromFeatures(features: Seq[Feature]): T
+  protected def getEntryFromFeatures(features: Seq[Feature], keyName: String): T
 
   /**
    * Generates a cache entry for the dataset given feature JSON
    * @param features Feature JSON from which to generate a cache entry
+   * @param keyName  Name of the field on which to index the dataset features
    * @return Cache entry containing the dataset features
    */
-  protected def getEntryFromFeatureJson(features: Seq[FeatureJson]): T
+  protected def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): T
 
   /**
    * Returns indices in descending order of size
@@ -94,7 +96,7 @@ abstract class RegionCache[T](maxEntries: Int = 100,
   def getFromFeatures(key: RegionCacheKey, features: Seq[Feature]): Future[T] = {
     cache(key) {
       logger.info(s"Populating cache entry for resource [${key.resourceName}], column [${key.columnName}] from features")
-      Future { depressurize(); getEntryFromFeatures(features) }
+      Future { depressurize(); getEntryFromFeatures(features, key.columnName) }
     }
   }
 
@@ -117,7 +119,7 @@ abstract class RegionCache[T](maxEntries: Int = 100,
         regionIndexLoadTimer.time {
           payload.toOption.
             flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
-            collect { case FeatureCollectionJson(features, _) => getEntryFromFeatureJson(features) }.
+            collect { case FeatureCollectionJson(features, _) => getEntryFromFeatureJson(features, key.columnName) }.
             getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + payload.get,
             if (payload.isFailure) payload.failed.get else null))
         }
