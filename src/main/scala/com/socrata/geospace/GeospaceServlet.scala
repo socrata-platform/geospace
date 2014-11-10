@@ -8,7 +8,7 @@ import com.socrata.geospace.curatedregions.{CuratedRegionIndexer, CuratedRegionS
 import com.socrata.geospace.errors._
 import com.socrata.geospace.feature.FeatureValidator
 import com.socrata.geospace.ingestion.FeatureIngester
-import com.socrata.geospace.regioncache.RegionCache
+import com.socrata.geospace.regioncache.SpatialRegionCache
 import com.socrata.geospace.shapefile._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
@@ -23,7 +23,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
                       config: GeospaceConfig) extends GeospaceMicroserviceStack
 with FileUploadSupport with Metrics {
-  val regionCache = new RegionCache(config.cache)
+  val regionCache = new SpatialRegionCache(config.cache)
 
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")
