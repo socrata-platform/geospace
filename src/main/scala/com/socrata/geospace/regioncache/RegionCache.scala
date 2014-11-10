@@ -1,6 +1,6 @@
 package com.socrata.geospace.regioncache
 
-import com.socrata.geospace.client.SodaResponse
+import com.socrata.geospace.client.{GeoToSoda2Converter, SodaResponse}
 import com.socrata.geospace.Utils._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
@@ -10,6 +10,13 @@ import com.typesafe.scalalogging.slf4j.Logging
 import org.geoscript.feature._
 import scala.concurrent.Future
 import spray.caching.LruCache
+
+/**
+ * Represents the key for a region cache (dataset resource name + column name)
+ * @param resourceName Resource name of the dataset represented in the cache entry
+ * @param columnName   Name of the column used as a key for individual features inside the cache entry
+ */
+case class RegionCacheKey(resourceName: String, columnName: String)
 
 /**
  * The RegionCache caches indices of the region datasets for geo-region-coding.
@@ -73,20 +80,20 @@ abstract class RegionCache[T](maxEntries: Int = 100,
    * Returns indices in descending order of size
    * @return Indices in descending order of size
    */
-  protected def indicesBySizeDesc(): Seq[(String, Int)]
+  protected def indicesBySizeDesc(): Seq[(RegionCacheKey, Int)]
 
   /**
-   * gets a SpatialIndex from the cache, populating it from a list of features if it's missing
+   * gets an entry from the cache, populating it from a list of features if it's missing
    *
-   * @param resourceName the name of the region dataset resource, also the cache key
-   * @param features a Seq of Features to use to create a SpatialIndex if it doesn't exist
-   * @return a Future[SpatialIndex] which will hold the SpatialIndex object when populated
+   * @param key the resource name/column name used to cache the entry
+   * @param features a Seq of Features to use to create the cache entry if it doesn't exist
+   * @return a Future which will hold the cache entry object when populated
    *         Note that if this fails, then it will return a Failure, and can be processed further with
    *         onFailure(...) etc.
    */
-  def getFromFeatures(resourceName: String, features: Seq[Feature]): Future[T] = {
-    cache(resourceName) {
-      logger.info(s"Populating cache entry for resource [$resourceName] from features")
+  def getFromFeatures(key: RegionCacheKey, features: Seq[Feature]): Future[T] = {
+    cache(key) {
+      logger.info(s"Populating cache entry for resource [${key.resourceName}], column [${key.columnName}] from features")
       Future { depressurize(); getEntryFromFeatures(features) }
     }
   }
@@ -95,15 +102,16 @@ abstract class RegionCache[T](maxEntries: Int = 100,
    * Gets an entry from the cache, populating it from Soda Fountain as needed
    *
    * @param sodaFountain the Soda Fountain client
-   * @param resourceName the name of the region dataset to pull from Soda Fountain
+   * @param key the resource name to pull from Soda Fountain and the column to inde
    */
-  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[T] =
-    cache(resourceName) {
-      logger.info(s"Populating cache entry for resource [$resourceName] from soda fountain client")
+  def getFromSoda(sodaFountain: SodaFountainClient, key: RegionCacheKey): Future[T] =
+    cache(key) {
+      logger.info(s"Populating cache entry for resource [${key.resourceName}}], column [] from soda fountain client")
       Future {
         // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
+        val query = s"select ${GeoToSoda2Converter.FeatureIdColName}, ${key.columnName} limit ${Long.MaxValue}"
         val sodaResponse = sodaReadTimer.time {
-          sodaFountain.query(resourceName, Some("geojson"), Iterable(("$query", s"select * limit ${Long.MaxValue}")))
+          sodaFountain.query(key.resourceName, Some("geojson"), Iterable(("$query", query)))
         }
         val payload = SodaResponse.check(sodaResponse, 200)
         regionIndexLoadTimer.time {
@@ -131,10 +139,10 @@ abstract class RegionCache[T](maxEntries: Int = 100,
         logger.warn("No more regions to uncache, out of memory!!")
         throw new RuntimeException("No more regions to uncache, out of memory")
       }
-      val (regionName, _) = indexes.head
-      logger.info("Removing region {} from cache...", regionName)
+      val (key, _) = indexes.head
+      logger.info("Removing entry [{},{}] from cache...", key.resourceName, key.columnName)
       depressurizeEvents.time {
-        cache.remove(regionName)
+        cache.remove(key)
 
         // Wait a little bit before calling GC to try to force memory to be freed
         Thread sleep iterationIntervalMs

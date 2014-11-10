@@ -4,11 +4,14 @@ import com.rojoma.json.ast.JString
 import com.typesafe.config.Config
 import com.socrata.geospace.client.GeoToSoda2Converter
 import com.socrata.geospace.regioncache.SpatialIndex.Entry
+import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.FeatureJson
 import org.geoscript.feature._
+import scala.concurrent.Future
 import scala.util.Success
 
 class SpatialRegionCache(config: Config) extends RegionCache[SpatialIndex[Int]](config) {
+  val defaultRegionGeomName = "the_geom"
 
   /**
    * Generates a SpatialIndex for the dataset given the set of features
@@ -40,16 +43,22 @@ class SpatialRegionCache(config: Config) extends RegionCache[SpatialIndex[Int]](
    * Returns indices in descending order of size by # of coordinates
    * @return Indices in descending order of size by # of coordinates
    */
-  override def indicesBySizeDesc(): Seq[(String, Int)] = {
+  override def indicesBySizeDesc(): Seq[(RegionCacheKey, Int)] = {
     cache.keys.toSeq.map(key => (key, cache.get(key).get.value)).
-      collect { case (key, Some(Success(index))) => (key.toString, index.numCoordinates) }.
+      collect { case (key: RegionCacheKey, Some(Success(index))) => (key, index.numCoordinates) }.
       sortBy(_._2).
       reverse
   }
+
+  def getFromFeatures(resourceName: String, features: Seq[Feature]): Future[SpatialIndex[Int]] =
+    getFromFeatures(RegionCacheKey(resourceName, defaultRegionGeomName), features)
+
+  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[Int]] =
+    getFromSoda(sodaFountain, RegionCacheKey(resourceName, defaultRegionGeomName))
 
   /**
    * Returns a list of regions as tuples of the form (regionName, numCoordinates)
    * in order from the biggest to the smallest.
    */
-  def regions: Seq[(String, Int)] = indicesBySizeDesc()
+  def regions: Seq[(String, Int)] = indicesBySizeDesc().map { case (key, size) => (key.resourceName, size) }
 }
