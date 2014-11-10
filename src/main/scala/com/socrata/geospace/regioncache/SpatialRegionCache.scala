@@ -50,9 +50,23 @@ class SpatialRegionCache(config: Config) extends RegionCache[SpatialIndex[Int]](
       reverse
   }
 
+  /**
+   * Gets a SpatialIndex from the cache, populating it from a list of features if it's missing
+   * @param resourceName Resource name of the cached dataset. Column name is assumed to be
+   *                     the default name given to the primary geometry column in a shapefile (the_geom)
+   * @param features     a Seq of Features to use to create the cache entry if it doesn't exist
+   * @return             A SpatialIndex future representing the cached dataset
+   */
   def getFromFeatures(resourceName: String, features: Seq[Feature]): Future[SpatialIndex[Int]] =
     getFromFeatures(RegionCacheKey(resourceName, defaultRegionGeomName), features)
 
+  /**
+   * Gets a SpatialIndex from the cache, populating it from Soda Foutnain as needed
+   * @param sodaFountain the Soda Fountain client
+   * @param resourceName Resource name of the cached dataset. Column name is assumed to be
+   *                     the default name given to the primary geometry column in a shapefile (the_geom)
+   * @return             A SpatialIndex future representing the cached dataset
+   */
   def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[Int]] =
     getFromSoda(sodaFountain, RegionCacheKey(resourceName, defaultRegionGeomName))
 
