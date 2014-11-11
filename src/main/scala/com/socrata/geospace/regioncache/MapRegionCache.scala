@@ -1,10 +1,11 @@
 package com.socrata.geospace.regioncache
 
+import com.rojoma.json.ast.JString
+import com.socrata.geospace.client.GeoToSoda2Converter
+import com.socrata.geospace.feature.FeatureExtensions._
 import com.socrata.thirdparty.geojson.FeatureJson
 import com.typesafe.config.Config
 import org.geoscript.feature.Feature
-import com.socrata.geospace.client.GeoToSoda2Converter
-import com.rojoma.json.ast.{JNumber, JString}
 import scala.util.Success
 
 class MapRegionCache(config: Config) extends RegionCache[Map[String, Int]](config) {
@@ -14,8 +15,13 @@ class MapRegionCache(config: Config) extends RegionCache[Map[String, Int]](confi
    * @param features Features from which to generate a SpatialIndex
    * @return SpatialIndex containing the dataset features
    */
-  // TODO : This is only used in a test route, leaving unimplemented for now.
-  override def getEntryFromFeatures(features: Seq[Feature], keyName: String): Map[String, Int] = ???
+  override def getEntryFromFeatures(features: Seq[Feature], keyName: String): Map[String, Int] =
+    features.foldLeft(Map[String, Int]()) { (seq, feature) =>
+      feature.attr(keyName) match {
+        case Some(key) => seq + (key -> feature.numericId)
+        case _         => seq
+      }
+    }
 
   /**
    * Generates an in-memory map for the dataset from feature JSON, keyed off the specified field
@@ -36,8 +42,8 @@ class MapRegionCache(config: Config) extends RegionCache[Map[String, Int]](confi
    * @return Indices in descending order of size by # of features
    */
   override def indicesBySizeDesc(): Seq[(RegionCacheKey, Int)] =
-    cache.keys.toSeq.map(key => (key, cache.get(key).get.value)).
-      collect { case (key: RegionCacheKey, Some(Success(map))) => (key, map.size) }.
-      sortBy(_._2).
-      reverse
+    cache.keys.toSeq.map(key => (key, cache.get(key).get.value))
+      .collect { case (key: RegionCacheKey, Some(Success(index))) => (key, index.size) }
+      .sortBy(_._2)
+      .reverse
 }
