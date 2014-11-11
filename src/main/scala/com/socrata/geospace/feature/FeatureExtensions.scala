@@ -19,4 +19,6 @@ case class FeatureExtensions(feature: Feature) {
     case _ =>
       throw new IllegalArgumentException("Could not extract numeric ID from feature ID " + feature.getID)
   }
+
+  def attr(name: String): String = feature.getAttribute(name).toString()
 }
