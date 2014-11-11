@@ -8,7 +8,7 @@ import com.socrata.geospace.curatedregions.{CuratedRegionIndexer, CuratedRegionS
 import com.socrata.geospace.errors._
 import com.socrata.geospace.feature.FeatureValidator
 import com.socrata.geospace.ingestion.FeatureIngester
-import com.socrata.geospace.regioncache.SpatialRegionCache
+import com.socrata.geospace.regioncache.{RegionCacheKey, MapRegionCache, SpatialRegionCache}
 import com.socrata.geospace.shapefile._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
@@ -23,7 +23,8 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
                       config: GeospaceConfig) extends GeospaceMicroserviceStack
 with FileUploadSupport with Metrics {
-  val regionCache = new SpatialRegionCache(config.cache)
+  val spatialCache = new SpatialRegionCache(config.cache)
+  val stringCache  = new MapRegionCache(config.cache)
 
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")
@@ -118,7 +119,7 @@ with FileUploadSupport with Metrics {
 
     // Cache the reprojected features in our region cache for immediate geocoding
     // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-    regionCache.getFromFeatures(params("resourceName"), features.toSeq)
+    spatialCache.getFromFeatures(params("resourceName"), features.toSeq)
     Map("rows-ingested" -> features.toSeq.length)
   }
 
@@ -133,14 +134,42 @@ with FileUploadSupport with Metrics {
     }
   }
 
+  // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
+  // Also describe how the getting the region file is async and thus the coding happens afterwards
+  private def geoRegionCode(resourceName: String, points: Seq[Seq[Double]]): Future[Seq[Option[Int]]] = {
+    import org.geoscript.geometry.builder
+
+    val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
+    val futureIndex = spatialCache.getFromSoda(sodaFountain, resourceName)
+    futureIndex.map { index =>
+      geoPoints.map { pt => index.firstContains(pt).map(_.item) }
+    }
+  }
+
+  post("/v1/regions/:resourceName/stringcode") {
+    val strings = parsedBody.extract[Seq[String]]
+    if (strings.isEmpty) halt(400, s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
+    val column = params.getOrElse("column", halt(BadRequest("column param must be provided")))
+
+    new AsyncResult { val is =
+      geocodingTimer.time { stringCode(params("resourceName"), column, strings) }
+    }
+  }
+
+  private def stringCode(resourceName: String, columnName: String, strings: Seq[String]): Future[Seq[Option[Int]]] = {
+    val futureIndex = stringCache.getFromSoda(sodaFountain, RegionCacheKey(resourceName, columnName))
+    futureIndex.map { index => strings.map { str => index.get(str) } }
+  }
+
   get("/v1/regions") {
-    regionCache.regions.map { case (name, numCoords) =>
+    spatialCache.regions.map { case (name, numCoords) =>
       Map("name" -> name, "numCoordinates" -> numCoords)
     }
   }
 
   delete("/v1/regions") {
-    regionCache.reset()
+    spatialCache.reset()
+    stringCache.reset()
     Ok("Done")
   }
 
@@ -168,17 +197,5 @@ with FileUploadSupport with Metrics {
 
     val indexer = CuratedRegionIndexer(sodaFountain, config.curatedRegions)
     indexer.index(params("resourceName"), geoColumn, domain).get
-  }
-
-  // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
-  // Also describe how the getting the region file is async and thus the coding happens afterwards
-  private def geoRegionCode(resourceName: String, points: Seq[Seq[Double]]): Future[Seq[Option[Int]]] = {
-    import org.geoscript.geometry.builder
-
-    val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
-    val futureIndex = regionCache.getFromSoda(sodaFountain, resourceName)
-    futureIndex.map { index =>
-      geoPoints.map { pt => index.firstContains(pt).map(_.item) }
-    }
   }
 }
