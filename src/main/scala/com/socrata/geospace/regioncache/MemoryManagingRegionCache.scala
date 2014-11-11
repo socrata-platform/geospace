@@ -31,6 +31,9 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100,
 
   val depressurizeEvents = metrics.timer("depressurize-events")
 
+  /**
+   * Relieve memory pressure, if required, before caching a new entry
+   */
   protected override def prepForCaching() = depressurize()
 
   /**
