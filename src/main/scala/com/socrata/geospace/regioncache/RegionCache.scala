@@ -1,7 +1,6 @@
 package com.socrata.geospace.regioncache
 
 import com.socrata.geospace.client.{GeoToSoda2Converter, SodaResponse}
-import com.socrata.geospace.Utils._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import com.socrata.thirdparty.metrics.Metrics
@@ -31,25 +30,11 @@ case class RegionCacheKey(resourceName: String, columnName: String)
  * When a new layer/region dataset is added, the cache will automatically free up existing cached
  * regions as needed to make room for the new one.  The below parameters control that process.
  *
- * @param enableDepressurize enable the automatic freeing of memory (depressurization)
- * @param minFreePct - (0 to 100) when the free memory goes below this %, depressurize() is triggered.
- *                     Think of this as the "low water mark".
- * @param targetFreePct - (0 to 100, > minFreePct)  The "high water mark" or target free percentage
- *                     to attain during depressurization
- * @param iterationIntervalMs - the time to sleep between iterations.  This is to give time for anybody
- *            still referencing the removed index to complete the task.
+ * @param maxEntries          Maximum capacity of the region cache
+ * @tparam T                  Cache entry type
  */
-abstract class RegionCache[T](maxEntries: Int = 100,
-                              enableDepressurize: Boolean = true,
-                              minFreePct: Int = 20,
-                              targetFreePct: Int = 40,
-                              iterationIntervalMs: Int = 100) extends Logging with Metrics {
-
-  def this(config: Config) = this(config.getInt("max-entries"),
-                                  config.getBoolean("enable-depressurize"),
-                                  config.getInt("min-free-percentage"),
-                                  config.getInt("target-free-percentage"),
-                                  config.getMilliseconds("iteration-interval").toInt)
+abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metrics {
+  def this(config: Config) = this(config.getInt("max-entries"))
 
   protected val cache = LruCache[T](maxEntries)
 
@@ -58,7 +43,6 @@ abstract class RegionCache[T](maxEntries: Int = 100,
   val cacheSizeGauge = metrics.gauge("num-entries") { cache.size }
   val sodaReadTimer  = metrics.timer("soda-region-read")
   val regionIndexLoadTimer = metrics.timer("region-index-load")
-  val depressurizeEvents = metrics.timer("depressurize-events")
 
   import concurrent.ExecutionContext.Implicits.global
 
@@ -79,10 +63,9 @@ abstract class RegionCache[T](maxEntries: Int = 100,
   protected def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): T
 
   /**
-   * Returns indices in descending order of size
-   * @return Indices in descending order of size
+   * Any activities that should be carried out before caching a region
    */
-  protected def indicesBySizeDesc(): Seq[(RegionCacheKey, Int)]
+  protected def prepForCaching(): Unit = { }
 
   /**
    * gets an entry from the cache, populating it from a list of features if it's missing
@@ -96,7 +79,7 @@ abstract class RegionCache[T](maxEntries: Int = 100,
   def getFromFeatures(key: RegionCacheKey, features: Seq[Feature]): Future[T] = {
     cache(key) {
       logger.info(s"Populating cache entry for resource [${key.resourceName}], column [${key.columnName}] from features")
-      Future { depressurize(); getEntryFromFeatures(features, key.columnName) }
+      Future { prepForCaching(); getEntryFromFeatures(features, key.columnName) }
     }
   }
 
@@ -125,35 +108,6 @@ abstract class RegionCache[T](maxEntries: Int = 100,
         }
       }
     }
-
-  /**
-   * Relieves memory pressure by removing cache entries, starting with the biggest.
-   * It goes in a loop, pausing and force running GC to attempt to free memory, and exits if it
-   * runs out of entries to free.
-   */
-  def depressurize(): Unit = synchronized {
-    if (!enableDepressurize || atLeastFreeMem(minFreePct)) return
-
-    var indexes = indicesBySizeDesc()
-    while (!atLeastFreeMem(targetFreePct)) {
-      logMemoryUsage("Attempting to uncache regions to relieve memory pressure")
-      if (indexes.isEmpty) {
-        logger.warn("No more regions to uncache, out of memory!!")
-        throw new RuntimeException("No more regions to uncache, out of memory")
-      }
-      val (key, _) = indexes.head
-      logger.info("Removing entry [{},{}] from cache...", key.resourceName, key.columnName)
-      depressurizeEvents.time {
-        cache.remove(key)
-
-        // Wait a little bit before calling GC to try to force memory to be freed
-        Thread sleep iterationIntervalMs
-        Runtime.getRuntime.gc
-      }
-
-      indexes = indexes.drop(1)
-    }
-  }
 
   /**
    * Clears the cache of all entries.  Mostly used for testing.

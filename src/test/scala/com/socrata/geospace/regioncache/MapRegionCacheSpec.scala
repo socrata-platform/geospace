@@ -1,22 +1,15 @@
 package com.socrata.geospace.regioncache
 
 import com.rojoma.json.io.JsonReader
-import com.socrata.geospace.FakeSodaFountain
 import com.socrata.thirdparty.geojson.{FeatureJson, FeatureCollectionJson, GeoJson}
 import com.typesafe.config.ConfigFactory
 import org.geoscript.feature._
 import org.geoscript.layer._
-import org.scalatest.{FunSuiteLike, PrivateMethodTester, Matchers}
+import org.scalatest.{FunSuiteLike, Matchers}
 import scala.collection.JavaConverters._
 
 class MapRegionCacheSpec extends FunSuiteLike with Matchers {
-  val testConfig = ConfigFactory.parseMap(Map(
-    "max-entries"            -> 100,
-    "enable-depressurize"    -> false,
-    "min-free-percentage"    -> 20,
-    "target-free-percentage" -> 40,
-    "iteration-interval"     -> 100
-  ).asJava)
+  val testConfig = ConfigFactory.parseMap(Map("max-entries" -> 100).asJava)
 
   val fcTemplate = """{ "type": "FeatureCollection", "features": [%s], "crs" : { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } } }"""
   val fTemplate = """{"type":"Feature","geometry": { "type": "Point", "coordinates": [0,%s] },"properties":{"_feature_id":"%s","name":"%s"}}"""
@@ -51,15 +44,5 @@ class MapRegionCacheSpec extends FunSuiteLike with Matchers {
     val features = decodeFeatures(tenCompleteFeatures ++ oneFeatureWithNoName ++ oneFeatureWithNoName)
     val entry = mapCache.getEntryFromFeatureJson(features, "name")
     entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"name $i" -> i })
-  }
-
-  test("indicesBySizeDesc") {
-    val features = Shapefile("data/chicago_wards/Wards.shp").features
-    mapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ADDRESS"), features.toSeq.take(2))
-    mapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ALDERMAN"), features.toSeq.take(1))
-    mapCache.getFromFeatures(RegionCacheKey("abcd-1234", "WARD"), features.toSeq.take(3))
-    mapCache.indicesBySizeDesc() should be (Seq((RegionCacheKey("abcd-1234", "WARD"), 3),
-                                                (RegionCacheKey("abcd-1234", "ADDRESS"), 2),
-                                                (RegionCacheKey("abcd-1234", "ALDERMAN"), 1)))
   }
 }

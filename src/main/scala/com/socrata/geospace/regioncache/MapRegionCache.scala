@@ -36,14 +36,4 @@ class MapRegionCache(config: Config) extends RegionCache[Map[String, Int]](confi
        }
      }
    }.toMap
-
-  /**
-   * Returns indices in descending order of size by # of features
-   * @return Indices in descending order of size by # of features
-   */
-  override def indicesBySizeDesc(): Seq[(RegionCacheKey, Int)] =
-    cache.keys.toSeq.map(key => (key, cache.get(key).get.value))
-      .collect { case (key: RegionCacheKey, Some(Success(index))) => (key, index.size) }
-      .sortBy(_._2)
-      .reverse
 }

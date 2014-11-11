@@ -10,7 +10,7 @@ import org.geoscript.feature._
 import scala.concurrent.Future
 import scala.util.Success
 
-class SpatialRegionCache(config: Config) extends RegionCache[SpatialIndex[Int]](config) {
+class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[SpatialIndex[Int]](config) {
   val defaultRegionGeomName = "the_geom"
 
   /**
