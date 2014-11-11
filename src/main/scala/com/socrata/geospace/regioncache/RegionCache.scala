@@ -95,7 +95,7 @@ abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metric
       Future {
         prepForCaching()
         // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
-        val query = s"select ${GeoToSoda2Converter.FeatureIdColName}, ${key.columnName} limit ${Long.MaxValue}"
+        val query = s"select * limit ${Long.MaxValue}"
         val sodaResponse = sodaReadTimer.time {
           sodaFountain.query(key.resourceName, Some("geojson"), Iterable(("$query", query)))
         }
