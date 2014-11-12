@@ -63,7 +63,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100,
         cache.remove(key)
 
         // Wait a little bit before calling GC to try to force memory to be freed
-        Thread sleep iterationIntervalMs
+        Thread.sleep(iterationIntervalMs)
         Runtime.getRuntime.gc
       }
 
