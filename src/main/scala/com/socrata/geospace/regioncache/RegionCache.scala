@@ -1,6 +1,6 @@
 package com.socrata.geospace.regioncache
 
-import com.socrata.geospace.client.{GeoToSoda2Converter, SodaResponse}
+import com.socrata.geospace.client.SodaResponse
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import com.socrata.thirdparty.metrics.Metrics
@@ -40,7 +40,10 @@ abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metric
 
   logger.info("Creating RegionCache with {} entries", maxEntries.toString())
 
-  val cacheSizeGauge = metrics.gauge("num-entries") { cache.size }
+  // There's a bug in the scala-metrics library - metrics.gauge doesn't check if
+  // the metric already exists before trying to registering it again.
+  // Because of this, unit tests fail unless we give the gauge metric a unique scope per instance
+  val cacheSizeGauge = metrics.gauge("num-entries", System.currentTimeMillis.toString) { cache.size }
   val sodaReadTimer  = metrics.timer("soda-region-read")
   val regionIndexLoadTimer = metrics.timer("region-index-load")
 
