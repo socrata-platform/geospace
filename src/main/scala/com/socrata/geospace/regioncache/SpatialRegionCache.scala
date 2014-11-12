@@ -10,6 +10,11 @@ import org.geoscript.feature._
 import scala.concurrent.Future
 import scala.util.Success
 
+/**
+ * Caches indices of the region datasets for geo-region-coding in a SpatialIndex
+ * that can then be used to do spatial calculations (eg. shape.intersectsWith(shape).
+ * @param config Cache configuration
+ */
 class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[SpatialIndex[Int]](config) {
   val defaultRegionGeomName = "the_geom"
 
@@ -69,10 +74,4 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
    */
   def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[Int]] =
     getFromSoda(sodaFountain, RegionCacheKey(resourceName, defaultRegionGeomName))
-
-  /**
-   * Returns a list of regions as tuples of the form (regionName, numCoordinates)
-   * in order from the biggest to the smallest.
-   */
-  def regions: Seq[(String, Int)] = indicesBySizeDesc().map { case (key, size) => (key.resourceName, size) }
 }

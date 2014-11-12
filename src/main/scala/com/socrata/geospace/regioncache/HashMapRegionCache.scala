@@ -8,10 +8,15 @@ import com.typesafe.config.Config
 import org.geoscript.feature.Feature
 import scala.util.Success
 
-class MapRegionCache(config: Config) extends RegionCache[Map[String, Int]](config) {
+/**
+ * Caches indices of the region datasets for geo-region-coding in a hashmap
+ * for simple string matching.
+ * @param config Cache configuration
+ */
+class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[String, Int]](config) {
 
   /**
-   * Generates a SpatialIndex for the dataset given the set of features
+   * Generates an in-memory map for the dataset given the set of features
    * @param features Features from which to generate a SpatialIndex
    * @return SpatialIndex containing the dataset features
    */
@@ -36,4 +41,14 @@ class MapRegionCache(config: Config) extends RegionCache[Map[String, Int]](confi
        }
      }
    }.toMap
+
+  /**
+   * Returns indices in descending order of size by # of features
+   * @return Indices in descending order of size by # of features
+   */
+  override def indicesBySizeDesc(): Seq[(RegionCacheKey, Int)] =
+    cache.keys.toSeq.map(key => (key, cache.get(key).get.value))
+      .collect { case (key: RegionCacheKey, Some(Success(index))) => (key, index.size) }
+      .sortBy(_._2)
+      .reverse
 }

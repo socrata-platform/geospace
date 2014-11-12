@@ -2,13 +2,14 @@ package com.socrata.geospace
 
 import com.rojoma.simplearm.util._
 import com.socrata.BuildInfo
+import com.socrata.geospace.Utils._
 import com.socrata.geospace.client.{CoreServerAuth, CoreServerClient}
 import com.socrata.geospace.config.GeospaceConfig
 import com.socrata.geospace.curatedregions.{CuratedRegionIndexer, CuratedRegionSuggester}
 import com.socrata.geospace.errors._
 import com.socrata.geospace.feature.FeatureValidator
 import com.socrata.geospace.ingestion.FeatureIngester
-import com.socrata.geospace.regioncache.{RegionCacheKey, MapRegionCache, SpatialRegionCache}
+import com.socrata.geospace.regioncache.{RegionCacheKey, HashMapRegionCache, SpatialRegionCache}
 import com.socrata.geospace.shapefile._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
@@ -24,7 +25,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
                       config: GeospaceConfig) extends GeospaceMicroserviceStack
 with FileUploadSupport with Metrics {
   val spatialCache = new SpatialRegionCache(config.cache)
-  val stringCache  = new MapRegionCache(config.cache)
+  val stringCache  = new HashMapRegionCache(config.cache)
 
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")
@@ -162,14 +163,16 @@ with FileUploadSupport with Metrics {
   }
 
   get("/v1/regions") {
-    spatialCache.regions.map { case (name, numCoords) =>
-      Map("name" -> name, "numCoordinates" -> numCoords)
-    }
+    Map("spatialCache" -> spatialCache.indicesBySizeDesc().map {
+                            case (key, size) => Map("resource" -> key, "numCoordinates" -> size) },
+        "stringCache"  -> stringCache.indicesBySizeDesc().map {
+                            case (key, size) => Map("resource" -> key, "numRows" -> size) })
   }
 
   delete("/v1/regions") {
     spatialCache.reset()
     stringCache.reset()
+    logMemoryUsage("After clearing region caches")
     Ok("Done")
   }
 
