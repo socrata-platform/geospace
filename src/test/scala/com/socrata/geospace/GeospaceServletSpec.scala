@@ -122,7 +122,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
     }
 
     get("/v1/regions") {
-      body should equal ("[]")
+      body should equal ("""{"spatialCache":[],"stringCache":[]}""")
     }
 
     mockSodaRoute("triangles.geojson", geojson)

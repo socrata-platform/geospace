@@ -1,8 +1,6 @@
 package com.socrata.geospace.regioncache
 
-import com.rojoma.json.ast.JString
-import com.socrata.geospace.client.{SodaResponse, GeoToSoda2Converter}
-import com.socrata.geospace.Utils._
+import com.socrata.geospace.client.SodaResponse
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import com.socrata.thirdparty.metrics.Metrics
@@ -10,11 +8,17 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
 import org.geoscript.feature._
 import scala.concurrent.Future
-import scala.util.Success
 import spray.caching.LruCache
 
 /**
- * The RegionCache caches SpatialIndexes of the region datasets for geo-region-coding.
+ * Represents the key for a region cache (dataset resource name + column name)
+ * @param resourceName Resource name of the dataset represented in the cache entry
+ * @param columnName   Name of the column used as a key for individual features inside the cache entry
+ */
+case class RegionCacheKey(resourceName: String, columnName: String)
+
+/**
+ * The RegionCache caches indices of the region datasets for geo-region-coding.
  * The cache is populated either from an existing Layer/FeatureCollection in memory, or
  * from soda-fountain dataset.
  *
@@ -26,140 +30,91 @@ import spray.caching.LruCache
  * When a new layer/region dataset is added, the cache will automatically free up existing cached
  * regions as needed to make room for the new one.  The below parameters control that process.
  *
- * @param enableDepressurize enable the automatic freeing of memory (depressurization)
- * @param minFreePct - (0 to 100) when the free memory goes below this %, depressurize() is triggered.
- *                     Think of this as the "low water mark".
- * @param targetFreePct - (0 to 100, > minFreePct)  The "high water mark" or target free percentage
- *                     to attain during depressurization
- * @param iterationIntervalMs - the time to sleep between iterations.  This is to give time for anybody
- *            still referencing the removed SpatialIndex to complete the task.
+ * @param maxEntries          Maximum capacity of the region cache
+ * @tparam T                  Cache entry type
  */
-class RegionCache(maxEntries: Int = 100,
-                  enableDepressurize: Boolean = true,
-                  minFreePct: Int = 20,
-                  targetFreePct: Int = 40,
-                  iterationIntervalMs: Int = 100) extends Logging with Metrics {
-  def this(config: Config) = this(
-                               config.getInt("max-entries"),
-                               config.getBoolean("enable-depressurize"),
-                               config.getInt("min-free-percentage"),
-                               config.getInt("target-free-percentage"),
-                               config.getMilliseconds("iteration-interval").toInt
-                             )
+abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metrics {
+  def this(config: Config) = this(config.getInt("max-entries"))
 
-  private val cache = LruCache[SpatialIndex[Int]](maxEntries)
+  protected val cache = LruCache[T](maxEntries)
 
-  logger.info("Creating RegionCache with {} entries", maxEntries.toString)
+  logger.info("Creating RegionCache with {} entries", maxEntries.toString())
 
-  val cacheSizeGauge = metrics.gauge("num-entries") { cache.size }
+  // There's a bug in the scala-metrics library - metrics.gauge doesn't check if
+  // the metric already exists before trying to registering it again.
+  // Because of this, unit tests fail unless we give the gauge metric a unique scope per instance
+  val cacheSizeGauge = metrics.gauge("num-entries", System.currentTimeMillis.toString) { cache.size }
   val sodaReadTimer  = metrics.timer("soda-region-read")
   val regionIndexLoadTimer = metrics.timer("region-index-load")
-  val depressurizeEvents = metrics.timer("depressurize-events")
 
   import concurrent.ExecutionContext.Implicits.global
 
   /**
-   * gets a SpatialIndex from the cache, populating it from a list of features if it's missing
+   * Generates a cache entry for the dataset given a sequence of features
+   * @param features Features from which to generate a cache entry
+   * @param keyName  Name of the field on which to index the dataset features
+   * @return Cache entry containing the dataset features
+   */
+  protected def getEntryFromFeatures(features: Seq[Feature], keyName: String): T
+
+  /**
+   * Generates a cache entry for the dataset given feature JSON
+   * @param features Feature JSON from which to generate a cache entry
+   * @param keyName  Name of the field on which to index the dataset features
+   * @return Cache entry containing the dataset features
+   */
+  protected def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): T
+
+  /**
+   * Any activities that should be carried out before caching a region
+   */
+  protected def prepForCaching(): Unit = { }
+
+  /**
+   * gets an entry from the cache, populating it from a list of features if it's missing
    *
-   * @param resourceName the name of the region dataset resource, also the cache key
-   * @param features a Seq of Features to use to create a SpatialIndex if it doesn't exist
-   * @return a Future[SpatialIndex] which will hold the SpatialIndex object when populated
+   * @param key the resource name/column name used to cache the entry
+   * @param features a Seq of Features to use to create the cache entry if it doesn't exist
+   * @return a Future which will hold the cache entry object when populated
    *         Note that if this fails, then it will return a Failure, and can be processed further with
    *         onFailure(...) etc.
    */
-  def getFromFeatures(resourceName: String, features: Seq[Feature]): Future[SpatialIndex[Int]] = {
-    cache(resourceName) {
-      logger.info(s"Populating cache entry for resource [$resourceName] from features")
-      Future { depressurize(); SpatialIndex(features) }
+  def getFromFeatures(key: RegionCacheKey, features: Seq[Feature]): Future[T] = {
+    cache(key) {
+      logger.info(s"Populating cache entry for resource [${key.resourceName}], column [${key.columnName}] from features")
+      Future { prepForCaching(); getEntryFromFeatures(features, key.columnName) }
     }
   }
 
   /**
-   * gets a SpatialIndex from the cache, populating it from Soda Fountain as needed
+   * Gets an entry from the cache, populating it from Soda Fountain as needed
    *
    * @param sodaFountain the Soda Fountain client
-   * @param resourceName the name of the region dataset to pull from Soda Fountain
+   * @param key the resource name to pull from Soda Fountain and the column to inde
    */
-  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[Int]] =
-    cache(resourceName) {
-      logger.info(s"Populating cache entry for resource [$resourceName] from soda fountain client")
+  def getFromSoda(sodaFountain: SodaFountainClient, key: RegionCacheKey): Future[T] =
+    cache(key) {
+      logger.info(s"Populating cache entry for resource [${key.resourceName}}], column [] from soda fountain client")
       Future {
+        prepForCaching()
         // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
+        val query = s"select * limit ${Long.MaxValue}"
         val sodaResponse = sodaReadTimer.time {
-          sodaFountain.query(resourceName, Some("geojson"), Iterable(("$query", s"select * limit ${Long.MaxValue}")))
+          sodaFountain.query(key.resourceName, Some("geojson"), Iterable(("$query", query)))
         }
         val payload = SodaResponse.check(sodaResponse, 200)
         regionIndexLoadTimer.time {
           payload.toOption.
             flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
-            collect { case FeatureCollectionJson(features, _) => getIndexFromFeatureJson(features) }.
+            collect { case FeatureCollectionJson(features, _) => getEntryFromFeatureJson(features, key.columnName) }.
             getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + payload.get,
-                      if (payload.isFailure) payload.failed.get else null))
+            if (payload.isFailure) payload.failed.get else null))
         }
       }
     }
 
   /**
-   * depressurize - relieves memory pressure by removing cached regions, starting with the biggest.
-   * It goes in a loop, pausing and force running GC to attempt to free memory, and exits if it
-   * runs out of regions to free.
-   */
-  def depressurize(): Unit = synchronized {
-    if (!enableDepressurize || atLeastFreeMem(minFreePct)) return
-
-    var indexes = listCompletedIndexes()
-    while (!atLeastFreeMem(targetFreePct)) {
-      logMemoryUsage("Attempting to uncache regions to relieve memory pressure")
-      if (indexes.isEmpty) {
-        logger.warn("No more regions to uncache, out of memory!!")
-        throw new RuntimeException("No more regions to uncache, out of memory")
-      }
-      val (regionName, _) = indexes.head
-      logger.info("Removing region {} from cache...", regionName)
-      depressurizeEvents.time {
-        cache.remove(regionName)
-
-        // Wait a little bit before calling GC to try to force memory to be freed
-        Thread sleep iterationIntervalMs
-        Runtime.getRuntime.gc
-      }
-
-      indexes = indexes.drop(1)
-    }
-  }
-
-  /**
-   * Returns a list of regions as tuples of the form (regionName, numCoordinates)
-   * in order from the biggest to the smallest.
-   */
-  def regions: Seq[(String, Int)] = listCompletedIndexes()
-
-  /**
-   * Clears the region cache of all entries.  Mostly used for testing.
+   * Clears the cache of all entries.  Mostly used for testing.
    */
   def reset() { cache.clear() }
-
-  import SpatialIndex.Entry
-
-  private def getIndexFromFeatureJson(features: Seq[FeatureJson]): SpatialIndex[Int] = {
-    logger.info("Converting {} features to SpatialIndex entries...", features.length.toString)
-    var i = 0
-    val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>
-      val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
-                       collect { case JString(id) => Entry(geometry, id.toInt) }
-      if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
-      i += 1
-      if (i % 1000 == 0) depressurize()
-      entryOpt
-    }
-    new SpatialIndex(entries)
-  }
-
-  // returns indexes in descending order of size by # of coordinates
-  private def listCompletedIndexes(): Seq[(String, Int)] = {
-    cache.keys.toSeq.map(key => (key, cache.get(key).get.value)).
-          collect { case (key, Some(Success(index))) => (key.toString, index.numCoordinates) }.
-          sortBy(_._2).
-          reverse
-  }
 }
