@@ -11,7 +11,7 @@ if ! [ "$(nc -z -G 1 localhost 2181)" ]; then
     echo
 fi
 
-if ! [ "$(nc -z -G 1 localhost 6020)" ]; then
+if ! [ "$(nc -z -G 1 localhost 6010)" ]; then
     $DEV_ROOT/onramp/start_scripts/soda-fountain start
     sleep 0.1
     echo
