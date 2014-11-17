@@ -69,6 +69,7 @@ object Dependencies {
       exclude("org.geotools", "gt-render")
       exclude("org.scala-lang", "scala-swing")
       exclude("com.lowagie", "itext")
+      exclude("javax.media", "jai_core")
   )
 
   lazy val testDeps = Seq(
