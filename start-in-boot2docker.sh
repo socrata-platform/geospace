@@ -57,6 +57,6 @@ boot2docker ssh <<EOF
     docker run --env-file=$ENVFILE -p 2020:2020 -d geospace
 EOF
 
-echo 'Forwaring localhost:2020 to boot2docker (Ctrl+C to exit)'
+echo 'Forwarding localhost:2020 to boot2docker (Ctrl+C to exit)'
 echo "boot2docker ssh -L 2020:localhost:2020 -N"
 boot2docker ssh -L 2020:localhost:2020 -N
