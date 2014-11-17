@@ -70,7 +70,7 @@ class FeatureValidatorTest extends FunSuite with Matchers {
                                          (-122.309931, 47.632323),
                                          (-122.312592, 47.628404)))
     val feature = featureBuilder.buildFeature(null, Array(mp, "Overly complex multipolygon"))
-    FeatureValidator.validate(feature, 5) should be (GeometryTooComplex(5))
+    FeatureValidator.validate(feature, 5) should be (GeometryTooComplex(6, 5))
   }
 
   test("Valid feature, single polygon") {
@@ -95,7 +95,7 @@ class FeatureValidatorTest extends FunSuite with Matchers {
                     (-122.342297, 47.619657))
     val mp = builder.multi(Seq(builder.Polygon(poly1), builder.Polygon(poly2)))
     val feature = featureBuilder.buildFeature(null, Array(mp, "A perfectly valid multipolygon!"))
-    FeatureValidator.validate(feature, 5) should be (GeometryTooComplex(5))
+    FeatureValidator.validate(feature, 5) should be (GeometryTooComplex(10, 5))
     FeatureValidator.validate(feature, 10) should be (Valid)
   }
 }
