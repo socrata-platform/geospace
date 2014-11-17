@@ -54,13 +54,10 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
   // Theory #1 - Memory depressurization - this shouldn't be it, the test config turns it off.
   // Theory #2 - The actual data in the test shapefile (ChiWards). Maybe a different one will work.
   test("indicesBySizeDesc") {
-    val zips = Shapefile("data/zip_sf/zip_sf.shp").features
     val wards = Shapefile("data/chicago_wards/Wards.shp").features
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ALDERMAN"), wards.toSeq)
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ZCTA5CE10"), zips.toSeq.take(8))
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "GEOID10"), zips.toSeq)
-    hashMapCache.indicesBySizeDesc() should be (Seq((RegionCacheKey("abcd-1234", "ALDERMAN"), 51),
-                                                    (RegionCacheKey("abcd-1234", "GEOID10"), 9),
-                                                    (RegionCacheKey("abcd-1234", "ZCTA5CE10"), 8)))
+    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ALDERMAN"), wards.toSeq.take(8))
+    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ADDRESS"), wards.toSeq.take(10))
+    hashMapCache.indicesBySizeDesc() should be (Seq((RegionCacheKey("abcd-1234", "ADDRESS"), 10),
+                                                    (RegionCacheKey("abcd-1234", "ALDERMAN"), 8)))
   }
 }

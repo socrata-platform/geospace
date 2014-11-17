@@ -55,7 +55,9 @@ object Dependencies {
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
     "com.socrata"              %% "socrata-thirdparty-utils" % "2.5.6",
     "com.socrata"              %% "soda-fountain-external" % "0.3.3",
-    "com.socrata"              %% "soql-types"          % "0.3.3" exclude("org.jdom", "jdom"),
+    "com.socrata"              %% "soql-types"          % "0.3.3"
+      exclude("org.jdom", "jdom")
+      exclude("javax.media", "jai_core"),
     "com.typesafe"              % "config"              % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"  % "1.1.0",
     "io.spray"                  % "spray-caching"       % "1.2.2",
