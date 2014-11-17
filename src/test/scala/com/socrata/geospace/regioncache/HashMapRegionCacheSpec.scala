@@ -52,13 +52,11 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
 
   test("indicesBySizeDesc") {
     val features = Shapefile("data/chicago_wards/Wards.shp").features
-    // TODO : Uncomment when we figure out why this test intermittently fails with 3 items.
-    // It shouldn't be because of memory depressurization; that's turned off in the test config.
-    //hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ADDRESS"), features.toSeq.take(2))
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ALDERMAN"), features.toSeq.take(1))
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "WARD"), features.toSeq.take(3))
-    hashMapCache.indicesBySizeDesc() should be (Seq((RegionCacheKey("abcd-1234", "WARD"), 3),
-    //                                                (RegionCacheKey("abcd-1234", "ADDRESS"), 2),
-                                                    (RegionCacheKey("abcd-1234", "ALDERMAN"), 1)))
+    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ADDRESS"), features.toSeq.take(20))
+    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ALDERMAN"), features.toSeq.take(10))
+    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "WARD"), features.toSeq.take(15))
+    hashMapCache.indicesBySizeDesc() should be (Seq((RegionCacheKey("abcd-1234", "ADDRESS"), 20),
+                                                    (RegionCacheKey("abcd-1234", "WARD"), 15),
+                                                    (RegionCacheKey("abcd-1234", "ALDERMAN"), 10)))
   }
 }
