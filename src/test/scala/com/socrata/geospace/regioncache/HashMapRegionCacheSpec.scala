@@ -50,13 +50,17 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
     entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"name $i" -> i })
   }
 
+  // This test fails intermittently in Cloudbees (only 2 items are found in the hashmap).
+  // Theory #1 - Memory depressurization - this shouldn't be it, the test config turns it off.
+  // Theory #2 - The actual data in the test shapefile (ChiWards). Maybe a different one will work.
   test("indicesBySizeDesc") {
-    val features = Shapefile("data/chicago_wards/Wards.shp").features
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ADDRESS"), features.toSeq.take(20))
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ALDERMAN"), features.toSeq.take(10))
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "WARD"), features.toSeq.take(15))
-    hashMapCache.indicesBySizeDesc() should be (Seq((RegionCacheKey("abcd-1234", "ADDRESS"), 20),
-                                                    (RegionCacheKey("abcd-1234", "WARD"), 15),
-                                                    (RegionCacheKey("abcd-1234", "ALDERMAN"), 10)))
+    val zips = Shapefile("data/zip_sf/zip_sf.shp").features
+    val wards = Shapefile("data/chicago_wards/Wards.shp").features
+    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ALDERMAN"), wards.toSeq)
+    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ZCTA5CE10"), zips.toSeq.take(8))
+    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "GEOID10"), zips.toSeq)
+    hashMapCache.indicesBySizeDesc() should be (Seq((RegionCacheKey("abcd-1234", "ALDERMAN"), 51),
+                                                    (RegionCacheKey("abcd-1234", "GEOID10"), 9),
+                                                    (RegionCacheKey("abcd-1234", "ZCTA5CE10"), 8)))
   }
 }
