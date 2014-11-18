@@ -53,7 +53,7 @@ object Dependencies {
     "com.rojoma"               %% "rojoma-json"         % "2.4.3",
     "com.rojoma"               %% "simple-arm"          % "1.2.0",
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
-    "com.socrata"              %% "socrata-thirdparty-utils" % "2.5.6",
+    "com.socrata"              %% "socrata-thirdparty-utils" % "2.6.2",
     "com.socrata"              %% "soda-fountain-external" % "0.3.3",
     "com.socrata"              %% "soql-types"          % "0.3.3"
       exclude("org.jdom", "jdom")
