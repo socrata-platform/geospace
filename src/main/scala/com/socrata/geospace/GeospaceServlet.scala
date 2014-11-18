@@ -90,8 +90,9 @@ with FileUploadSupport with Metrics {
     readResult match {
       case Success((features, schema)) =>
         val ingressStartTime = System.currentTimeMillis
+        val ingester = new FeatureIngester(config)
         val ingressResult =
-          for { response <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
+          for { response <- ingester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
           yield {
             val ingressTime = System.currentTimeMillis - ingressStartTime
             logger.info("Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",

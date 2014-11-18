@@ -2,6 +2,7 @@ package com.socrata.geospace.ingestion
 
 import com.rojoma.json.ast._
 import com.socrata.geospace.client._
+import com.socrata.geospace.config.GeospaceConfig
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.metrics.Metrics
 import org.geoscript.feature.{Feature, Schema}
@@ -11,13 +12,17 @@ import scala.util.{Success, Failure, Try}
 
 /**
  * Ingests a set of features as a Socrata dataset
+ * @param config Geospace configuration
  */
-object FeatureIngester extends Metrics {
+class FeatureIngester(config: GeospaceConfig) extends Metrics {
   val logger = LoggerFactory.getLogger(getClass)
 
   case class Response(resourceName: String, upsertCount: Int)
 
   val coreIngestTimer = metrics.timer("core-ingest")
+
+  val soda1 = new GeoToSoda1Converter(config)
+  val soda2 = new GeoToSoda2Converter(config)
 
   /**
    * Uses Core server endpoint to ingest shapefile schema and rows into Dataspace
@@ -37,8 +42,7 @@ object FeatureIngester extends Metrics {
     //        This hack bypasses Core for the upsert. Auth is already validated in the DDL steps, so this should be ok.
     for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
           addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
-          upsert     <- SodaResponse.check(sodaFountain.upsert("_" + fourByFour,
-                                                               GeoToSoda2Converter.getUpsertBody(features, schema)), 200)
+          upsert     <- SodaResponse.check(sodaFountain.upsert("_" + fourByFour, soda2.getUpsertBody(features, schema)), 200)
           publish    <- requester.publish(fourByFour)
     } yield {
       // The region cache keys off the Soda Fountain resource name, but we currently
@@ -50,7 +54,7 @@ object FeatureIngester extends Metrics {
   }
 
   private def createDatasetViaCoreServer(requester: CoreServerClient#Requester, friendlyName: String): Try[String] =
-    for { create <- requester.create(GeoToSoda1Converter.getCreateBody(friendlyName)) } yield {
+    for { create <- requester.create(soda1.getCreateBody(friendlyName)) } yield {
       create match {
         case JObject(map)  =>
           val JString(id) = map("id")
@@ -59,7 +63,7 @@ object FeatureIngester extends Metrics {
     }
 
   private def addColumnsViaCoreServer(requester: CoreServerClient#Requester, schema: Schema, fourByFour: String): Try[JValue] = {
-    val results = GeoToSoda1Converter.getAddColumnBodies(schema).map { column =>
+    val results = soda1.getAddColumnBodies(schema).map { column =>
       requester.addColumn(fourByFour, column)
     }
 

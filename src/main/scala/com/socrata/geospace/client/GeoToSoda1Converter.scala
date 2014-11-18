@@ -2,6 +2,7 @@ package com.socrata.geospace.client
 
 import collection.JavaConverters._
 import com.rojoma.json.ast._
+import com.socrata.geospace.config.GeospaceConfig
 import com.socrata.geospace.feature.FeatureExtensions._
 import com.vividsolutions.jts.geom.{Geometry, MultiPolygon}
 import org.geoscript.feature._
@@ -10,7 +11,7 @@ import org.geotools.geojson.geom.GeometryJSON
 import com.rojoma.json.io.JsonReader
 
 /**
- * Generates Soda1 requests from geo schemata and feature collections
+ * Contains useful values for make features usable in a Soda1 request
  */
 object GeoToSoda1Converter {
   // The feature ID needs to be a part of every row of the shape dataset so we can correlate other datasets
@@ -30,6 +31,14 @@ object GeoToSoda1Converter {
     "dataTypeName" -> JString("text"),
     "name"         -> JString(FeatureIdStringColName)
   ))
+}
+
+/**
+ * Generates Soda1 requests from geo schemata and feature collections
+ * @param config Geospace configuration
+ */
+ class GeoToSoda1Converter(config: GeospaceConfig) {
+  import GeoToSoda1Converter._
 
   /**
    * Maps shapefile types to Soda1 types
@@ -97,7 +106,7 @@ object GeoToSoda1Converter {
    * @return JSON representation of the row
    */
   private def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
-    val geoJsonWriter = new GeometryJSON()
+    val geoJsonWriter = new GeometryJSON(config.geojsonPrecision)
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
     val fields = feature.getAttributes.asScala.zip(attrNames).map {
       case (g: Geometry, name) => name -> JsonReader.fromString(geoJsonWriter.toString(g))
