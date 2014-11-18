@@ -3,6 +3,7 @@ package com.socrata.geospace.client
 import collection.JavaConverters._
 import com.rojoma.json.ast._
 import com.rojoma.json.io.JsonReader
+import com.socrata.geospace.config.GeospaceConfig
 import com.socrata.geospace.feature.FeatureExtensions._
 import com.vividsolutions.jts.geom.{Geometry, MultiPolygon}
 import org.geoscript.feature._
@@ -10,7 +11,7 @@ import org.geotools.geojson.geom.GeometryJSON
 import org.opengis.feature.`type`.PropertyDescriptor
 
 /**
- * Generates Soda2 requests from geo schemata and feature collections
+ * Contains useful values for make features usable in a Soda2 request
  */
 object GeoToSoda2Converter {
   // The feature ID needs to be a part of every row of the shape dataset so we can correlate other datasets
@@ -19,10 +20,10 @@ object GeoToSoda2Converter {
   // This here is a hack.
   val FeatureIdColName = "_feature_id"
   val FeatureIdColumnDef = JObject(Map(
-      "field_name" -> JString(FeatureIdColName),
-      "datatype"   -> JString("number"),
-      "name"       -> JString(FeatureIdColName)
-    ))
+    "field_name" -> JString(FeatureIdColName),
+    "datatype"   -> JString("number"),
+    "name"       -> JString(FeatureIdColName)
+  ))
 
   val FeatureIdStringColName = "_feature_id_string"
   val FeatureIdStringColumnDef = JObject(Map(
@@ -30,6 +31,14 @@ object GeoToSoda2Converter {
     "datatype"   -> JString("text"),
     "name"       -> JString(FeatureIdColName)
   ))
+}
+
+/**
+ * Generates Soda2 requests from geo schemata and feature collections
+ * @param config Geospace configuration
+ */
+class GeoToSoda2Converter(config: GeospaceConfig) {
+  import GeoToSoda2Converter._
 
   /**
    * Maps shapefile types to Soda2 types
@@ -98,7 +107,7 @@ object GeoToSoda2Converter {
    * @return JSON representation of the row
    */
   private def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
-    val geoJsonWriter = new GeometryJSON()
+    val geoJsonWriter = new GeometryJSON(config.geojsonPrecision)
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
     val fields = feature.getAttributes.asScala.zip(attrNames).map {
       case (g: Geometry, name) => name -> JsonReader.fromString(geoJsonWriter.toString(g))
