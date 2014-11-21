@@ -93,7 +93,7 @@ object ShapefileReader extends Logging {
       case Some(file) => Failure(file.failed.get)
       case None       =>
         logger.info("Validated that the shapefile contains all the right files")
-        Success()
+        Success((): Unit)
     }
   }
 

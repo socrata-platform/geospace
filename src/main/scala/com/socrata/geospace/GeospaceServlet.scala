@@ -22,10 +22,10 @@ import scala.util.{Try, Failure, Success}
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
-                      config: GeospaceConfig) extends GeospaceMicroserviceStack
+                      myConfig: GeospaceConfig) extends GeospaceMicroserviceStack
 with FileUploadSupport with Metrics {
-  val spatialCache = new SpatialRegionCache(config.cache)
-  val stringCache  = new HashMapRegionCache(config.cache)
+  val spatialCache = new SpatialRegionCache(myConfig.cache)
+  val stringCache  = new HashMapRegionCache(myConfig.cache)
 
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")
@@ -68,21 +68,21 @@ with FileUploadSupport with Metrics {
     val readReprojectStartTime = System.currentTimeMillis
 
     val readResult = decompressTimer.time {
-      for {  zip               <- managed(new TemporaryZip(file.get))
-            (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
-      } yield {
-        if (bypassValidation) {
-          logger.info("Feature validation bypassed")
-        } else {
-          val validationErrors = FeatureValidator.validationErrors(features, config.maxMultiPolygonComplexity)
-          if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
-          logger.info("Feature validation succeeded")
+      // For some reason, the for comprehension and Try() doesn't work with -Xlint.
+      // Try doesn't have withFilter() and for some reason for tries to use withFilter.
+      managed(new TemporaryZip(file.get)) flatMap { zip =>
+        ShapefileReader.read(zip.contents, forceLonLat) map { case (features, schema) =>
+          if (bypassValidation) {
+            logger.info("Feature validation bypassed")
+          } else {
+            val validationErrors = FeatureValidator.validationErrors(features, myConfig.maxMultiPolygonComplexity)
+            if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
+            logger.info("Feature validation succeeded")
+          }
+          (features, schema)
         }
-
-        (features, schema)
       }
     }
-
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
     logger.info("Decompressed shapefile '{}' ({} milliseconds)", friendlyName, readTime);
@@ -177,7 +177,7 @@ with FileUploadSupport with Metrics {
   }
 
   post("/v1/regions/curated") {
-    val curatedDomains  = config.curatedRegions.domains
+    val curatedDomains  = myConfig.curatedRegions.domains
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
     // It's ok if the user doesn't provide a bounding shape at all,
     // but if they provide invalid GeoJSON, error out.
@@ -185,7 +185,7 @@ with FileUploadSupport with Metrics {
                                else Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
                                            halt(BadRequest("Bounding shape could not be parsed"))))
 
-    val suggester = new CuratedRegionSuggester(sodaFountain, config.curatedRegions)
+    val suggester = new CuratedRegionSuggester(sodaFountain, myConfig.curatedRegions)
 
     suggestTimer.time {
       suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
@@ -198,7 +198,7 @@ with FileUploadSupport with Metrics {
     val geoColumn = params.getOrElse("geoColumn", halt(BadRequest("geoColumn param must be provided")))
     val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("X-Socrata-Host header must be provided")))
 
-    val indexer = CuratedRegionIndexer(sodaFountain, config.curatedRegions)
+    val indexer = CuratedRegionIndexer(sodaFountain, myConfig.curatedRegions)
     indexer.index(params("resourceName"), geoColumn, domain).get
   }
 }

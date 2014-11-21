@@ -35,10 +35,12 @@ class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[S
    */
   override def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): Map[String, Int] =
    features.flatMap { case FeatureJson(properties, _, _) =>
-     properties.get(keyName).flatMap { case JString(key) =>
-       properties.get(GeoToSoda2Converter.FeatureIdColName).collect { case JString(id) =>
-         key -> id.toInt
-       }
+     properties.get(keyName).flatMap {
+       case JString(key) =>
+         properties.get(GeoToSoda2Converter.FeatureIdColName)
+                   .collect { case JString(id) => key -> id.toInt }
+       case x            =>
+         throw new RuntimeException(s"Found FeatureJson property value $x, expected a JString")
      }
    }.toMap
 
