@@ -87,26 +87,23 @@ with FileUploadSupport with Metrics {
     val readTime = System.currentTimeMillis - readReprojectStartTime
     logger.info("Decompressed shapefile '{}' ({} milliseconds)", friendlyName, readTime);
 
-    readResult match {
-      case Success((features, schema)) =>
-        val ingressStartTime = System.currentTimeMillis
-        val ingressResult =
-          for { response <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
-          yield {
-            val ingressTime = System.currentTimeMillis - ingressStartTime
-            logger.info("Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
-                        friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString);
-            Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
-          }
+    val (features, schema) = readResult.get
+    val ingressStartTime = System.currentTimeMillis
+    val ingressResult =
+      for { response <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
+      yield {
+        val ingressTime = System.currentTimeMillis - ingressStartTime
+        logger.info("Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
+                    friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString);
+        Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
+      }
 
-        // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
-        // Refactor to do that and handle IOExceptions cleanly.
-        ingressResult match {
-          case Success(payload)                  => Map("response" -> payload)
-          case Failure(e: InvalidShapefileSet)   => throw e //halt(BadRequest(e.getMessage))
-          case Failure(e)                        => throw e //halt(InternalServerError(e.getMessage))
-        }
-      case Failure(e)                => throw e
+    // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
+    // Refactor to do that and handle IOExceptions cleanly.
+    ingressResult match {
+      case Success(payload)                  => Map("response" -> payload)
+      case Failure(e: InvalidShapefileSet)   => throw e //halt(BadRequest(e.getMessage))
+      case Failure(e)                        => throw e //halt(InternalServerError(e.getMessage))
     }
   }
 
