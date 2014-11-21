@@ -53,9 +53,11 @@ object Dependencies {
     "com.rojoma"               %% "rojoma-json"         % "2.4.3",
     "com.rojoma"               %% "simple-arm"          % "1.2.0",
     "com.socrata"              %% "socrata-http-client" % "2.0.0",
-    "com.socrata"              %% "socrata-thirdparty-utils" % "2.5.6",
+    "com.socrata"              %% "socrata-thirdparty-utils" % "2.6.2",
     "com.socrata"              %% "soda-fountain-external" % "0.3.3",
-    "com.socrata"              %% "soql-types"          % "0.3.3" exclude("org.jdom", "jdom"),
+    "com.socrata"              %% "soql-types"          % "0.3.3"
+      exclude("org.jdom", "jdom")
+      exclude("javax.media", "jai_core"),
     "com.typesafe"              % "config"              % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"  % "1.1.0",
     "io.spray"                  % "spray-caching"       % "1.2.2",
@@ -69,6 +71,7 @@ object Dependencies {
       exclude("org.geotools", "gt-render")
       exclude("org.scala-lang", "scala-swing")
       exclude("com.lowagie", "itext")
+      exclude("javax.media", "jai_core")
   )
 
   lazy val testDeps = Seq(

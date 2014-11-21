@@ -19,8 +19,8 @@ object FeatureValidator extends Logging {
     "Feature geometry is invalid")
   case class GeometryContainsOffMapPoints(pts: Array[Coordinate]) extends ValidationFailed(
     s"Feature geometry contains off-the-map points: ${pts.map(printablePoint).mkString(",")}")
-  case class GeometryTooComplex(maxComplexity: Int) extends ValidationFailed(
-    s"Geometry is too complex (>$maxComplexity points)")
+  case class GeometryTooComplex(complexity: Int, maxComplexity: Int) extends ValidationFailed(
+    s"Geometry is too complex (contains $complexity points, max allowed is $maxComplexity points)")
 
   case class ErrorResponse(featureId: String, msg: String)
 
@@ -67,9 +67,12 @@ object FeatureValidator extends Logging {
         else {
           val unplottable = offTheMapPoints(mp)
           if (unplottable.nonEmpty) GeometryContainsOffMapPoints(unplottable)
-          else if (mp.getCoordinates.size > maxMultiPolygonComplexity)
-            GeometryTooComplex(maxMultiPolygonComplexity)
-          else Valid
+          else {
+            val complexity = mp.getCoordinates.size
+            if (complexity > maxMultiPolygonComplexity)
+              GeometryTooComplex(complexity, maxMultiPolygonComplexity)
+            else Valid
+          }
         }
       // TODO : Do we want to convert polygons to multipolygon at shapefile ingress? Tracked in CORE-3236
       case Some(geom: Geometry)   => GeometryNotAMultiPolygon

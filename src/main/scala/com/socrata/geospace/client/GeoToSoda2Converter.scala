@@ -2,11 +2,10 @@ package com.socrata.geospace.client
 
 import collection.JavaConverters._
 import com.rojoma.json.ast._
-import com.rojoma.json.io.JsonReader
 import com.socrata.geospace.feature.FeatureExtensions._
+import com.socrata.thirdparty.geojson.JtsCodecs
 import com.vividsolutions.jts.geom.{Geometry, MultiPolygon}
 import org.geoscript.feature._
-import org.geotools.geojson.geom.GeometryJSON
 import org.opengis.feature.`type`.PropertyDescriptor
 
 /**
@@ -98,10 +97,9 @@ object GeoToSoda2Converter {
    * @return JSON representation of the row
    */
   private def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
-    val geoJsonWriter = new GeometryJSON()
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
     val fields = feature.getAttributes.asScala.zip(attrNames).map {
-      case (g: Geometry, name) => name -> JsonReader.fromString(geoJsonWriter.toString(g))
+      case (g: Geometry, name) => name -> JtsCodecs.geoCodec.encode(g)
       case (attr, name)        => name -> JString(attr.toString)
     }
 
