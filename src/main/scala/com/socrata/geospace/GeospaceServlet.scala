@@ -68,6 +68,7 @@ with FileUploadSupport with Metrics {
 
     val readReprojectStartTime = System.currentTimeMillis
 
+    // for-comprehension resulted in a fallback from filterWith to filter
     val readResult: Try[(Traversable[Feature], Schema)] = decompressTimer.time {
       val zip: com.rojoma.simplearm.SimpleArm[TemporaryZip] = managed(new TemporaryZip(file.get))
       val shapes: Try[(Traversable[Feature], Schema)] = zip map { z => ShapefileReader.read(z.contents, forceLonLat) }
