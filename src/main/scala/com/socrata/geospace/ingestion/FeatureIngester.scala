@@ -55,6 +55,8 @@ object FeatureIngester extends Metrics {
         case JObject(map)  =>
           val JString(id) = map("id")
           id
+        case x             =>
+          throw new RuntimeException("Unexpected response from getCreateBody(): " + x)
       }
     }
 

@@ -4,6 +4,7 @@ import com.rojoma.json.ast.{JNull, JValue}
 import com.rojoma.json.io.JValueEventIterator
 import com.socrata.geospace.errors.{ServiceDiscoveryException, CoreServerException}
 import com.socrata.http.client.{Response, SimpleHttpRequest, RequestBuilder, HttpClient}
+import com.socrata.http.client.exceptions.ContentTypeException
 import com.socrata.http.common.AuxiliaryData
 import com.socrata.thirdparty.curator.CuratorServiceBase
 import org.apache.curator.x.discovery.ServiceDiscovery
@@ -71,7 +72,7 @@ class CoreServerClient(httpClient: HttpClient,
     def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, 200)
 
     private def createUrl(rb: RequestBuilder) =
-      basicCoreServerUrl(rb).method("POST").p("views").addParameter("nbe", "true")
+      basicCoreServerUrl(rb).method("POST").p("views").addParameter("nbe" -> "true")
 
     private def addColumnsUrl(rb: RequestBuilder, resourceName: String) =
       basicCoreServerUrl(rb).method("POST").p("views", resourceName, "columns")
@@ -83,16 +84,18 @@ class CoreServerClient(httpClient: HttpClient,
       basicCoreServerUrl(rb).method("POST").p("views", resourceName, "publication.json")
 
     private def basicCoreServerUrl(rb: RequestBuilder) =
-      rb.addHeader("Authorization", auth.authToken)
-        .addHeader(("X-App-Token", auth.appToken))
-        .addHeader(("X-Socrata-Host", auth.domain))
-        .addHeader(("Content-Type", "application/json"))
+      rb.addHeader("Authorization"  -> auth.authToken)
+        .addHeader("X-App-Token"    -> auth.appToken)
+        .addHeader("X-Socrata-Host" -> auth.domain)
+        .addHeader("Content-Type"   -> "application/json")
   }
 
   // TODO : Factor out post, query, requestBuilder and connectTimeout shenanigans to third party utils
   private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
-      val body = if (response.isJson) response.asJValue() else JNull
+      val body =
+        try { response.jValue() }
+        catch { case e: ContentTypeException => logger.warn("Non JSON response: " + e); JNull }
 
       response.resultCode match {
         case `expectedResponseCode` => Success(body)

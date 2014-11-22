@@ -29,8 +29,10 @@ class ScalatraBootstrap extends LifeCycle {
   lazy val broker = new CuratorBroker(discovery, config.discovery.address, config.discovery.name, None)
   lazy val cookie = broker.register(config.port)
 
-  lazy val httpClient = new HttpClientHttpClient(
-    NoopLivenessChecker, Executors.newCachedThreadPool(), userAgent = "geospace")
+  lazy val httpClient = new HttpClientHttpClient(Executors.newCachedThreadPool(),
+                                                 HttpClientHttpClient.defaultOptions.
+                                                   withLivenessChecker(NoopLivenessChecker).
+                                                   withUserAgent("geospace"))
   // TODO : Add real liveness checking and other goodness
   // (involves factoring out a whole bunch of code from Soda Fountain)
 

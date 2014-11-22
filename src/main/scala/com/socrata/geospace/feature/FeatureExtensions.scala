@@ -1,6 +1,7 @@
 package com.socrata.geospace.feature
 
 import org.geoscript.feature._
+import scala.language.implicitConversions
 import scala.util.Try
 
 object FeatureExtensions {
