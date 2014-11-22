@@ -26,15 +26,15 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
    * @param domain        Domain in which the dataset should be marked as a curated georegion
    * @return
    */
-  def index(resourceName: String, geoColumnName: String, domain: String) = {
+  def index(resourceName: String, geoColumnName: String, domain: String): Try[Map[String,Any]] = {
     logger.info("Extracting dataset information...")
     val query = s"SELECT concave_hull($geoColumnName, ${config.boundingShapePrecision}) AS bounding_multipolygon"
-    for { qResponse <- SodaResponse.check(sodaFountain.query(resourceName, None, Iterable(("$query", query))), 200)
+    for { qResponse <- SodaResponse.check(sodaFountain.query(resourceName, None, Iterable(("$query", query))), CuratedRegionIndexer.HttpSuccess)
           shape     <- extractFields(Seq("bounding_multipolygon"), qResponse)
-          sResponse <- SodaResponse.check(sodaFountain.schema(resourceName), 200)
+          sResponse <- SodaResponse.check(sodaFountain.schema(resourceName), CuratedRegionIndexer.HttpSuccess)
           names     <- extractFields(Seq("resource_name", "name"), sResponse)
           allFields <- Try(names ++ shape ++ Map("domain" -> JString(domain)))
-          uResponse <- SodaResponse.check(sodaFountain.upsert(config.resourceName, JArray(Seq(JObject(allFields)))), 200)
+          uResponse <- SodaResponse.check(sodaFountain.upsert(config.resourceName, JArray(Seq(JObject(allFields)))), CuratedRegionIndexer.HttpSuccess)
     } yield {
       logger.info(s"Dataset $resourceName was successfully marked as a curated georegion")
       Map("resource_name" -> resourceName, "domain" -> domain, "isSuccess" -> true)
@@ -42,8 +42,8 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
   }
 
   private def extractFields(keys: Seq[String], from: JValue): Try[Map[String, JValue]] = {
-    def extractField(key: String, fields: Map[String, JValue]) = key -> fields.getOrElse(
-      key, throw UnexpectedSodaResponse(s"Could not parse $key from Soda response", from))
+    def extractField(key: String, fields: Map[String, JValue]): (String, JValue) =
+      key -> fields.getOrElse(key, throw UnexpectedSodaResponse(s"Could not parse $key from Soda response", from))
 
     from match {
       case JArray(Seq(JObject(fields))) =>
@@ -54,4 +54,8 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
         Failure(UnexpectedSodaResponse("Could not parse Soda resource information", other))
     }
   }
+}
+
+object CuratedRegionIndexer {
+  private val HttpSuccess: Int = 200
 }

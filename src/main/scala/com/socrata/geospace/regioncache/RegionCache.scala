@@ -33,7 +33,7 @@ case class RegionCacheKey(resourceName: String, columnName: String)
  * @param maxEntries          Maximum capacity of the region cache
  * @tparam T                  Cache entry type
  */
-abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metrics {
+abstract class RegionCache[T](maxEntries: Int = RegionCache.DefaultMaxEntries) extends Logging with Metrics {
   def this(config: Config) = this(config.getInt("max-entries"))
 
   protected val cache = LruCache[T](maxEntries)
@@ -102,7 +102,7 @@ abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metric
         val sodaResponse = sodaReadTimer.time {
           sodaFountain.query(key.resourceName, Some("geojson"), Iterable(("$query", query)))
         }
-        val payload = SodaResponse.check(sodaResponse, 200)
+        val payload = SodaResponse.check(sodaResponse, RegionCache.HttpSuccess)
         regionIndexLoadTimer.time {
           payload.toOption.
             flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
@@ -117,4 +117,9 @@ abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metric
    * Clears the cache of all entries.  Mostly used for testing.
    */
   def reset() { cache.clear() }
+}
+
+object RegionCache {
+  private val DefaultMaxEntries: Int = 100
+  private val HttpSuccess: Int = 200
 }

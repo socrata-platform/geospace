@@ -41,7 +41,7 @@ class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRe
     val query = makeQuery(domains, intersectsWith)
     logger.info(s"Querying Soda Fountain resource ${config.resourceName} with query $query")
 
-    for { jValue      <- SodaResponse.check(getRows(query), 200)
+    for { jValue      <- SodaResponse.check(getRows(query), CuratedRegionSuggester.HttpSuccess)
           suggestions <- parseSuggestions(jValue) }
     yield suggestions
   }
@@ -51,4 +51,8 @@ class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRe
       case Some(suggestions) => Success(suggestions)
       case None              => Failure(UnexpectedSodaResponse("Suggestions could not be parsed out of Soda response JSON", jValue))
     }
+}
+
+object CuratedRegionSuggester {
+  val HttpSuccess: Int = 200
 }

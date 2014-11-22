@@ -34,7 +34,7 @@ class CoreServerClient(httpClient: HttpClient,
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  def requester(auth: CoreServerAuth) = new Requester(auth)
+  def requester(auth: CoreServerAuth): Requester = new Requester(auth)
 
   class Requester(auth: CoreServerAuth) {
     /**
@@ -43,7 +43,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param payload Request POST body
      * @return HTTP response code and body
      */
-    def create(payload: JValue): Try[JValue] = post(createUrl, payload, 200)
+    def create(payload: JValue): Try[JValue] = post(createUrl, payload, CoreServerClient.HttpSuccess)
 
     /**
      * Sends a request to Core server to publish a dataset
@@ -51,7 +51,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param fourByFour 4x4 of the dataset to publish
      * @return HTTP response code and body
      */
-    def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, 200)
+    def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, CoreServerClient.HttpSuccess)
 
     /**
      * Sends a request to Core server to upsert rows to a dataset
@@ -60,7 +60,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param payload Request POST body
      * @return HTTP response code and body
      */
-    def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, 200)
+    def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, CoreServerClient.HttpSuccess)
 
     /**
      * Sends a request to Core server to publish a dataset
@@ -68,10 +68,10 @@ class CoreServerClient(httpClient: HttpClient,
      * @param fourByFour 4x4 of the dataset to publish
      * @return HTTP response code and body
      */
-    def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, 200)
+    def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, CoreServerClient.HttpSuccess)
 
     private def createUrl(rb: RequestBuilder) =
-      basicCoreServerUrl(rb).method("POST").p("views").addParameter("nbe", "true")
+      basicCoreServerUrl(rb).method("POST").p("views").addParameter(("nbe", "true"))
 
     private def addColumnsUrl(rb: RequestBuilder, resourceName: String) =
       basicCoreServerUrl(rb).method("POST").p("views", resourceName, "columns")
@@ -83,7 +83,7 @@ class CoreServerClient(httpClient: HttpClient,
       basicCoreServerUrl(rb).method("POST").p("views", resourceName, "publication.json")
 
     private def basicCoreServerUrl(rb: RequestBuilder) =
-      rb.addHeader("Authorization", auth.authToken)
+      rb.addHeader(("Authorization", auth.authToken))
         .addHeader(("X-App-Token", auth.appToken))
         .addHeader(("X-Socrata-Host", auth.domain))
         .addHeader(("Content-Type", "application/json"))
@@ -92,7 +92,7 @@ class CoreServerClient(httpClient: HttpClient,
   // TODO : Factor out post, query, requestBuilder and connectTimeout shenanigans to third party utils
   private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
-      val body = if (response.isJson) response.asJValue() else JNull
+      val body = if (response.contentType == "text/json") response.jValue() else JNull
 
       response.resultCode match {
         case `expectedResponseCode` => Success(body)
@@ -122,4 +122,8 @@ class CoreServerClient(httpClient: HttpClient,
       livenessCheckInfo(Option(serv.getPayload).flatMap(_.livenessCheckInfo)).
       connectTimeoutMS(connectTimeoutMS)
   }
+}
+
+object CoreServerClient {
+  private val HttpSuccess: Int = 200
 }

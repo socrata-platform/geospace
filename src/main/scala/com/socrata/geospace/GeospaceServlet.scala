@@ -22,10 +22,10 @@ import scala.util.{Try, Failure, Success}
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
-                      config: GeospaceConfig) extends GeospaceMicroserviceStack
+                      localConfig: GeospaceConfig) extends GeospaceMicroserviceStack
 with FileUploadSupport with Metrics {
-  val spatialCache = new SpatialRegionCache(config.cache)
-  val stringCache  = new HashMapRegionCache(config.cache)
+  val localSpatialCache = new SpatialRegionCache(localConfig.cache)
+  val localStringCache  = new HashMapRegionCache(localConfig.cache)
 
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")
@@ -74,7 +74,7 @@ with FileUploadSupport with Metrics {
         if (bypassValidation) {
           logger.info("Feature validation bypassed")
         } else {
-          val validationErrors = FeatureValidator.validationErrors(features, config.maxMultiPolygonComplexity)
+          val validationErrors = FeatureValidator.validationErrors(features, localConfig.maxMultiPolygonComplexity)
           if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
           logger.info("Feature validation succeeded")
         }
@@ -82,7 +82,6 @@ with FileUploadSupport with Metrics {
         (features, schema)
       }
     }
-
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
     logger.info("Decompressed shapefile '{}' ({} milliseconds)", friendlyName, readTime);
@@ -120,7 +119,7 @@ with FileUploadSupport with Metrics {
 
     // Cache the reprojected features in our region cache for immediate geocoding
     // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-    spatialCache.getFromFeatures(params("resourceName"), features.toSeq)
+    localSpatialCache.getFromFeatures(params("resourceName"), features.toSeq)
     Map("rows-ingested" -> features.toSeq.length)
   }
 
@@ -129,7 +128,7 @@ with FileUploadSupport with Metrics {
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
   post("/v1/regions/:resourceName/geocode") {
     val points = parsedBody.extract[Seq[Seq[Double]]]
-    if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
+    if (points.isEmpty) halt(GeospaceServlet.HttpClientError, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     new AsyncResult { val is =
       geocodingTimer.time { geoRegionCode(params("resourceName"), points) }
     }
@@ -141,7 +140,7 @@ with FileUploadSupport with Metrics {
     import org.geoscript.geometry.builder
 
     val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
-    val futureIndex = spatialCache.getFromSoda(sodaFountain, resourceName)
+    val futureIndex = localSpatialCache.getFromSoda(sodaFountain, resourceName)
     futureIndex.map { index =>
       geoPoints.map { pt => index.firstContains(pt).map(_.item) }
     }
@@ -149,7 +148,7 @@ with FileUploadSupport with Metrics {
 
   post("/v1/regions/:resourceName/stringcode") {
     val strings = parsedBody.extract[Seq[String]]
-    if (strings.isEmpty) halt(400, s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
+    if (strings.isEmpty) halt(GeospaceServlet.HttpClientError, s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
     val column = params.getOrElse("column", halt(BadRequest("column param must be provided")))
 
     new AsyncResult { val is =
@@ -158,34 +157,36 @@ with FileUploadSupport with Metrics {
   }
 
   private def stringCode(resourceName: String, columnName: String, strings: Seq[String]): Future[Seq[Option[Int]]] = {
-    val futureIndex = stringCache.getFromSoda(sodaFountain, RegionCacheKey(resourceName, columnName))
+    val futureIndex = localStringCache.getFromSoda(sodaFountain, RegionCacheKey(resourceName, columnName))
     futureIndex.map { index => strings.map { str => index.get(str) } }
   }
 
   get("/v1/regions") {
-    Map("spatialCache" -> spatialCache.indicesBySizeDesc().map {
+    Map("spatialCache" -> localSpatialCache.indicesBySizeDesc().map {
                             case (key, size) => Map("resource" -> key, "numCoordinates" -> size) },
-        "stringCache"  -> stringCache.indicesBySizeDesc().map {
+        "stringCache"  -> localStringCache.indicesBySizeDesc().map {
                             case (key, size) => Map("resource" -> key, "numRows" -> size) })
   }
 
   delete("/v1/regions") {
-    spatialCache.reset()
-    stringCache.reset()
+    localSpatialCache.reset()
+    localStringCache.reset()
     logMemoryUsage("After clearing region caches")
     Ok("Done")
   }
 
   post("/v1/regions/curated") {
-    val curatedDomains  = config.curatedRegions.domains
+    val curatedDomains  = localConfig.curatedRegions.domains
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
     // It's ok if the user doesn't provide a bounding shape at all,
     // but if they provide invalid GeoJSON, error out.
-    val boundingMultiPolygon = if (request.body.equals("")) None
-                               else Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
-                                           halt(BadRequest("Bounding shape could not be parsed"))))
+    val boundingMultiPolygon = if (request.body.equals("")) {
+                                  None
+                                } else { Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
+                                  halt(BadRequest("Bounding shape could not be parsed"))))
+                                }
 
-    val suggester = new CuratedRegionSuggester(sodaFountain, config.curatedRegions)
+    val suggester = new CuratedRegionSuggester(sodaFountain, localConfig.curatedRegions)
 
     suggestTimer.time {
       suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
@@ -198,7 +199,11 @@ with FileUploadSupport with Metrics {
     val geoColumn = params.getOrElse("geoColumn", halt(BadRequest("geoColumn param must be provided")))
     val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("X-Socrata-Host header must be provided")))
 
-    val indexer = CuratedRegionIndexer(sodaFountain, config.curatedRegions)
+    val indexer = CuratedRegionIndexer(sodaFountain, localConfig.curatedRegions)
     indexer.index(params("resourceName"), geoColumn, domain).get
   }
+}
+
+object GeospaceServlet {
+  private val HttpClientError: Int = 400
 }
