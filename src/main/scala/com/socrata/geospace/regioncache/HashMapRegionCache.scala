@@ -34,11 +34,13 @@ class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[S
    * @return Map containing the dataset features
    */
   override def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): Map[String, Int] =
-   features.flatMap { case FeatureJson(properties, _, _) =>
-     properties.get(keyName).flatMap { case JString(key) =>
-       properties.get(GeoToSoda2Converter.FeatureIdColName).collect { case JString(id) =>
-         key -> id.toInt
-       }
+    features.flatMap { case FeatureJson(properties, _, _) =>
+      properties.get(keyName).flatMap {
+        case JString(key) => properties.get(GeoToSoda2Converter.FeatureIdColName).collect {
+          case JString(id) => key -> id.toInt
+          case _ => throw new NoSuchElementException
+        }
+        case _ => throw new NoSuchElementException
      }
    }.toMap
 

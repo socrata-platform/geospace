@@ -4,9 +4,11 @@ import org.geoscript.feature._
 import scala.util.Try
 
 object FeatureExtensions {
+  import scala.language.implicitConversions
+
   val FeatureNumericIdPattern = """.+\.(\d+)$""".r
 
-  implicit def featureToExtendedFeature(feature: Feature) = FeatureExtensions(feature)
+  implicit def featureToExtendedFeature(feature: Feature): FeatureExtensions = FeatureExtensions(feature)
 }
 
 case class FeatureExtensions(feature: Feature) {

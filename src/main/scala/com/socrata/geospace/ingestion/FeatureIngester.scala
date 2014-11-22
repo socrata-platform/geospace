@@ -13,6 +13,7 @@ import scala.util.{Success, Failure, Try}
  * Ingests a set of features as a Socrata dataset
  */
 object FeatureIngester extends Metrics {
+  private val HttpSuccess: Int = 200
   val logger = LoggerFactory.getLogger(getClass)
 
   case class Response(resourceName: String, upsertCount: Int)
@@ -38,7 +39,7 @@ object FeatureIngester extends Metrics {
     for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
           addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
           upsert     <- SodaResponse.check(sodaFountain.upsert("_" + fourByFour,
-                                                               GeoToSoda2Converter.getUpsertBody(features, schema)), 200)
+                                                               GeoToSoda2Converter.getUpsertBody(features, schema)), HttpSuccess)
           publish    <- requester.publish(fourByFour)
     } yield {
       // The region cache keys off the Soda Fountain resource name, but we currently
@@ -55,6 +56,7 @@ object FeatureIngester extends Metrics {
         case JObject(map)  =>
           val JString(id) = map("id")
           id
+        case _ => throw new NoSuchElementException
       }
     }
 
@@ -65,7 +67,6 @@ object FeatureIngester extends Metrics {
 
     // This is kind of gross. There must be a cleaner way to
     // flatten an Iterable[Try[Foo]] to a Try[Foo]
-    if (results.forall(_.isSuccess)) Success(JNull)
-    else Failure(results.find(_.isFailure).get.failed.get)
+    if (results.forall(_.isSuccess)) Success(JNull) else Failure(results.find(_.isFailure).get.failed.get)
   }
 }

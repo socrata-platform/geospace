@@ -1,6 +1,9 @@
 resolvers ++= Seq(
+  "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases",
   "socrata maven" at "https://repository-socrata-oss.forge.cloudbees.com/release"
 )
+
+addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.6.0")
 
 addSbtPlugin("com.socrata" % "socrata-cloudbees-sbt" % "1.3.1")
 

@@ -18,11 +18,12 @@ import com.typesafe.config.Config
  *                            still referencing the removed index to complete the task.
  * @tparam T                  Cache entry type
  */
-abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100,
+abstract class MemoryManagingRegionCache[T](maxEntries: Int = MemoryManagingRegionCache.DefaultMaxEntries,
                                             enableDepressurize: Boolean = true,
-                                            minFreePct: Int = 20,
-                                            targetFreePct: Int = 40,
-                                            iterationIntervalMs: Int = 100) extends RegionCache[T](maxEntries) {
+                                            minFreePct: Int = MemoryManagingRegionCache.DefaultMinFreePct,
+                                            targetFreePct: Int = MemoryManagingRegionCache.DefaultTargetFreePct,
+                                            iterationIntervalMs: Int = MemoryManagingRegionCache.DefaultIterationIntervalMs)
+            extends RegionCache[T](maxEntries) {
   def this(config: Config) = this(config.getInt("max-entries"),
     config.getBoolean("enable-depressurize"),
     config.getInt("min-free-percentage"),
@@ -48,7 +49,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100,
    * runs out of entries to free.
    */
   protected def depressurize(): Unit = synchronized {
-    if (!enableDepressurize || atLeastFreeMem(minFreePct)) return
+    if (!enableDepressurize || atLeastFreeMem(minFreePct)) Unit
 
     var indexes = indicesBySizeDesc()
     while (!atLeastFreeMem(targetFreePct)) {
@@ -70,4 +71,11 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100,
       indexes = indexes.drop(1)
     }
   }
+}
+
+object MemoryManagingRegionCache {
+  private val DefaultMaxEntries: Int = 100
+  private val DefaultMinFreePct: Int = 20
+  private val DefaultTargetFreePct: Int = 40
+  private val DefaultIterationIntervalMs: Int = 100
 }

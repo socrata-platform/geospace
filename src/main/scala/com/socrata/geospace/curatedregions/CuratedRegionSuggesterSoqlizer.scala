@@ -12,8 +12,8 @@ trait CuratedRegionSuggesterSoqlizer {
   }
 
   private def domainsConditionToSoql(domains: Seq[String]): Option[String] =
-    if (domains.isEmpty) None
-    else                 Some(s"domain IN (${domains.map(_.formatted("'%s'")).mkString(",")})")
+    if (domains.isEmpty) { None }
+    else                 { Some(s"domain IN (${domains.map(_.formatted("'%s'")).mkString(",")})") }
 
   private def polygonConditionToSoql(intersectsWith: Option[MultiPolygon]): Option[String] =
     intersectsWith.map { mp => s"intersects(bounding_multipolygon, '${SoQLMultiPolygon.WktRep.apply(mp)}')" }
