@@ -44,7 +44,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
   }
 
   test("Null byte array") {
-    an [IllegalArgumentException] should be thrownBy {
+    an [NullPointerException] should be thrownBy {
       for {zip <- managed(new TemporaryZip(null))} {
         zip.contents.listFiles
       }

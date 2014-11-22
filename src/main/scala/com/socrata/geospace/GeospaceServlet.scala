@@ -14,6 +14,7 @@ import com.socrata.geospace.shapefile._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.socrata.thirdparty.metrics.Metrics
+import org.geoscript.feature.{Feature, Schema}
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.collection.JavaConverters._
@@ -67,20 +68,19 @@ with FileUploadSupport with Metrics {
 
     val readReprojectStartTime = System.currentTimeMillis
 
-    val readResult = decompressTimer.time {
-      for {  zip               <- managed(new TemporaryZip(file.get))
-            (features, schema) <- ShapefileReader.read(zip.contents, forceLonLat)
-      } yield {
-        if (bypassValidation) {
-          logger.info("Feature validation bypassed")
-        } else {
-          val validationErrors = FeatureValidator.validationErrors(features, localConfig.maxMultiPolygonComplexity)
-          if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
-          logger.info("Feature validation succeeded")
-        }
+    val readResult: Try[(Traversable[Feature], Schema)] = decompressTimer.time {
+      val zip: com.rojoma.simplearm.SimpleArm[TemporaryZip] = managed(new TemporaryZip(file.get))
+      val shapes: Try[(Traversable[Feature], Schema)] = zip map { z => ShapefileReader.read(z.contents, forceLonLat) }
 
-        (features, schema)
+      if (bypassValidation) {
+        logger.info("Feature validation bypassed")
+      } else {
+        val validationErrors = FeatureValidator.validationErrors(shapes.get._1, localConfig.maxMultiPolygonComplexity)
+        if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
+        logger.info("Feature validation succeeded")
       }
+
+      shapes
     }
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
