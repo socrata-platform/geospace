@@ -85,4 +85,3 @@ object SpatialIndex {
     new SpatialIndex(items.toSeq)
   }
 }
-
