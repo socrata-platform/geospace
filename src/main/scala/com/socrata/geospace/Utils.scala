@@ -8,11 +8,15 @@ import com.typesafe.scalalogging.slf4j.Logging
  * the free memory calculation is not accurate.
  */
 object Utils extends Logging {
+  private val Pct: Int = 100
+  private val MB: Int = 1024*1024
+  private val DefaultMinFreePct = 20     // Must have at least 20% free memory
+
   // Returns (FreeMemoryInMB, FreeMemoryPercentageInt (0-100))
   private def getFree: (Int, Int) = {
-    val freeMB = Runtime.getRuntime.freeMemory / (1024 * 1024)
-    val totalMB = Runtime.getRuntime.maxMemory / (1024 * 1024)
-    val freePct = freeMB * 100 / totalMB
+    val freeMB = Runtime.getRuntime.freeMemory / MB
+    val totalMB = Runtime.getRuntime.maxMemory / MB
+    val freePct = freeMB * Pct / totalMB
     (freeMB.toInt, freePct.toInt)
   }
 
@@ -22,8 +26,6 @@ object Utils extends Logging {
   }
 
   def getFreeMem: Int = getFree._1
-
-  def DefaultMinFreePct = 20     // Must have at least 20% free memory
 
   /**
    * Returns true if there is at least minFreePct % of memory free.

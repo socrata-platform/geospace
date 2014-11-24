@@ -1,6 +1,7 @@
 package com.socrata.geospace.regioncache
 
 import com.socrata.geospace.client.SodaResponse
+import com.socrata.geospace.HttpStatus
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import com.socrata.thirdparty.metrics.Metrics
@@ -33,7 +34,8 @@ case class RegionCacheKey(resourceName: String, columnName: String)
  * @param maxEntries          Maximum capacity of the region cache
  * @tparam T                  Cache entry type
  */
-abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metrics {
+abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
+                              extends Logging with Metrics {
   def this(config: Config) = this(config.getInt("max-entries"))
 
   protected val cache = LruCache[T](maxEntries)
@@ -102,7 +104,7 @@ abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metric
         val sodaResponse = sodaReadTimer.time {
           sodaFountain.query(key.resourceName, Some("geojson"), Iterable(("$query", query)))
         }
-        val payload = SodaResponse.check(sodaResponse, 200)
+        val payload = SodaResponse.check(sodaResponse, HttpStatus.Success)
         regionIndexLoadTimer.time {
           payload.toOption.
             flatMap { jvalue => GeoJson.codec.decode(jvalue) }.

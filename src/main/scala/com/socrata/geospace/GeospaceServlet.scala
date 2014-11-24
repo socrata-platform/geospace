@@ -126,7 +126,7 @@ with FileUploadSupport with Metrics {
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
   post("/v1/regions/:resourceName/geocode") {
     val points = parsedBody.extract[Seq[Seq[Double]]]
-    if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
+    if (points.isEmpty) halt(HttpStatus.ClientError, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     new AsyncResult { val is =
       geocodingTimer.time { geoRegionCode(params("resourceName"), points) }
     }
@@ -146,7 +146,7 @@ with FileUploadSupport with Metrics {
 
   post("/v1/regions/:resourceName/stringcode") {
     val strings = parsedBody.extract[Seq[String]]
-    if (strings.isEmpty) halt(400, s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
+    if (strings.isEmpty) halt(HttpStatus.ClientError, s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
     val column = params.getOrElse("column", halt(BadRequest("column param must be provided")))
 
     new AsyncResult { val is =

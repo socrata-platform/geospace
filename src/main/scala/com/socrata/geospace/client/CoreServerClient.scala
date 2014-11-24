@@ -3,6 +3,7 @@ package com.socrata.geospace.client
 import com.rojoma.json.ast.{JNull, JValue}
 import com.rojoma.json.io.JValueEventIterator
 import com.socrata.geospace.errors.{ServiceDiscoveryException, CoreServerException}
+import com.socrata.geospace.HttpStatus
 import com.socrata.http.client.{Response, SimpleHttpRequest, RequestBuilder, HttpClient}
 import com.socrata.http.client.exceptions.ContentTypeException
 import com.socrata.http.common.AuxiliaryData
@@ -44,7 +45,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param payload Request POST body
      * @return HTTP response code and body
      */
-    def create(payload: JValue): Try[JValue] = post(createUrl, payload, 200)
+    def create(payload: JValue): Try[JValue] = post(createUrl, payload, HttpStatus.Success)
 
     /**
      * Sends a request to Core server to publish a dataset
@@ -52,7 +53,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param fourByFour 4x4 of the dataset to publish
      * @return HTTP response code and body
      */
-    def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, 200)
+    def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, HttpStatus.Success)
 
     /**
      * Sends a request to Core server to upsert rows to a dataset
@@ -61,7 +62,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param payload Request POST body
      * @return HTTP response code and body
      */
-    def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, 200)
+    def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, HttpStatus.Success)
 
     /**
      * Sends a request to Core server to publish a dataset
@@ -69,7 +70,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param fourByFour 4x4 of the dataset to publish
      * @return HTTP response code and body
      */
-    def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, 200)
+    def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, HttpStatus.Success)
 
     private def createUrl(rb: RequestBuilder) =
       basicCoreServerUrl(rb).method("POST").p("views").addParameter("nbe" -> "true")
