@@ -30,12 +30,14 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
   def index(resourceName: String, geoColumnName: String, domain: String): Try[Map[String,Any]] = {
     logger.info("Extracting dataset information...")
     val query = s"SELECT concave_hull($geoColumnName, ${config.boundingShapePrecision}) AS bounding_multipolygon"
-    for { qResponse <- SodaResponse.check(sodaFountain.query(resourceName, None, Iterable(("$query", query))), HttpStatus.Success)
+    for { qResponse <- SodaResponse.check(sodaFountain.query(
+                        resourceName, None, Iterable(("$query", query))), HttpStatus.Success)
           shape     <- extractFields(Seq("bounding_multipolygon"), qResponse)
           sResponse <- SodaResponse.check(sodaFountain.schema(resourceName), HttpStatus.Success)
           names     <- extractFields(Seq("resource_name", "name"), sResponse)
           allFields <- Try(names ++ shape ++ Map("domain" -> JString(domain)))
-          uResponse <- SodaResponse.check(sodaFountain.upsert(config.resourceName, JArray(Seq(JObject(allFields)))), HttpStatus.Success)
+          uResponse <- SodaResponse.check(sodaFountain.upsert(
+                        config.resourceName, JArray(Seq(JObject(allFields)))), HttpStatus.Success)
     } yield {
       logger.info(s"Dataset $resourceName was successfully marked as a curated georegion")
       Map("resource_name" -> resourceName, "domain" -> domain, "isSuccess" -> true)

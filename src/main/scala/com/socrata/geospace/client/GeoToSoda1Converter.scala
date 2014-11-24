@@ -80,7 +80,8 @@ object GeoToSoda1Converter {
     val name = attr.getName.toString.toLowerCase
     val typ = soda1TypeMap.getOrElse(
       attr.getType.getBinding,
-      throw new IllegalArgumentException(s"Unsupported type in shapefile: '${attr.getType.getBinding.getCanonicalName}'"))
+      throw new IllegalArgumentException(
+        s"Unsupported type in shapefile: '${attr.getType.getBinding.getCanonicalName}'"))
 
     JObject(Map(
       "fieldName"    -> JString(name),

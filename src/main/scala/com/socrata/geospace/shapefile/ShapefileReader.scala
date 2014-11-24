@@ -110,7 +110,8 @@ object ShapefileReader extends Logging {
           proj <- Try(getTargetProjection(StandardProjection, forceLonLat))
     } yield {
       try {
-        logger.info("Reprojecting shapefile schema and {} features to {}", shapefile.features.size.toString, proj.getName)
+        logger.info("Reprojecting shapefile schema and {} features to {}",
+                    shapefile.features.size.toString, proj.getName)
         logMemoryUsage("Before reprojecting features...")
         var i = 0
         val features = shapefile.features.map { feature =>

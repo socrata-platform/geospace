@@ -25,7 +25,8 @@ object Suggestion {
  * @param sodaFountain    Soda Fountain instance
  * @param config          Config information about georegion suggestion
  */
-class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRegionsConfig) extends CuratedRegionSuggesterSoqlizer {
+class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRegionsConfig)
+                            extends CuratedRegionSuggesterSoqlizer {
   val logger = LoggerFactory.getLogger(getClass)
 
   private def getRows(soql: String): Result = sodaFountain.query(config.resourceName, None, Iterable(("$query", soql)))
@@ -50,6 +51,7 @@ class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRe
   private def parseSuggestions(jValue: JValue): Try[Seq[Suggestion]] =
     JsonCodec[Seq[Suggestion]].decode(jValue) match {
       case Some(suggestions) => Success(suggestions)
-      case None              => Failure(UnexpectedSodaResponse("Suggestions could not be parsed out of Soda response JSON", jValue))
+      case None              => Failure(UnexpectedSodaResponse(
+                                "Suggestions could not be parsed out of Soda response JSON", jValue))
     }
 }
