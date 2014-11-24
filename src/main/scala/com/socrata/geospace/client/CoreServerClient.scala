@@ -36,7 +36,7 @@ class CoreServerClient(httpClient: HttpClient,
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  def requester(auth: CoreServerAuth) = new Requester(auth)
+  def requester(auth: CoreServerAuth): Requester = new Requester(auth)
 
   class Requester(auth: CoreServerAuth) {
     /**

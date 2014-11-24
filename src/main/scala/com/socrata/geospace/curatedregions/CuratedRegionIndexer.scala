@@ -27,7 +27,7 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
    * @param domain        Domain in which the dataset should be marked as a curated georegion
    * @return
    */
-  def index(resourceName: String, geoColumnName: String, domain: String) = {
+  def index(resourceName: String, geoColumnName: String, domain: String): Try[Map[String,Any]] = {
     logger.info("Extracting dataset information...")
     val query = s"SELECT concave_hull($geoColumnName, ${config.boundingShapePrecision}) AS bounding_multipolygon"
     for { qResponse <- SodaResponse.check(sodaFountain.query(resourceName, None, Iterable(("$query", query))), HttpStatus.Success)
@@ -43,7 +43,7 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
   }
 
   private def extractFields(keys: Seq[String], from: JValue): Try[Map[String, JValue]] = {
-    def extractField(key: String, fields: Map[String, JValue]) = key -> fields.getOrElse(
+    def extractField(key: String, fields: Map[String, JValue]) = key -> fields.getOrElse( //scalastyle:ignore
       key, throw UnexpectedSodaResponse(s"Could not parse $key from Soda response", from))
 
     from match {
