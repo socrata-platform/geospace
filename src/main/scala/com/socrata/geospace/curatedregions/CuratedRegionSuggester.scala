@@ -56,5 +56,5 @@ class CuratedRegionSuggester(sodaFountain: SodaFountainClient,
 }
 
 object CuratedRegionSuggester {
-  val HttpSuccess: Int = 200
+  private val HttpSuccess: Int = 200
 }
