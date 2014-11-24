@@ -22,7 +22,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = MemoryManagingRegi
                                             enableDepressurize: Boolean = true,
                                             minFreePct: Int = MemoryManagingRegionCache.DefaultMinFreePct,
                                             targetFreePct: Int = MemoryManagingRegionCache.DefaultTargetFreePct,
-                                            iterationIntervalMs: Int = MemoryManagingRegionCache.DefaultIterationIntervalMs)
+                                            iterationIntervalMs: Int = MemoryManagingRegionCache.DefaultIterationMs)
             extends RegionCache[T](maxEntries) {
   def this(config: Config) = this(config.getInt("max-entries"),
     config.getBoolean("enable-depressurize"),
@@ -77,5 +77,5 @@ object MemoryManagingRegionCache {
   private val DefaultMaxEntries: Int = 100
   private val DefaultMinFreePct: Int = 20
   private val DefaultTargetFreePct: Int = 40
-  private val DefaultIterationIntervalMs: Int = 100
+  private val DefaultIterationMs: Int = 100
 }

@@ -39,7 +39,7 @@ object FeatureIngester extends Metrics {
     for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
           addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
           upsert     <- SodaResponse.check(sodaFountain.upsert("_" + fourByFour,
-                                                               GeoToSoda2Converter.getUpsertBody(features, schema)), HttpSuccess)
+                        GeoToSoda2Converter.getUpsertBody(features, schema)), HttpSuccess)
           publish    <- requester.publish(fourByFour)
     } yield {
       // The region cache keys off the Soda Fountain resource name, but we currently
@@ -60,7 +60,8 @@ object FeatureIngester extends Metrics {
       }
     }
 
-  private def addColumnsViaCoreServer(requester: CoreServerClient#Requester, schema: Schema, fourByFour: String): Try[JValue] = {
+  private def addColumnsViaCoreServer(requester: CoreServerClient#Requester,
+                                      schema: Schema, fourByFour: String): Try[JValue] = {
     val results = GeoToSoda1Converter.getAddColumnBodies(schema).map { column =>
       requester.addColumn(fourByFour, column)
     }

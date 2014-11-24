@@ -51,7 +51,8 @@ class CoreServerClient(httpClient: HttpClient,
      * @param fourByFour 4x4 of the dataset to publish
      * @return HTTP response code and body
      */
-    def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, CoreServerClient.HttpSuccess)
+    def addColumn(fourByFour: String, payload: JValue): Try[JValue] =
+      post(addColumnsUrl(_, fourByFour), payload, CoreServerClient.HttpSuccess)
 
     /**
      * Sends a request to Core server to upsert rows to a dataset
@@ -60,7 +61,8 @@ class CoreServerClient(httpClient: HttpClient,
      * @param payload Request POST body
      * @return HTTP response code and body
      */
-    def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, CoreServerClient.HttpSuccess)
+    def upsert(fourByFour: String, payload: JValue): Try[JValue] =
+      post(upsertUrl(_, fourByFour), payload, CoreServerClient.HttpSuccess)
 
     /**
      * Sends a request to Core server to publish a dataset
@@ -90,7 +92,8 @@ class CoreServerClient(httpClient: HttpClient,
   }
 
   // TODO : Factor out post, query, requestBuilder and connectTimeout shenanigans to third party utils
-  private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
+  private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue,
+                  expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
       val body = if (response.contentType == "text/json") response.jValue() else JNull
 

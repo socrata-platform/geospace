@@ -71,7 +71,9 @@ object FeatureValidator extends Logging {
             GeometryContainsOffMapPoints(unplottable)
           } else {
             val complexity = mp.getCoordinates.size
-            if (complexity > maxMultiPolygonComplexity) GeometryTooComplex(complexity, maxMultiPolygonComplexity) else Valid
+            if (complexity > maxMultiPolygonComplexity) {
+              GeometryTooComplex(complexity, maxMultiPolygonComplexity)
+            } else { Valid }
           }
         }
       // TODO : Do we want to convert polygons to multipolygon at shapefile ingress? Tracked in CORE-3236

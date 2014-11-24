@@ -81,7 +81,7 @@ abstract class RegionCache[T](maxEntries: Int = RegionCache.DefaultMaxEntries) e
    */
   def getFromFeatures(key: RegionCacheKey, features: Seq[Feature]): Future[T] = {
     cache(key) {
-      logger.info(s"Populating cache entry for resource [${key.resourceName}], column [${key.columnName}] from features")
+      logger.info(s"Populating cache entry for res [${key.resourceName}], col [${key.columnName}] from features")
       Future { prepForCaching(); getEntryFromFeatures(features, key.columnName) }
     }
   }
