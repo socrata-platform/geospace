@@ -178,9 +178,12 @@ with FileUploadSupport with Metrics {
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
     // It's ok if the user doesn't provide a bounding shape at all,
     // but if they provide invalid GeoJSON, error out.
-    val boundingMultiPolygon = if (request.body.equals("")) None
-                               else Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
+    val boundingMultiPolygon = if (request.body.equals("")) {
+                                 None
+                               } else {
+                                 Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
                                            halt(BadRequest("Bounding shape could not be parsed"))))
+                               }
 
     val suggester = new CuratedRegionSuggester(sodaFountain, myConfig.curatedRegions)
 

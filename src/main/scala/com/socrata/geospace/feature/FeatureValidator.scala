@@ -63,15 +63,19 @@ object FeatureValidator extends Logging {
     val rf = new RichFeature(feature)
     Option(rf.geometry) match {
       case Some(mp: MultiPolygon) =>
-        if (!mp.isValid) GeometryNotValid
-        else {
+        if (!mp.isValid) {
+          GeometryNotValid
+        } else {
           val unplottable = offTheMapPoints(mp)
-          if (unplottable.nonEmpty) GeometryContainsOffMapPoints(unplottable)
-          else {
+          if (unplottable.nonEmpty) {
+            GeometryContainsOffMapPoints(unplottable)
+          } else {
             val complexity = mp.getCoordinates.size
-            if (complexity > maxMultiPolygonComplexity)
+            if (complexity > maxMultiPolygonComplexity) {
               GeometryTooComplex(complexity, maxMultiPolygonComplexity)
-            else Valid
+            } else {
+              Valid
+            }
           }
         }
       // TODO : Do we want to convert polygons to multipolygon at shapefile ingress? Tracked in CORE-3236

@@ -68,7 +68,6 @@ object FeatureIngester extends Metrics {
 
     // This is kind of gross. There must be a cleaner way to
     // flatten an Iterable[Try[Foo]] to a Try[Foo]
-    if (results.forall(_.isSuccess)) Success(JNull)
-    else Failure(results.find(_.isFailure).get.failed.get)
+    if (results.forall(_.isSuccess)) Success(JNull) else Failure(results.find(_.isFailure).get.failed.get)
   }
 }
