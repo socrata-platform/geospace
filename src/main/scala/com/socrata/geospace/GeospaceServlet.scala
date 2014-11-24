@@ -23,10 +23,10 @@ import scala.util.{Try, Failure, Success}
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
-                      localConfig: GeospaceConfig) extends GeospaceMicroserviceStack
+                      myConfig: GeospaceConfig) extends GeospaceMicroserviceStack
 with FileUploadSupport with Metrics {
-  val localSpatialCache = new SpatialRegionCache(localConfig.cache)
-  val localStringCache  = new HashMapRegionCache(localConfig.cache)
+  val spatialCache = new SpatialRegionCache(myConfig.cache)
+  val stringCache  = new HashMapRegionCache(myConfig.cache)
 
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")
@@ -72,7 +72,7 @@ with FileUploadSupport with Metrics {
 
     val readReprojectStartTime = System.currentTimeMillis
 
-    // for-comprehension resulted in a fallback from filterWith to filter
+    // for-comprehension resulted in a compile failure: fallback from filterWith to filter
     val readResult: Try[(Traversable[Feature], Schema)] = decompressTimer.time {
       val zip: com.rojoma.simplearm.SimpleArm[TemporaryZip] = managed(new TemporaryZip(file.get))
       val shapes: Try[(Traversable[Feature], Schema)] = zip map { z => ShapefileReader.read(z.contents, forceLonLat) }
@@ -80,7 +80,7 @@ with FileUploadSupport with Metrics {
       if (bypassValidation) {
         logger.info("Feature validation bypassed")
       } else {
-        val validationErrors = FeatureValidator.validationErrors(shapes.get._1, localConfig.maxMultiPolygonComplexity)
+        val validationErrors = FeatureValidator.validationErrors(shapes.get._1, myConfig.maxMultiPolygonComplexity)
         if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
         logger.info("Feature validation succeeded")
       }
@@ -102,8 +102,7 @@ with FileUploadSupport with Metrics {
             val ingressTime = System.currentTimeMillis - ingressStartTime
             logger.info(
               "Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
-              friendlyName, domain,
-              response.resourceName, response.upsertCount.toString, ingressTime.toString);
+              friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString);
             Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
           }
 
@@ -128,7 +127,7 @@ with FileUploadSupport with Metrics {
 
     // Cache the reprojected features in our region cache for immediate geocoding
     // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-    localSpatialCache.getFromFeatures(params("resourceName"), features.toSeq)
+    spatialCache.getFromFeatures(params("resourceName"), features.toSeq)
     Map("rows-ingested" -> features.toSeq.length)
   }
 
@@ -137,8 +136,9 @@ with FileUploadSupport with Metrics {
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
   post("/v1/regions/:resourceName/geocode") {
     val points = parsedBody.extract[Seq[Seq[Double]]]
-    if (points.isEmpty) halt(GeospaceServlet.HttpClientError,
-      s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
+    if (points.isEmpty) {
+      halt(GeospaceServlet.HttpClientError, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
+    }
     new AsyncResult { val is =
       geocodingTimer.time { geoRegionCode(params("resourceName"), points) }
     }
@@ -150,7 +150,7 @@ with FileUploadSupport with Metrics {
     import org.geoscript.geometry.builder
 
     val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
-    val futureIndex = localSpatialCache.getFromSoda(sodaFountain, resourceName)
+    val futureIndex = spatialCache.getFromSoda(sodaFountain, resourceName)
     futureIndex.map { index =>
       geoPoints.map { pt => index.firstContains(pt).map(_.item) }
     }
@@ -168,26 +168,26 @@ with FileUploadSupport with Metrics {
   }
 
   private def stringCode(resourceName: String, columnName: String, strings: Seq[String]): Future[Seq[Option[Int]]] = {
-    val futureIndex = localStringCache.getFromSoda(sodaFountain, RegionCacheKey(resourceName, columnName))
+    val futureIndex = stringCache.getFromSoda(sodaFountain, RegionCacheKey(resourceName, columnName))
     futureIndex.map { index => strings.map { str => index.get(str) } }
   }
 
   get("/v1/regions") {
-    Map("spatialCache" -> localSpatialCache.indicesBySizeDesc().map {
+    Map("spatialCache" -> spatialCache.indicesBySizeDesc().map {
                             case (key, size) => Map("resource" -> key, "numCoordinates" -> size) },
-        "stringCache"  -> localStringCache.indicesBySizeDesc().map {
+        "stringCache"  -> stringCache.indicesBySizeDesc().map {
                             case (key, size) => Map("resource" -> key, "numRows" -> size) })
   }
 
   delete("/v1/regions") {
-    localSpatialCache.reset()
-    localStringCache.reset()
+    spatialCache.reset()
+    stringCache.reset()
     logMemoryUsage("After clearing region caches")
     Ok("Done")
   }
 
   post("/v1/regions/curated") {
-    val curatedDomains  = localConfig.curatedRegions.domains
+    val curatedDomains  = myConfig.curatedRegions.domains
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
     // It's ok if the user doesn't provide a bounding shape at all,
     // but if they provide invalid GeoJSON, error out.
@@ -197,7 +197,7 @@ with FileUploadSupport with Metrics {
                                   halt(BadRequest("Bounding shape could not be parsed"))))
                                 }
 
-    val suggester = new CuratedRegionSuggester(sodaFountain, localConfig.curatedRegions)
+    val suggester = new CuratedRegionSuggester(sodaFountain, myConfig.curatedRegions)
 
     suggestTimer.time {
       suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
@@ -211,7 +211,7 @@ with FileUploadSupport with Metrics {
     val domain = request.headers.getOrElse("X-Socrata-Host",
       halt(BadRequest("X-Socrata-Host header must be provided")))
 
-    val indexer = CuratedRegionIndexer(sodaFountain, localConfig.curatedRegions)
+    val indexer = CuratedRegionIndexer(sodaFountain, myConfig.curatedRegions)
     indexer.index(params("resourceName"), geoColumn, domain).get
   }
 }
