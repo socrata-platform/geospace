@@ -86,14 +86,14 @@ object ShapefileReader extends Logging {
     val namedGroups = files.groupBy { f => FilenameUtils.getBaseName(f.getName) }
     if (namedGroups.size != 1) {
       Failure(InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
-    }
-
-    val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
-    missing match {
-      case Some(file) => Failure(file.failed.get)
-      case None       =>
-        logger.info("Validated that the shapefile contains all the right files")
-        Success(())
+    } else {
+      val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
+      missing match {
+        case Some(file) => Failure(file.failed.get)
+        case None       =>
+          logger.info("Validated that the shapefile contains all the right files")
+          Success(())
+      }
     }
   }
 
