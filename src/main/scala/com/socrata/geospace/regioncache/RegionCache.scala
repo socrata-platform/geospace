@@ -110,7 +110,7 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
             flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
             collect { case FeatureCollectionJson(features, _) => getEntryFromFeatureJson(features, key.columnName) }.
             getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + payload.get,
-            if (payload.isFailure) payload.failed.get else null))
+            if (payload.isFailure) payload.failed.get else throw new Exception("unknown exception")))
         }
       }
     }
