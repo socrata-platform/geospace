@@ -1,7 +1,7 @@
 package com.socrata.geospace
 
 /**
- * HTTP Status Codes 
+ * HTTP Status Codes
  */
 object HttpStatus {
   val Success: Int = 200
