@@ -16,7 +16,7 @@ import org.apache.commons.io.{FileUtils, FilenameUtils, IOUtils}
  * @param compressed byte array representation of the zip file
  */
 class TemporaryZip(compressed: Array[Byte]) extends Closeable with Logging {
-  require(compressed != null && !compressed.isEmpty, "Null or empty zip file") //scalastyle:ignore
+  require(Option(compressed).isDefined && !compressed.isEmpty, "Null or empty zip file")
 
   /**
    * the zip file saved temporarily to disk.
