@@ -36,7 +36,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
                                                  RetryOnAllExceptionsDuringInitialRequest,
                                                  throw ServiceDiscoveryException("No Soda Fountain servers found"))
 
-  override def beforeAll {
+  override def beforeAll() {
     startServices()            // Start in-process ZK, Curator, service discovery
     mockServer.start()
     cookie                     // register mock HTTP service with Curator/ZK
@@ -49,7 +49,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
     addServlet(new GeospaceServlet(sodaFountain, null, new GeospaceConfig(cfg)), "/*")
   }
 
-  override def afterAll {
+  override def afterAll() {
     super.afterAll()
     sodaFountain.close()
     broker.deregister(cookie)
@@ -63,6 +63,18 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
                          .withStatus(200)
                          .withHeader("Content-Type", "application/vnd.geo+json; charset=utf-8")
                          .withBody(returnedBody)))
+  }
+
+  private def forceRegionRecache() {
+    // Reset the cache to force region to load from soda fountain
+    delete("/v1/regions") {
+      status should equal (200)
+    }
+
+    // Verify the cache is empty
+    get("/v1/regions") {
+      body should equal ("""{"spatialCache":[],"stringCache":[]}""")
+    }
   }
 
   test("get of index page") {
@@ -100,7 +112,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
                 |    "type": "Polygon",
                 |    "coordinates": [[[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [0.0, 0.0]]]
                 |  },
-                |  "properties": {"_feature_id": "1" }
+                |  "properties": { "_feature_id": "1", "name": "My Mixed Case Name 1" }
                 |}""".stripMargin
   val feat2 = """{
                 |  "type": "Feature",
@@ -108,7 +120,7 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
                 |    "type": "Polygon",
                 |    "coordinates": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 0.0]]]
                 |  },
-                |  "properties": {"_feature_id": "2" }
+                |  "properties": { "_feature_id": "2", "name": "My Mixed Case Name 2" }
                 |}""".stripMargin
   val geojson = """{"type":"FeatureCollection",
                    |"crs" : { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
@@ -116,16 +128,9 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
 
   // Pretty much an end to end functional test, from Servlet route to SF client and region cache
   test("points geocode properly with cache loaded from soda fountain mock") {
-    // First reset the cache to force region to load from soda fountain
-    delete("/v1/regions") {
-      status should equal (200)
-    }
-
-    get("/v1/regions") {
-      body should equal ("""{"spatialCache":[],"stringCache":[]}""")
-    }
-
+    forceRegionRecache()
     mockSodaRoute("triangles.geojson", geojson)
+
     post("/v1/regions/triangles/geocode",
          "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
          headers = Map("Content-Type" -> "application/json")) {
@@ -135,12 +140,9 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
   }
 
   test("geocoding service should return 500 if soda fountain server down") {
-    // First reset the cache to force region to load from soda fountain
-    delete("/v1/regions") {
-      status should equal (200)
-    }
-
+    forceRegionRecache()
     WM.reset()
+
     post("/v1/regions/triangles/geocode",
          "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
          headers = Map("Content-Type" -> "application/json")) {
@@ -149,12 +151,9 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
   }
 
   test("geocoding service should return 500 if soda fountain server returns something unexpected (non-JSON)") {
-    // First reset the cache to force region to load from soda fountain
-    delete("/v1/regions") {
-      status should equal (200)
-    }
-
+    forceRegionRecache()
     mockSodaRoute("nonsense.geojson", "gobbledygook")
+
     post("/v1/regions/nonsense/geocode",
       "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
       headers = Map("Content-Type" -> "application/json")) {
@@ -201,6 +200,18 @@ class GeospaceServletSpec extends ScalatraSuite with FunSuiteLike with CuratorSe
          "MULTIPOLYGON (((1 1, 2 1, 2 2, 1 2, 1 1)))",
          headers = Map("Content-Type" -> "application/json", "X-Socrata-Host" -> "data.cityofchicago.org")) {
       status should equal(400)
+    }
+  }
+
+  test("string coding service") {
+    forceRegionRecache()
+    mockSodaRoute("triangles.geojson", geojson)
+
+    post("/v1/regions/triangles/stringcode?column=name",
+      """["My MiXeD CaSe NaMe 1", "another NAME", "My MiXeD CaSe NaMe 2"]""",
+      headers = Map("Content-Type" -> "application/json")) {
+      status should equal (200)
+      body should equal ("""[1,null,2]""")
     }
   }
 }

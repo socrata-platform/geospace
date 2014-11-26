@@ -20,7 +20,7 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
 
   val hashMapCache = new HashMapRegionCache(testConfig)
 
-  def tenCompleteFeatures = fcTemplate.format((1 until 10).map { i => fTemplate.format(i, i, s"name $i") }.mkString(","))
+  def tenCompleteFeatures = fcTemplate.format((1 until 10).map { i => fTemplate.format(i, i, s"Name $i") }.mkString(","))
   def oneFeatureWithNoName = """{"type":"Feature","geometry": { "type": "Point", "coordinates": [0,20] },"properties":{"_feature_id":"20"}}"""
 
   private def decodeFeatures(geojson: String): Seq[FeatureJson] = {
@@ -34,20 +34,21 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
     val features = Shapefile("data/chicago_wards/Wards.shp").features
     val entry = hashMapCache.getEntryFromFeatures(features.toSeq, "ALDERMAN")
     entry.size should be (51)
+
     // Check a couple of examples to ensure  the data from the Wards file was transposed correctly
-    entry.get("EMMA MITTS") should be (Some(4))
-    entry.get("RICARDO MUNOZ") should be (Some(14))
+    entry.get("EMMA MITTS".toLowerCase) should be (Some(4))
+    entry.get("RICARDO MUNOZ".toLowerCase) should be (Some(14))
   }
 
   test("getEntryFromFeatureJson - cache on a string feature") {
     val entry = hashMapCache.getEntryFromFeatureJson(decodeFeatures(tenCompleteFeatures), "name")
-    entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"name $i" -> i })
+    entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"Name $i".toLowerCase -> i })
   }
 
   test("getEntryFromFeatureJson - some rows have key value missing") {
     val features = decodeFeatures(tenCompleteFeatures ++ oneFeatureWithNoName ++ oneFeatureWithNoName)
     val entry = hashMapCache.getEntryFromFeatureJson(features, "name")
-    entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"name $i" -> i })
+    entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"Name $i".toLowerCase -> i })
   }
 
   // This test fails intermittently in Cloudbees ((expected - 1) items are found in the hashmap).
