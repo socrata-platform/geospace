@@ -16,7 +16,7 @@ import org.apache.commons.io.{FileUtils, FilenameUtils, IOUtils}
  * @param compressed byte array representation of the zip file
  */
 class TemporaryZip(compressed: Array[Byte]) extends Closeable with Logging {
-  require(Option(compressed).isDefined && !compressed.isEmpty, "Null or empty zip file")
+  require(Option(compressed).filter(_.nonEmpty).isDefined, "Null or empty zip file")
 
   /**
    * the zip file saved temporarily to disk.
