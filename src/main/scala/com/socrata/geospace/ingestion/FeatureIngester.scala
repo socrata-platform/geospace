@@ -2,9 +2,9 @@ package com.socrata.geospace.ingestion
 
 import com.rojoma.json.ast._
 import com.socrata.geospace.client._
-import com.socrata.geospace.HttpStatus
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.metrics.Metrics
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.geoscript.feature.{Feature, Schema}
 import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}
@@ -39,7 +39,7 @@ object FeatureIngester extends Metrics {
     for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
           addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
           upsert     <- SodaResponse.check(sodaFountain.upsert("_" + fourByFour,
-                        GeoToSoda2Converter.getUpsertBody(features, schema)), HttpStatus.Success)
+                        GeoToSoda2Converter.getUpsertBody(features, schema)), HttpStatus.SC_OK)
           publish    <- requester.publish(fourByFour)
     } yield {
       // The region cache keys off the Soda Fountain resource name, but we currently

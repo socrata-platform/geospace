@@ -1,12 +1,12 @@
 package com.socrata.geospace.regioncache
 
 import com.socrata.geospace.client.SodaResponse
-import com.socrata.geospace.HttpStatus
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import com.socrata.thirdparty.metrics.Metrics
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.geoscript.feature._
 import scala.concurrent.Future
 import spray.caching.LruCache
@@ -104,7 +104,7 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
         val sodaResponse = sodaReadTimer.time {
           sodaFountain.query(key.resourceName, Some("geojson"), Iterable(("$query", query)))
         }
-        val payload = SodaResponse.check(sodaResponse, HttpStatus.Success)
+        val payload = SodaResponse.check(sodaResponse, HttpStatus.SC_OK)
         regionIndexLoadTimer.time {
           payload.toOption.
             flatMap { jvalue => GeoJson.codec.decode(jvalue) }.

@@ -8,8 +8,8 @@ import com.socrata.soda.external.SodaFountainClient.Result
 import com.socrata.geospace.client.SodaResponse
 import com.socrata.geospace.config.CuratedRegionsConfig
 import com.socrata.geospace.errors.UnexpectedSodaResponse
-import com.socrata.geospace.HttpStatus
 import com.vividsolutions.jts.geom.MultiPolygon
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}
 
@@ -43,7 +43,7 @@ class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRe
     val query = makeQuery(domains, intersectsWith)
     logger.info(s"Querying Soda Fountain resource ${config.resourceName} with query $query")
 
-    for { jValue      <- SodaResponse.check(getRows(query), HttpStatus.Success)
+    for { jValue      <- SodaResponse.check(getRows(query), HttpStatus.SC_OK)
           suggestions <- parseSuggestions(jValue) }
     yield suggestions
   }

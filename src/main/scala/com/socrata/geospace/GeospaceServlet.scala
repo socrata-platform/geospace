@@ -14,6 +14,7 @@ import com.socrata.geospace.shapefile._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.socrata.thirdparty.metrics.Metrics
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.collection.JavaConverters._
@@ -133,7 +134,7 @@ with FileUploadSupport with Metrics {
   post("/v1/regions/:resourceName/geocode") {
     val points = parsedBody.extract[Seq[Seq[Double]]]
     if (points.isEmpty) {
-      halt(HttpStatus.ClientError, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
+      halt(HttpStatus.SC_BAD_REQUEST, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     }
     new AsyncResult { val is =
       geocodingTimer.time { geoRegionCode(params("resourceName"), points) }
@@ -154,7 +155,7 @@ with FileUploadSupport with Metrics {
 
   post("/v1/regions/:resourceName/stringcode") {
     val strings = parsedBody.extract[Seq[String]]
-    if (strings.isEmpty) halt(HttpStatus.ClientError,
+    if (strings.isEmpty) halt(HttpStatus.SC_BAD_REQUEST,
       s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
     val column = params.getOrElse("column", halt(BadRequest("column param must be provided")))
 

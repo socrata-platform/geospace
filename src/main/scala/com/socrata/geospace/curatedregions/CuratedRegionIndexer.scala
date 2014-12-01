@@ -4,8 +4,8 @@ import com.rojoma.json.ast.{JString, JObject, JValue, JArray}
 import com.socrata.geospace.config.CuratedRegionsConfig
 import com.socrata.geospace.client.SodaResponse
 import com.socrata.geospace.errors.UnexpectedSodaResponse
-import com.socrata.geospace.HttpStatus
 import com.socrata.soda.external.SodaFountainClient
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.slf4j.LoggerFactory
 import scala.util.{Failure, Success, Try}
 
@@ -31,13 +31,13 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
     logger.info("Extracting dataset information...")
     val query = s"SELECT concave_hull($geoColumnName, ${config.boundingShapePrecision}) AS bounding_multipolygon"
     for { qResponse <- SodaResponse.check(sodaFountain.query(
-                        resourceName, None, Iterable(("$query", query))), HttpStatus.Success)
+                        resourceName, None, Iterable(("$query", query))), HttpStatus.SC_OK)
           shape     <- extractFields(Seq("bounding_multipolygon"), qResponse)
-          sResponse <- SodaResponse.check(sodaFountain.schema(resourceName), HttpStatus.Success)
+          sResponse <- SodaResponse.check(sodaFountain.schema(resourceName), HttpStatus.SC_OK)
           names     <- extractFields(Seq("resource_name", "name"), sResponse)
           allFields <- Try(names ++ shape ++ Map("domain" -> JString(domain)))
           uResponse <- SodaResponse.check(sodaFountain.upsert(
-                        config.resourceName, JArray(Seq(JObject(allFields)))), HttpStatus.Success)
+                        config.resourceName, JArray(Seq(JObject(allFields)))), HttpStatus.SC_OK)
     } yield {
       logger.info(s"Dataset $resourceName was successfully marked as a curated georegion")
       Map("resource_name" -> resourceName, "domain" -> domain, "isSuccess" -> true)
