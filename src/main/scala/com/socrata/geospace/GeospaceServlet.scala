@@ -91,7 +91,7 @@ with FileUploadSupport with Metrics {
     }
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
-    logger.info("Decompressed shapefile '{}' ({} milliseconds)", friendlyName, readTime);
+    logger.info("Decompressed shapefile '{}' ({} milliseconds)", friendlyName, readTime)
 
     val (features, schema) = readResult.get
     val ingressStartTime = System.currentTimeMillis
@@ -101,7 +101,7 @@ with FileUploadSupport with Metrics {
         val ingressTime = System.currentTimeMillis - ingressStartTime
         logger.info(
           "Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
-          friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString);
+          friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString)
         Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
       }
 

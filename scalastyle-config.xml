@@ -27,6 +27,12 @@
  </check>
  <check level="error" class="org.scalastyle.scalariform.SpacesAfterPlusChecker" enabled="true"></check>
  <check level="error" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="true"></check>
+ <check level="error" class="org.scalastyle.file.RegexChecker" enabled="true" >
+  <parameters>
+   <parameter name="regex">;\r?\n</parameter>
+  </parameters>
+  <customMessage>No semicolon at end of line</customMessage>
+ </check>
  <check level="error" class="org.scalastyle.scalariform.SpacesBeforePlusChecker" enabled="true"></check>
  <check level="error" class="org.scalastyle.file.FileLineLengthChecker" enabled="true">
   <parameters>
