@@ -63,9 +63,8 @@ object FeatureValidator extends Logging {
     val rf = new RichFeature(feature)
     Option(rf.geometry) match {
       case Some(mp: MultiPolygon) =>
-        if (!mp.isValid) {
-          GeometryNotValid
-        } else {
+        if (!mp.isValid) { GeometryNotValid }
+        else {
           val unplottable = offTheMapPoints(mp)
           if (unplottable.nonEmpty) {
             GeometryContainsOffMapPoints(unplottable)
