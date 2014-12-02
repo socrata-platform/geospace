@@ -23,7 +23,7 @@ class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[S
   override def getEntryFromFeatures(features: Seq[Feature], keyName: String): Map[String, Int] =
     features.foldLeft(Map[String, Int]()) { (seq, feature) =>
       feature.attr(keyName) match {
-        case Some(key) => seq + (key -> feature.numericId)
+        case Some(key) => seq + (key.toLowerCase -> feature.numericId)
         case _         => seq
       }
     }
@@ -38,7 +38,7 @@ class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[S
      properties.get(keyName).flatMap {
        case JString(key) =>
          properties.get(GeoToSoda2Converter.FeatureIdColName)
-                   .collect { case JString(id) => key -> id.toInt }
+                   .collect { case JString(id) => key.toLowerCase -> id.toInt }
        case x            =>
          throw new RuntimeException(s"Found FeatureJson property value $x, expected a JString")
      }

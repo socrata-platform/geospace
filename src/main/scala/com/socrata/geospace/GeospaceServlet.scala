@@ -156,7 +156,7 @@ with FileUploadSupport with Metrics {
 
   private def stringCode(resourceName: String, columnName: String, strings: Seq[String]): Future[Seq[Option[Int]]] = {
     val futureIndex = stringCache.getFromSoda(sodaFountain, RegionCacheKey(resourceName, columnName))
-    futureIndex.map { index => strings.map { str => index.get(str) } }
+    futureIndex.map { index => strings.map { str => index.get(str.toLowerCase) } }
   }
 
   get("/v1/regions") {
