@@ -6,6 +6,7 @@ import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJs
 import com.socrata.thirdparty.metrics.Metrics
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.geoscript.feature._
 import scala.concurrent.Future
 import spray.caching.LruCache
@@ -33,7 +34,8 @@ case class RegionCacheKey(resourceName: String, columnName: String)
  * @param maxEntries          Maximum capacity of the region cache
  * @tparam T                  Cache entry type
  */
-abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metrics {
+abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
+                              extends Logging with Metrics {
   def this(config: Config) = this(config.getInt("max-entries"))
 
   protected val cache = LruCache[T](maxEntries)
@@ -81,7 +83,7 @@ abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metric
    */
   def getFromFeatures(key: RegionCacheKey, features: Seq[Feature]): Future[T] = {
     cache(key) {
-      logger.info(s"Populating cache entry for resource [${key.resourceName}], column [${key.columnName}] from features")
+      logger.info(s"Populating cache entry for res [${key.resourceName}], col [${key.columnName}] from features")
       Future { prepForCaching(); getEntryFromFeatures(features, key.columnName) }
     }
   }
@@ -102,13 +104,16 @@ abstract class RegionCache[T](maxEntries: Int = 100) extends Logging with Metric
         val sodaResponse = sodaReadTimer.time {
           sodaFountain.query(key.resourceName, Some("geojson"), Iterable(("$query", query)))
         }
-        val payload = SodaResponse.check(sodaResponse, 200)
+        val payload = SodaResponse.check(sodaResponse, HttpStatus.SC_OK)
         regionIndexLoadTimer.time {
           payload.toOption.
             flatMap { jvalue => GeoJson.codec.decode(jvalue) }.
             collect { case FeatureCollectionJson(features, _) => getEntryFromFeatureJson(features, key.columnName) }.
-            getOrElse(throw new RuntimeException("Could not read GeoJSON from soda fountain: " + payload.get,
-            if (payload.isFailure) payload.failed.get else null))
+            getOrElse {
+              val errMsg = "Could not read GeoJSON from soda fountain: " + payload.get
+              if (payload.isFailure) { throw new RuntimeException(errMsg, payload.failed.get) }
+              else                   { throw new RuntimeException(errMsg) }
+            }
         }
       }
     }

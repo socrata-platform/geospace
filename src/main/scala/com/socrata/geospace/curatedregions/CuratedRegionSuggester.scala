@@ -9,6 +9,7 @@ import com.socrata.geospace.client.SodaResponse
 import com.socrata.geospace.config.CuratedRegionsConfig
 import com.socrata.geospace.errors.UnexpectedSodaResponse
 import com.vividsolutions.jts.geom.MultiPolygon
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}
 
@@ -24,7 +25,8 @@ object Suggestion {
  * @param sodaFountain    Soda Fountain instance
  * @param config          Config information about georegion suggestion
  */
-class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRegionsConfig) extends CuratedRegionSuggesterSoqlizer {
+class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRegionsConfig)
+                            extends CuratedRegionSuggesterSoqlizer {
   val logger = LoggerFactory.getLogger(getClass)
 
   private def getRows(soql: String): Result = sodaFountain.query(config.resourceName, None, Iterable(("$query", soql)))
@@ -41,7 +43,7 @@ class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRe
     val query = makeQuery(domains, intersectsWith)
     logger.info(s"Querying Soda Fountain resource ${config.resourceName} with query $query")
 
-    for { jValue      <- SodaResponse.check(getRows(query), 200)
+    for { jValue      <- SodaResponse.check(getRows(query), HttpStatus.SC_OK)
           suggestions <- parseSuggestions(jValue) }
     yield suggestions
   }
@@ -49,6 +51,7 @@ class CuratedRegionSuggester(sodaFountain: SodaFountainClient, config: CuratedRe
   private def parseSuggestions(jValue: JValue): Try[Seq[Suggestion]] =
     JsonCodec[Seq[Suggestion]].decode(jValue) match {
       case Some(suggestions) => Success(suggestions)
-      case None              => Failure(UnexpectedSodaResponse("Suggestions could not be parsed out of Soda response JSON", jValue))
+      case None              => Failure(UnexpectedSodaResponse(
+                                "Suggestions could not be parsed out of Soda response JSON", jValue))
     }
 }

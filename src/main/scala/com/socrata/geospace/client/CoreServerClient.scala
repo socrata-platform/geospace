@@ -7,6 +7,7 @@ import com.socrata.http.client.{Response, SimpleHttpRequest, RequestBuilder, Htt
 import com.socrata.http.client.exceptions.ContentTypeException
 import com.socrata.http.common.AuxiliaryData
 import com.socrata.thirdparty.curator.CuratorServiceBase
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.apache.curator.x.discovery.ServiceDiscovery
 import org.slf4j.LoggerFactory
 import scala.concurrent.duration.FiniteDuration
@@ -35,7 +36,7 @@ class CoreServerClient(httpClient: HttpClient,
 
   val logger = LoggerFactory.getLogger(getClass)
 
-  def requester(auth: CoreServerAuth) = new Requester(auth)
+  def requester(auth: CoreServerAuth): Requester = new Requester(auth)
 
   class Requester(auth: CoreServerAuth) {
     /**
@@ -44,7 +45,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param payload Request POST body
      * @return HTTP response code and body
      */
-    def create(payload: JValue): Try[JValue] = post(createUrl, payload, 200)
+    def create(payload: JValue): Try[JValue] = post(createUrl, payload, HttpStatus.SC_OK)
 
     /**
      * Sends a request to Core server to publish a dataset
@@ -52,7 +53,8 @@ class CoreServerClient(httpClient: HttpClient,
      * @param fourByFour 4x4 of the dataset to publish
      * @return HTTP response code and body
      */
-    def addColumn(fourByFour: String, payload: JValue): Try[JValue] = post(addColumnsUrl(_, fourByFour), payload, 200)
+    def addColumn(fourByFour: String, payload: JValue): Try[JValue] =
+      post(addColumnsUrl(_, fourByFour), payload, HttpStatus.SC_OK)
 
     /**
      * Sends a request to Core server to upsert rows to a dataset
@@ -61,7 +63,8 @@ class CoreServerClient(httpClient: HttpClient,
      * @param payload Request POST body
      * @return HTTP response code and body
      */
-    def upsert(fourByFour: String, payload: JValue): Try[JValue] = post(upsertUrl(_, fourByFour), payload, 200)
+    def upsert(fourByFour: String, payload: JValue): Try[JValue] =
+      post(upsertUrl(_, fourByFour), payload, HttpStatus.SC_OK)
 
     /**
      * Sends a request to Core server to publish a dataset
@@ -69,7 +72,7 @@ class CoreServerClient(httpClient: HttpClient,
      * @param fourByFour 4x4 of the dataset to publish
      * @return HTTP response code and body
      */
-    def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, 200)
+    def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, HttpStatus.SC_OK)
 
     private def createUrl(rb: RequestBuilder) =
       basicCoreServerUrl(rb).method("POST").p("views").addParameter("nbe" -> "true")
@@ -91,7 +94,8 @@ class CoreServerClient(httpClient: HttpClient,
   }
 
   // TODO : Factor out post, query, requestBuilder and connectTimeout shenanigans to third party utils
-  private def post(requestBuilder: RequestBuilder => RequestBuilder, payload: JValue, expectedResponseCode: Int): Try[JValue] =
+  private def post(requestBuilder: RequestBuilder => RequestBuilder,
+                  payload: JValue, expectedResponseCode: Int): Try[JValue] =
     query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
       val body =
         try { response.jValue() }

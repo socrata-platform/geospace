@@ -18,11 +18,12 @@ import com.typesafe.config.Config
  *                            still referencing the removed index to complete the task.
  * @tparam T                  Cache entry type
  */
-abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100,
+abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:ignore
                                             enableDepressurize: Boolean = true,
-                                            minFreePct: Int = 20,
-                                            targetFreePct: Int = 40,
-                                            iterationIntervalMs: Int = 100) extends RegionCache[T](maxEntries) {
+                                            minFreePct: Int = 20, //scalastyle:ignore
+                                            targetFreePct: Int = 40, //scalastyle:ignore
+                                            iterationIntervalMs: Int = 100)  //scalastyle:ignore
+                                            extends RegionCache[T](maxEntries) {
   def this(config: Config) = this(config.getInt("max-entries"),
     config.getBoolean("enable-depressurize"),
     config.getInt("min-free-percentage"),
@@ -48,26 +49,28 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100,
    * runs out of entries to free.
    */
   protected def depressurize(): Unit = synchronized {
-    if (!enableDepressurize || atLeastFreeMem(minFreePct)) return
+    if (!enableDepressurize || atLeastFreeMem(minFreePct)) {
+      Unit
+    } else {
+      var indexes = indicesBySizeDesc()
+      while (!atLeastFreeMem(targetFreePct)) {
+        logMemoryUsage("Attempting to uncache regions to relieve memory pressure")
+        if (indexes.isEmpty) {
+          logger.warn("No more regions to uncache, out of memory!!")
+          throw new RuntimeException("No more regions to uncache, out of memory")
+        }
+        val (key, _) = indexes.head
+        logger.info("Removing entry [{},{}] from cache...", key.resourceName, key.columnName)
+        depressurizeEvents.time {
+          cache.remove(key)
 
-    var indexes = indicesBySizeDesc()
-    while (!atLeastFreeMem(targetFreePct)) {
-      logMemoryUsage("Attempting to uncache regions to relieve memory pressure")
-      if (indexes.isEmpty) {
-        logger.warn("No more regions to uncache, out of memory!!")
-        throw new RuntimeException("No more regions to uncache, out of memory")
+          // Wait a little bit before calling GC to try to force memory to be freed
+          Thread.sleep(iterationIntervalMs)
+          Runtime.getRuntime.gc
+        }
+
+        indexes = indexes.drop(1)
       }
-      val (key, _) = indexes.head
-      logger.info("Removing entry [{},{}] from cache...", key.resourceName, key.columnName)
-      depressurizeEvents.time {
-        cache.remove(key)
-
-        // Wait a little bit before calling GC to try to force memory to be freed
-        Thread.sleep(iterationIntervalMs)
-        Runtime.getRuntime.gc
-      }
-
-      indexes = indexes.drop(1)
     }
   }
 }

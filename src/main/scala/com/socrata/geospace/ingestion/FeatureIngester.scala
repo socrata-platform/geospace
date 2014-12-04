@@ -4,6 +4,7 @@ import com.rojoma.json.ast._
 import com.socrata.geospace.client._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.metrics.Metrics
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.geoscript.feature.{Feature, Schema}
 import org.slf4j.LoggerFactory
 import scala.util.{Success, Failure, Try}
@@ -38,7 +39,7 @@ object FeatureIngester extends Metrics {
     for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
           addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
           upsert     <- SodaResponse.check(sodaFountain.upsert("_" + fourByFour,
-                                                               GeoToSoda2Converter.getUpsertBody(features, schema)), 200)
+                        GeoToSoda2Converter.getUpsertBody(features, schema)), HttpStatus.SC_OK)
           publish    <- requester.publish(fourByFour)
     } yield {
       // The region cache keys off the Soda Fountain resource name, but we currently
@@ -60,14 +61,14 @@ object FeatureIngester extends Metrics {
       }
     }
 
-  private def addColumnsViaCoreServer(requester: CoreServerClient#Requester, schema: Schema, fourByFour: String): Try[JValue] = {
+  private def addColumnsViaCoreServer(requester: CoreServerClient#Requester,
+                                      schema: Schema, fourByFour: String): Try[JValue] = {
     val results = GeoToSoda1Converter.getAddColumnBodies(schema).map { column =>
       requester.addColumn(fourByFour, column)
     }
 
     // This is kind of gross. There must be a cleaner way to
     // flatten an Iterable[Try[Foo]] to a Try[Foo]
-    if (results.forall(_.isSuccess)) Success(JNull)
-    else Failure(results.find(_.isFailure).get.failed.get)
+    if (results.forall(_.isSuccess)) Success(JNull) else Failure(results.find(_.isFailure).get.failed.get)
   }
 }

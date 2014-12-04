@@ -85,15 +85,15 @@ object ShapefileReader extends Logging {
     // 2. All required file types should be in the zip
     val namedGroups = files.groupBy { f => FilenameUtils.getBaseName(f.getName) }
     if (namedGroups.size != 1) {
-      return Failure(InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
-    }
-
-    val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
-    missing match {
-      case Some(file) => Failure(file.failed.get)
-      case None       =>
-        logger.info("Validated that the shapefile contains all the right files")
-        Success((): Unit)
+      Failure(InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
+    } else {
+      val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
+      missing match {
+        case Some(file) => Failure(file.failed.get)
+        case None       =>
+          logger.info("Validated that the shapefile contains all the right files")
+          Success((): Unit)
+      }
     }
   }
 
@@ -110,7 +110,8 @@ object ShapefileReader extends Logging {
           proj <- Try(getTargetProjection(StandardProjection, forceLonLat))
     } yield {
       try {
-        logger.info("Reprojecting shapefile schema and {} features to {}", shapefile.features.size.toString, proj.getName)
+        logger.info("Reprojecting shapefile schema and {} features to {}",
+                    shapefile.features.size.toString, proj.getName)
         logMemoryUsage("Before reprojecting features...")
         var i = 0
         val features = shapefile.features.map { feature =>

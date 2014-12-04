@@ -7,7 +7,7 @@ import scala.util.Try
 object FeatureExtensions {
   val FeatureNumericIdPattern = """.+\.(\d+)$""".r
 
-  implicit def featureToExtendedFeature(feature: Feature) = FeatureExtensions(feature)
+  implicit def featureToExtendedFeature(feature: Feature): FeatureExtensions = FeatureExtensions(feature)
 }
 
 case class FeatureExtensions(feature: Feature) {

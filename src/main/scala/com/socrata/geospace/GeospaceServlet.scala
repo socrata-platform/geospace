@@ -14,6 +14,7 @@ import com.socrata.geospace.shapefile._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.socrata.thirdparty.metrics.Metrics
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.collection.JavaConverters._
@@ -49,20 +50,25 @@ with FileUploadSupport with Metrics {
         "buildTime" -> new org.joda.time.DateTime(BuildInfo.buildTime).toString())
   }
 
-  // TODO We want to just consume the post body, not a named parameter in a multipart form request (still figuring how to do that in Scalatra)
+  // TODO We want to just consume the post body, not a named parameter in a multipart form request
+  // (still figuring how to do that in Scalatra)
   // TODO Return some kind of meaningful JSON response
   post("/v1/regions/shapefile") {
-    val friendlyName = params.getOrElse("friendlyName", halt(BadRequest("No friendlyName param provided in the request")))
-    val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
-                         .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
+    val friendlyName = params.getOrElse("friendlyName",
+      halt(BadRequest("No friendlyName param provided in the request")))
+    val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean).getOrElse(
+      halt(BadRequest("Invalid forceLonLat param provided in the request")))
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
     val bypassValidation = Try(params.getOrElse("bypassValidation", "false").toBoolean)
       .getOrElse(halt(BadRequest("Invalid bypassValidation param provided in the request")))
 
-    val authToken = request.headers.getOrElse("Authorization", halt(BadRequest("Core Basic Auth must be provided in order to ingest a shapefile")))
-    val appToken = request.headers.getOrElse("X-App-Token", halt(BadRequest("X-App-Token header must be provided in order to ingest a shapefile")))
-    val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("X-Socrata-Host header must be provided in order to ingest a shapefile")))
+    val authToken = request.headers.getOrElse("Authorization",
+      halt(BadRequest("Core Basic Auth must be provided in order to ingest a shapefile")))
+    val appToken = request.headers.getOrElse("X-App-Token",
+      halt(BadRequest("X-App-Token header must be provided in order to ingest a shapefile")))
+    val domain = request.headers.getOrElse("X-Socrata-Host",
+      halt(BadRequest("X-Socrata-Host header must be provided in order to ingest a shapefile")))
     val requester = coreServer.requester(CoreServerAuth(authToken, appToken, domain))
 
     val readReprojectStartTime = System.currentTimeMillis
@@ -85,7 +91,7 @@ with FileUploadSupport with Metrics {
     }
 
     val readTime = System.currentTimeMillis - readReprojectStartTime
-    logger.info("Decompressed shapefile '{}' ({} milliseconds)", friendlyName, readTime);
+    logger.info("Decompressed shapefile '{}' ({} milliseconds)", friendlyName, readTime)
 
     val (features, schema) = readResult.get
     val ingressStartTime = System.currentTimeMillis
@@ -93,8 +99,9 @@ with FileUploadSupport with Metrics {
       for { response <- FeatureIngester.ingestViaCoreServer(requester, sodaFountain, friendlyName, features, schema) }
       yield {
         val ingressTime = System.currentTimeMillis - ingressStartTime
-        logger.info("Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
-                    friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString);
+        logger.info(
+          "Reprojected and ingressed shapefile '{}' to domain {} : (resource name '{}', {} rows, {} milliseconds)",
+          friendlyName, domain, response.resourceName, response.upsertCount.toString, ingressTime.toString)
         Map("resource_name" -> response.resourceName, "upsert_count" -> response.upsertCount)
       }
 
@@ -126,7 +133,9 @@ with FileUploadSupport with Metrics {
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
   post("/v1/regions/:resourceName/geocode") {
     val points = parsedBody.extract[Seq[Seq[Double]]]
-    if (points.isEmpty) halt(400, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
+    if (points.isEmpty) {
+      halt(HttpStatus.SC_BAD_REQUEST, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
+    }
     new AsyncResult { val is =
       geocodingTimer.time { geoRegionCode(params("resourceName"), points) }
     }
@@ -146,7 +155,8 @@ with FileUploadSupport with Metrics {
 
   post("/v1/regions/:resourceName/stringcode") {
     val strings = parsedBody.extract[Seq[String]]
-    if (strings.isEmpty) halt(400, s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
+    if (strings.isEmpty) halt(HttpStatus.SC_BAD_REQUEST,
+      s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
     val column = params.getOrElse("column", halt(BadRequest("column param must be provided")))
 
     new AsyncResult { val is =
@@ -178,9 +188,12 @@ with FileUploadSupport with Metrics {
     val customerDomains = request.getHeaders("X-Socrata-Host").asScala
     // It's ok if the user doesn't provide a bounding shape at all,
     // but if they provide invalid GeoJSON, error out.
-    val boundingMultiPolygon = if (request.body.equals("")) None
-                               else Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
+    val boundingMultiPolygon = if (request.body.equals("")) {
+                                 None
+                               } else {
+                                 Some(SoQLMultiPolygon.JsonRep.unapply(request.body).getOrElse(
                                            halt(BadRequest("Bounding shape could not be parsed"))))
+                               }
 
     val suggester = new CuratedRegionSuggester(sodaFountain, myConfig.curatedRegions)
 
@@ -193,7 +206,7 @@ with FileUploadSupport with Metrics {
 
   post("/v1/regions/:resourceName/curated") {
     val geoColumn = params.getOrElse("geoColumn", halt(BadRequest("geoColumn param must be provided")))
-    val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("X-Socrata-Host header must be provided")))
+    val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("must provide header: X-Socrata-Host")))
 
     val indexer = CuratedRegionIndexer(sodaFountain, myConfig.curatedRegions)
     indexer.index(params("resourceName"), geoColumn, domain).get
