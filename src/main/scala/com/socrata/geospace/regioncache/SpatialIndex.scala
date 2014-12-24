@@ -19,10 +19,7 @@ import SpatialIndex.Entry
  */
 class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
 
-  // com.vividsolutions.jts.util.AssertionFailedException: STRtree Node capacity must be greater than 1
-  private val MinNodeCapacity = 2
-
-  private val index = new STRtree(math.max(items.size, MinNodeCapacity))
+  private val index = new STRtree() // use default node capacity
 
   val numCoordinates = addItems()
 
