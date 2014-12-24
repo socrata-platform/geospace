@@ -18,7 +18,9 @@ import SpatialIndex.Entry
  * @param items A sequence of SpatialIndex.Entry's to index
  */
 class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
-  private val index = new STRtree(items.size)
+
+  private val index = new STRtree() // use default node capacity
+
   val numCoordinates = addItems()
 
   import collection.JavaConverters._
