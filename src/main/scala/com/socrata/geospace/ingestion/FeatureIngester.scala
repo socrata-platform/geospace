@@ -1,6 +1,6 @@
 package com.socrata.geospace.ingestion
 
-import com.rojoma.json.ast._
+import com.rojoma.json.v3.ast._
 import com.socrata.geospace.client._
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.metrics.Metrics

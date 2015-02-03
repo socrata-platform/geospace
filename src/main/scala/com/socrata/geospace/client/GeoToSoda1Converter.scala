@@ -1,7 +1,8 @@
 package com.socrata.geospace.client
 
 import collection.JavaConverters._
-import com.rojoma.json.ast._
+import com.rojoma.json.v3.ast._
+import com.rojoma.json.v3.conversions._
 import com.socrata.geospace.feature.FeatureExtensions._
 import com.socrata.thirdparty.geojson.JtsCodecs
 import com.vividsolutions.jts.geom.{Geometry, MultiPolygon}
@@ -98,13 +99,14 @@ object GeoToSoda1Converter {
    */
   private def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
-    val fields = feature.getAttributes.asScala.zip(attrNames).map {
-      case (g: Geometry, name) => name -> JtsCodecs.geoCodec.encode(g)
+    val fields= feature.getAttributes.asScala.zip(attrNames).map {
+      case (g: Geometry, name) => name -> JtsCodecs.geoCodec.encode(g).toV3
       case (attr, name)        => name -> JString(attr.toString)
     }
 
-    JObject(fields.toMap +
+    JObject(fields.toMap+
             (FeatureIdStringColName -> JString(feature.getID)) +
-            (FeatureIdColName -> JNumber(feature.numericId)))
+            (FeatureIdColName -> JNumber(feature.numericId))
+    )
   }
 }

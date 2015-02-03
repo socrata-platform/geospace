@@ -50,10 +50,10 @@ object Dependencies {
   )
 
   lazy val socrataDeps = Seq(
-    "com.rojoma"               %% "rojoma-json"         % "2.4.3",
+    "com.rojoma"               %% "rojoma-json-v3"         % "3.2.1",
     "com.rojoma"               %% "simple-arm"          % "1.2.0",
-    "com.socrata"              %% "socrata-http-client" % "2.0.0",
-    "com.socrata"              %% "socrata-thirdparty-utils" % "2.6.2",
+    "com.socrata"              %% "socrata-http-client" % "3.0.0",
+    "com.socrata"              %% "socrata-thirdparty-utils" % "2.6.4",
     "com.socrata"              %% "soda-fountain-external" % "0.3.3",
     "com.socrata"              %% "soql-types"          % "0.3.3"
       exclude("org.jdom", "jdom")

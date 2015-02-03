@@ -1,7 +1,8 @@
 package com.socrata.geospace.client
 
-import com.rojoma.json.ast.{JNull, JValue}
-import com.rojoma.json.io.JValueEventIterator
+import com.rojoma.json.v3.ast.{JNull, JValue}
+import com.rojoma.json.v3.io.JValueEventIterator
+import com.rojoma.simplearm.v2.Managed
 import com.socrata.geospace.errors.{ServiceDiscoveryException, CoreServerException}
 import com.socrata.http.client.{Response, SimpleHttpRequest, RequestBuilder, HttpClient}
 import com.socrata.http.client.exceptions.ContentTypeException
@@ -105,7 +106,7 @@ class CoreServerClient(httpClient: HttpClient,
         case `expectedResponseCode` => Success(body)
         case _ => Failure(CoreServerException(s"Core server response: ${response.resultCode} Payload: $body"))
       }
-    }
+    }.foreach[Try[JValue]]({a => a})
 
   private[this] val connectTimeoutMS = connectTimeout.toMillis.toInt
   if(connectTimeoutMS != connectTimeout.toMillis) {
