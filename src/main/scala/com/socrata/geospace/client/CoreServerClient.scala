@@ -2,7 +2,6 @@ package com.socrata.geospace.client
 
 import com.rojoma.json.v3.ast.{JNull, JValue}
 import com.rojoma.json.v3.io.JValueEventIterator
-import com.rojoma.simplearm.v2.Managed
 import com.socrata.geospace.errors.{ServiceDiscoveryException, CoreServerException}
 import com.socrata.http.client.{Response, SimpleHttpRequest, RequestBuilder, HttpClient}
 import com.socrata.http.client.exceptions.ContentTypeException
@@ -97,7 +96,7 @@ class CoreServerClient(httpClient: HttpClient,
   // TODO : Factor out post, query, requestBuilder and connectTimeout shenanigans to third party utils
   private def post(requestBuilder: RequestBuilder => RequestBuilder,
                   payload: JValue, expectedResponseCode: Int): Try[JValue] =
-    query { rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
+    query{ rb => requestBuilder(rb).json(JValueEventIterator(payload)) } { response =>
       val body =
         try { response.jValue() }
         catch { case e: ContentTypeException => logger.warn("Non JSON response: " + e); JNull }
@@ -106,7 +105,7 @@ class CoreServerClient(httpClient: HttpClient,
         case `expectedResponseCode` => Success(body)
         case _ => Failure(CoreServerException(s"Core server response: ${response.resultCode} Payload: $body"))
       }
-    }.foreach[Try[JValue]]({a => a})
+    }
 
   private[this] val connectTimeoutMS = connectTimeout.toMillis.toInt
   if(connectTimeoutMS != connectTimeout.toMillis) {
@@ -118,7 +117,7 @@ class CoreServerClient(httpClient: HttpClient,
       case Some(rb) =>
         val request = buildRequest(rb)
         logger.info("Request: " + request)
-        for (response <- httpClient.execute(request)) yield {
+        for (response <- httpClient.execute(request)) {
           f(response)
         }
       case None => throw ServiceDiscoveryException("Could not connect to Core")

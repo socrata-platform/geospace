@@ -104,7 +104,7 @@ object GeoToSoda1Converter {
       case (attr, name)        => name -> JString(attr.toString)
     }
 
-    JObject(fields.toMap+
+    JObject(fields.toMap +
             (FeatureIdStringColName -> JString(feature.getID)) +
             (FeatureIdColName -> JNumber(feature.numericId))
     )
