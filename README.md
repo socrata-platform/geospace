@@ -84,6 +84,8 @@ pressure, it will attempt to start uncaching regions from the biggest currently
 cached one in order down to try to free memory.  If it doesn't work then it will
 throw an error.
 
+One good region to test memory usage with is nationwide zip codes: https://data.austintexas.gov/d/a3it-2a2z with ~34000 features.
+
 ## Optimizations
 
 Shapefile ingest can be made streaming; right now it loads all features into the heap.  This is a lot of work however;
