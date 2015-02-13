@@ -84,7 +84,13 @@ pressure, it will attempt to start uncaching regions from the biggest currently
 cached one in order down to try to free memory.  If it doesn't work then it will
 throw an error.
 
-One good region to test memory usage with is nationwide zip codes: https://data.austintexas.gov/d/a3it-2a2z with ~34000 features.
+One good region to test memory usage with is nationwide zip codes: https://data.austintexas.gov/d/a3it-2a2z with ~34000 features.  Another one is: qz3q-ghft.
+
+NOTE: If you are doing memory testing locally on spatial caching, some hints:
+- Start SBT with something like `-Xmx8g -Xms8g` in `$SBT_OPTS`.  If -Xms is not equal to -Xmx, Geospace's memory detector doesn't work properly.
+- Use the `local-shp` route to load a local unpacked shape file dir into memory as cache:
+
+        curl -X POST "http://localhost:2020/v1/regions/census_orig/local-shp?forceLonLat=true" -d $HOME/data/census/orig/ -H "Content-Type: application/json"
 
 ## Optimizations
 
