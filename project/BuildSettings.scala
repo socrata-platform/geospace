@@ -52,7 +52,7 @@ object BuildSettings {
   lazy val socrataResolvers = Seq(
     "Open Source Geospatial Foundation Repository" at "http://download.osgeo.org/webdav/geotools",
     "spray repo" at "http://repo.spray.io",
-    "velvia maven" at "http://dl.bintray.com/velvia/maven"
+    "velvia maven" at "https://dl.bintray.com/velvia/maven"
   )
 
 
