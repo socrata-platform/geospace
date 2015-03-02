@@ -5,11 +5,11 @@ object CommonDependencies {
   lazy val commonDeps = socrataDeps ++ testDeps
 
   private val socrataDeps = Seq(
-    "com.rojoma"               %% "rojoma-json-v3"            % "3.2.1",
+    "com.rojoma"               %% "rojoma-json-v3"            % "3.2.2",
     "com.rojoma"               %% "simple-arm-v2"             % "[2.1.0,3.0.0)",
     "com.socrata"              %% "socrata-http-client"       % "3.0.0",
     "com.socrata"              %% "socrata-thirdparty-utils"  % "3.0.0",
-    "com.socrata"              %% "soda-fountain-external"    % "0.4.4",
+    "com.socrata"              %% "soda-fountain-external"    % "0.4.8-SNAPSHOT",
     "com.socrata"              %% "soql-types"                % "0.3.3" exclude("org.jdom", "jdom")
       exclude("javax.media", "jai_core"),
     "com.typesafe"              % "config"                    % "1.0.2",
@@ -30,7 +30,7 @@ object CommonDependencies {
 
   private val testDeps = Seq(
     "com.github.tomakehurst"    % "wiremock"                      % "1.46"  % "test",
-    "com.socrata"              %% "socrata-thirdparty-test-utils" % "2.5.6" % "test",
+    "com.socrata"              %% "socrata-thirdparty-test-utils" % "3.0.0" % "test",
     "org.apache.curator"        % "curator-test"                  % "2.4.2" % "test",
     "org.scalatest"            %% "scalatest"                     % "2.1.0" % "test"
   )
