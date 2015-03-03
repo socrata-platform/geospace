@@ -21,7 +21,7 @@ import SpatialIndex._
  * @param items A sequence of SpatialIndex.Entry's to index
  */
 class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
-  logger.info(s"Created new SpatialIndex with ${items.length} items")
+  logger.info(s"Creating new SpatialIndex with ${items.length} items")
 
   private val index = new STRtree() // use default node capacity
 

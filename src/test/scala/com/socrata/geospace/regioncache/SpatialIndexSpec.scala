@@ -1,9 +1,9 @@
 package com.socrata.geospace.regioncache
 
-import org.scalatest.{FunSpec, ShouldMatchers}
+import org.scalatest.{FunSpec, OptionValues, ShouldMatchers}
 import org.geoscript.geometry.builder
 
-class SpatialIndexSpec extends FunSpec with ShouldMatchers {
+class SpatialIndexSpec extends FunSpec with ShouldMatchers with OptionValues {
   import SpatialIndex.{Entry, GeoEntry}
 
   val poly1 = builder.Polygon(Seq((10, 10), (10, 20), (20, 20), (20, 10), (10, 10)), Nil)
@@ -16,14 +16,14 @@ class SpatialIndexSpec extends FunSpec with ShouldMatchers {
     }
 
     it("should match a point in only one geometry") {
-      index.firstContains(builder.Point(18, 18)).get.item should equal ("1")
-      index.firstContains(builder.Point(18, 8)).get.item should equal ("2")
+      index.firstContains(builder.Point(18, 18)).value.item should equal ("1")
+      index.firstContains(builder.Point(18, 8)).value.item should equal ("2")
     }
 
     it("should match a point on a polygon boundary") {
       // NOTE: Specifically match on a geometry's boundary.  This is important because of the
       // many possible JTS spatial operators and their subtle differences
-      index.firstContains(builder.Point(18, 20)).get.item should equal ("1")
+      index.firstContains(builder.Point(18, 20)).value.item should equal ("1")
     }
 
     it("should find one of two geometries a point is in") {
