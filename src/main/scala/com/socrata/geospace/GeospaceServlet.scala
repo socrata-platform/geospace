@@ -124,8 +124,10 @@ with FileUploadSupport with Metrics {
 
     // Cache the reprojected features in our region cache for immediate geocoding
     // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-    spatialCache.getFromFeatures(params("resourceName"), features.toSeq)
-    Map("rows-ingested" -> features.toSeq.length)
+    new AsyncResult { val is =
+      spatialCache.getFromFeatures(params("resourceName"), features.toSeq)
+        .map { index => Map("rows-ingested" -> features.toSeq.length) }
+    }
   }
 
   // NOTE: Tricky to find a good REST endpoint.  What is the resource?  geo-regions?

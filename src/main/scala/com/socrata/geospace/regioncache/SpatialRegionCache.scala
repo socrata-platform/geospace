@@ -3,7 +3,7 @@ package com.socrata.geospace.regioncache
 import com.rojoma.json.ast.JString
 import com.typesafe.config.Config
 import com.socrata.geospace.client.GeoToSoda2Converter
-import com.socrata.geospace.regioncache.SpatialIndex.Entry
+import com.socrata.geospace.regioncache.SpatialIndex.GeoEntry
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.FeatureJson
 import org.geoscript.feature._
@@ -35,7 +35,7 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
     var i = 0
     val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>
       val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
-        collect { case JString(id) => Entry(geometry, id.toInt) }
+        collect { case JString(id) => GeoEntry.compact(geometry, id.toInt) }
       if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
       i += 1
       if (i % 1000 == 0) depressurize()
