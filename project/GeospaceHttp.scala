@@ -5,6 +5,9 @@ import org.scalatra.sbt._
 import com.mojolly.scalate.ScalatePlugin._
 import ScalateKeys._
 
+import sbtbuildinfo.Plugin._
+
+
 
 object GeospaceHttp {
   import CommonDependencies._
@@ -12,9 +15,10 @@ object GeospaceHttp {
   private val port = SettingKey[Int]("port")
   private val Conf = config("container")
   private val ScalatraVersion = "2.2.2"
+  private val Organization = "com.socrata"
 
   lazy val settings: Seq[Setting[_]] =
-    BuildSettings.projectSettings(assembly = true) ++
+    BuildSettings.projectSettings(assembly = true) ++ buildInfoSettings++
     ScalatraPlugin.scalatraWithJRebel ++
     scalateSettings ++
     Seq(
@@ -22,6 +26,15 @@ object GeospaceHttp {
       port in Conf := 2020,         // Needed for container:restart, which uses a custom Jetty instance
       resolvers += Classpaths.typesafeReleases,
       libraryDependencies ++= scalatraDeps ++ jettyDeps ++ commonDeps,
+      sourceGenerators in Compile <+= buildInfo,
+      buildInfoPackage := Organization,
+      buildInfoKeys := Seq[BuildInfoKey](
+        name,
+        version,
+        scalaVersion,
+        libraryDependencies in Compile,
+        BuildInfoKey.action("buildTime") { System.currentTimeMillis }
+      ),
       scalateTemplateConfig in Compile <<= (sourceDirectory in Compile){
         base => Seq(
           TemplateConfig(

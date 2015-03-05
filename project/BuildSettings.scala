@@ -3,8 +3,6 @@ import sbt.Keys._
 import sbtassembly.Plugin._
 import AssemblyKeys._
 
-import sbtbuildinfo.Plugin._
-
 
 
 import com.socrata.cloudbeessbt.SocrataCloudbeesSbt.{socrataBuildSettings, socrataProjectSettings}
@@ -13,7 +11,7 @@ import com.socrata.cloudbeessbt.SocrataCloudbeesSbt.{socrataBuildSettings, socra
 object BuildSettings {
   val Organization = "com.socrata"
 
-  val buildSettings = socrataBuildSettings ++ buildInfoSettings ++
+  val buildSettings = socrataBuildSettings ++
     Seq(
       name := "geospace",
       scalaVersion := "2.10.3",
@@ -29,15 +27,6 @@ object BuildSettings {
         // Define external documentation paths
         Map( findJar("geoscript") -> url("http://geoscript.org/py/api/") )
       },
-      sourceGenerators in Compile <+= buildInfo,
-      buildInfoPackage := Organization,
-      buildInfoKeys := Seq[BuildInfoKey](
-        name,
-        version,
-        scalaVersion,
-        libraryDependencies in Compile,
-        BuildInfoKey.action("buildTime") { System.currentTimeMillis }
-      ),
       fork in Test := true   // Sometimes this causes sbt test to fail,
     ) ++
     net.virtualvoid.sbt.graph.Plugin.graphSettings
