@@ -3,8 +3,8 @@ package com.socrata.geospace.lib.regioncache
 import com.rojoma.json.v3.ast.JString
 import com.socrata.geospace.lib.client.GeoToSoda2Converter
 import com.typesafe.config.Config
-import com.socrata.geospace.client.GeoToSoda2Converter
-import com.socrata.geospace.regioncache.SpatialIndex.GeoEntry
+import com.socrata.geospace.lib.client.GeoToSoda2Converter
+import com.socrata.geospace.lib.regioncache.SpatialIndex.GeoEntry
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.FeatureJson
 import org.geoscript.feature._
