@@ -7,7 +7,7 @@ object CommonDependencies {
   private val socrataDeps = Seq(
     "com.rojoma"               %% "rojoma-json-v3"            % "3.2.2",
     "com.rojoma"               %% "simple-arm-v2"             % "[2.1.0,3.0.0)",
-    "com.socrata"              %% "socrata-http-client"       % "3.0.0",
+    "com.socrata"              %% "socrata-http-client"       % "3.1.1",
     "com.socrata"              %% "socrata-thirdparty-utils"  % "3.0.0",
     "com.socrata"              %% "soda-fountain-external"    % "0.4.8",
     "com.socrata"              %% "soql-types"                % "0.3.3" exclude("org.jdom", "jdom")

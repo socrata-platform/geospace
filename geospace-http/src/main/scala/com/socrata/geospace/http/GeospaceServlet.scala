@@ -11,7 +11,7 @@ import com.socrata.geospace.http.ingestion.FeatureIngester
 import com.socrata.geospace.lib.errors.InvalidShapefileSet
 import com.socrata.geospace.lib.feature.FeatureValidator
 import com.socrata.geospace.lib.regioncache.{SpatialRegionCache, HashMapRegionCache}
-import com.socrata.geospace.lib.shapefile.{ShapefileReader, TemporaryZip}
+import com.socrata.geospace.lib.shapefile.{SingleLayerShapefileReader, ZipFromArray}
 import com.socrata.geospace.lib.regioncache.RegionCacheKey
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
@@ -78,8 +78,8 @@ with FileUploadSupport with Metrics {
     val readResult = decompressTimer.time {
       // For some reason, the for comprehension and Try() doesn't work with -Xlint.
       // Try doesn't have withFilter() and for some reason for tries to use withFilter.
-      managed(new TemporaryZip(file.get)) flatMap { zip =>
-        ShapefileReader.read(zip.contents, forceLonLat) map { case (features, schema) =>
+      managed(new ZipFromArray(file.get)) flatMap { zip =>
+        SingleLayerShapefileReader.read(zip.contents, forceLonLat) map { case (features, schema) =>
           if (bypassValidation) {
             logger.info("Feature validation bypassed")
           } else {
@@ -120,7 +120,7 @@ with FileUploadSupport with Metrics {
   post("/v1/regions/:resourceName/local-shp") {
     val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
                          .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
-    val readResult = ShapefileReader.read(new java.io.File(request.body), forceLonLat)
+    val readResult = SingleLayerShapefileReader.read(new java.io.File(request.body), forceLonLat)
     assert(readResult.isSuccess)
     val (features, schema) = readResult.get
 

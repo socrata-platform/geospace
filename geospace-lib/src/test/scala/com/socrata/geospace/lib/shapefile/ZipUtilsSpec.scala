@@ -7,7 +7,7 @@ import com.rojoma.simplearm.util._
 import org.apache.commons.codec.binary.Base64
 import org.scalatest.{FunSuite, Matchers}
 
-class TemporaryZipSpec extends FunSuite with Matchers  {
+class ZipUtilsSpec extends FunSuite with Matchers  {
   // Base 64 string of a zip file with the following contents:
   // - file1.txt
   // - sub/file2.txt
@@ -29,7 +29,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
     var tempDir = ""
     var zipPath = ""
 
-    for { zip <- managed( new TemporaryZip(bytes))} {
+    for { zip <- managed( new ZipFromArray(bytes))} {
       val files = zip.contents.listFiles
       files.size should be (2)
       files.filter(f => f.getName.equals("file1.txt")).size should be (1)
@@ -46,7 +46,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
 
   test("Null byte array") {
     an [IllegalArgumentException] should be thrownBy {
-      for {zip <- managed(new TemporaryZip(null))} {
+      for {zip <- managed(ZipFromArray(null))} {
         zip.contents.listFiles
       }
     }
@@ -54,7 +54,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
 
   test("Empty byte array") {
     an [IllegalArgumentException] should be thrownBy {
-      for { zip <- managed(new TemporaryZip(Array[Byte]())) } {
+      for { zip <- managed(ZipFromArray(Array[Byte]())) } {
         zip.contents.listFiles
       }
     }
@@ -64,7 +64,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
     val bytes = Base64.decodeBase64(NotAZipFile);
 
     an [IOException] should be thrownBy {
-      for {zip <- managed(new TemporaryZip(bytes))} {
+      for {zip <- managed(ZipFromArray(bytes))} {
         zip.contents.listFiles
       }
     }
@@ -73,7 +73,7 @@ class TemporaryZipSpec extends FunSuite with Matchers  {
   test("Zip containing 2 files with same name in different subdirectories") {
     val bytes = Base64.decodeBase64(ZipFileWithTxt);
 
-    for { zip <- managed( new TemporaryZip(bytes)) } {
+    for { zip <- managed(ZipFromArray(bytes)) } {
       val files = zip.contents.listFiles
       files.size should be (2)
       files.filter(f => f.getName.equals("file1.txt")).size should be (1)
