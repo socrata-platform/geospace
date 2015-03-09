@@ -3,7 +3,6 @@ package com.socrata.geospace.lib.shapefile
 import com.socrata.geospace.lib.Utils
 import Utils._
 import com.socrata.geospace.lib.errors.InvalidShapefileSet
-import com.typesafe.scalalogging.slf4j.Logging
 import java.io.File
 import org.apache.commons.io.FilenameUtils
 import org.geoscript.feature._
@@ -13,41 +12,13 @@ import org.geoscript.projection._
 import org.geotools.factory.Hints
 import org.geotools.referencing.ReferencingFactoryFinder
 import org.opengis.referencing.crs.CoordinateReferenceSystem
+import org.slf4j.LoggerFactory
 import scala.util.{Failure, Success, Try}
 
 /**
  * Validates and extracts shape and schema data from a shapefile directory.
  */
-object ShapefileReader extends Logging {
-  /**
-   * Shape file extension
-   */
-  val ShapeFormat = "shp"
-
-  /**
-   * Shape index file extension
-   */
-  val ShapeIndexFormat = "shx"
-
-  /**
-   * Attribute file extension
-   */
-  val AttributeFormat = "dbf"
-
-  /**
-   * Projection file extension
-   */
-  val ProjectionFormat = "prj"
-
-  /**
-   * List of files required to ingest a shapefile as a Socrata dataset
-   */
-  val RequiredFiles = Seq(ShapeFormat, ShapeIndexFormat, AttributeFormat, ProjectionFormat)
-
-  /**
-   * Identifier for the default projection for Socrata datasets (WGS84)
-   */
-  val StandardProjection = "EPSG:4326" // TODO : Make this configurable
+object SingleLayerShapefileReader extends ShapeReader {
 
   /**
    * From the specified directory, returns the first file that matches the specified extension
@@ -62,6 +33,9 @@ object ShapefileReader extends Logging {
       case None => Failure(InvalidShapefileSet(s".$extension file is missing"))
     }
   }
+
+  /** default read case where forcelatLong is false. **/
+  def read(directory: File) = read(directory, false)
 
   /**
    * Validates a shapefile and extracts its contents
@@ -80,7 +54,9 @@ object ShapefileReader extends Logging {
     // TODO : Should we just let the Geotools shapefile parser throw an (albeit slightly more ambiguous) error?
     logMemoryUsage("Before validating shapefile zip contents")
     logger.info("Validating shapefile zip contents")
-    val files = directory.listFiles
+
+    // some file systems add some hidden files, this removes them.
+    val files = directory.listFiles.filter(!_.isHidden)
 
     // 1. All files in the set must have the same prefix (eg. foo.shp, foo.shx,...).
     // 2. All required file types should be in the zip
@@ -88,7 +64,7 @@ object ShapefileReader extends Logging {
     if (namedGroups.size != 1) {
       Failure(InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
     } else {
-      val missing = RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
+      val missing = ShapeFileConstants.RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
       missing match {
         case Some(file) => Failure(file.failed.get)
         case None       =>
@@ -106,35 +82,11 @@ object ShapefileReader extends Logging {
    */
   def getContents(directory: File, forceLonLat: Boolean): Try[(Traversable[Feature], Schema)] = {
     logMemoryUsage("Before reading Shapefile...")
-    for { shp <- getFile(directory, ShapeFormat)
-          shapefile <- Try(Shapefile(shp))
-          proj <- Try(getTargetProjection(StandardProjection, forceLonLat))
+    for { shp <- getFile(directory, ShapeFileConstants.ShapeFormat)
     } yield {
-      try {
-        logger.info("Reprojecting shapefile schema and {} features to {}",
-                    shapefile.features.size.toString, proj.getName)
-        logMemoryUsage("Before reprojecting features...")
-        var i = 0
-        val features = shapefile.features.map { feature =>
-          i += 1
-          if (i % 1000 == 0) checkFreeMemAndDie(runGC = true)
-          reproject(feature, proj)
-        }
-        val schema = reproject(shapefile.schema, proj)
-        logMemoryUsage("Done with reprojection")
-        (features, schema)
-      } finally {
-        // Geotools holds a lock on the .shp file if the above blows up.
-        // Releasing resources cleanly in case of an exception.
-        // TODO : We still aren't 100% sure this actually works.
-        shapefile.getDataStore.dispose
-      }
+      val proj = getTargetProjection(ShapeFileConstants.StandardProjection, forceLonLat).fold(throw _, x =>x)
+      doProjections(proj, shp)
     }
   }
 
-  private def getTargetProjection(epsgCode: String, forceLonLat: Boolean): CoordinateReferenceSystem = {
-    val hints = if (forceLonLat) new Hints(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER, true) else new Hints()
-    val factory = ReferencingFactoryFinder.getCRSAuthorityFactory("EPSG", hints)
-    factory.createCoordinateReferenceSystem(epsgCode)
-  }
 }

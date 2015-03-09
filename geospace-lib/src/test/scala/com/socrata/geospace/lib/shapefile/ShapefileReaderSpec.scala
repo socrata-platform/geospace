@@ -26,19 +26,19 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
   }
 
   test("Get file by extension - file exists") {
-    val file = ShapefileReader.getFile(tmp.toFile, "shp")
+    val file = SingleLayerShapefileReader.getFile(tmp.toFile, "shp")
     file should not be (None)
     file.get.getName.endsWith(".shp") should be (true)
   }
 
   test("Get file by extension - file doesn't exist") {
-    val file = ShapefileReader.getFile(tmp.toFile, "giraffe")
+    val file = SingleLayerShapefileReader.getFile(tmp.toFile, "giraffe")
     file.isFailure should be (true)
     file.failed.get.getClass should be (classOf[InvalidShapefileSet])
   }
 
   test("Validation - shouldn't fail on a correctly structured shapefile set") {
-    ShapefileReader.validate(tmp.toFile)
+    SingleLayerShapefileReader.validate(tmp.toFile)
   }
 
   test("Validation - more than one file group in directory") {
@@ -47,16 +47,16 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
     copyToTmp(tmp.toFile, "data/nyc_parks/parks.dbf", "extra.dbf")
     copyToTmp(tmp.toFile, "data/nyc_parks/parks.prj", "extra.prj")
 
-    val result = ShapefileReader.validate(tmp.toFile)
+    val result = SingleLayerShapefileReader.validate(tmp.toFile)
     result.isFailure should be (true)
     result.failed.get.getClass should be (classOf[InvalidShapefileSet])
   }
 
   test("Validation - files missing") {
-    for (required <- ShapefileReader.RequiredFiles) {
+    for (required <- ShapeFileConstants.RequiredFiles) {
       Files.delete(Paths.get(tmp.toString, s"parks.$required"))
 
-      val result = ShapefileReader.validate(tmp.toFile)
+      val result = SingleLayerShapefileReader.validate(tmp.toFile)
       result.isFailure should be (true)
       result.failed.get.getClass should be (classOf[InvalidShapefileSet])
 
@@ -65,7 +65,7 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
   }
 
   test("Get shapefile contents - layer and schema data should be returned correctly") {
-    val result = ShapefileReader.getContents(tmp.toFile, false)
+    val result = SingleLayerShapefileReader.getContents(tmp.toFile, false)
     result.isSuccess should be (true)
 
     val (features, schema) = result.get
@@ -82,7 +82,7 @@ class ShapefileReaderSpec extends FunSuite with Matchers with BeforeAndAfterEach
     val invalidContent = "mayhem"
     Files.write(shpFile, invalidContent.getBytes());
 
-    val result = ShapefileReader.getContents(tmp.toFile, false)
+    val result = SingleLayerShapefileReader.getContents(tmp.toFile, false)
     result.isFailure should be (true)
     result.failed.get.getClass should be (classOf[IOException])
   }
