@@ -109,18 +109,18 @@ object SpatialIndex {
   }
 
   /**
-   * Create a SpatialIndex[String] from a Layer/FeatureSource.  The feature ID will be stored in the index.
+   * Create a SpatialIndex[Int] from a Layer/FeatureSource.  The feature ID will be stored in the index.
    *
    * @param layer an [[org.geoscript.layer.Layer]] or GeoTools FeatureSource.
-   * @return a SpatialIndex[String] where each entry is the geometry and ID from each feature
+   * @return a SpatialIndex[Int] where each entry is the geometry and ID from each feature
    */
   def apply(layer: Layer): SpatialIndex[Int] = apply(layer.features.toSeq)
 
   /**
-   * Create a SpatialIndex[String] from a list of Features.  The feature ID will be stored in the index.
+   * Create a SpatialIndex[Int] from a list of Features.  The feature ID will be stored in the index.
    *
    * @param features a sequence of Features
-   * @return a SpatialIndex[String] where each entry is the geometry and ID from each feature
+   * @return a SpatialIndex[Int] where each entry is the geometry and ID from each feature
    */
   def apply(features: Seq[Feature]): SpatialIndex[Int] = {
     val items = features.map { feature =>
