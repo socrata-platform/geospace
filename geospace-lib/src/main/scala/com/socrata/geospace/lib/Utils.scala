@@ -20,7 +20,7 @@ object Utils extends Logging {
     (freeMB.toInt, freePct.toInt)
   }
 
-  def logMemoryUsage(context: String) {
+  def logMemoryUsage(context: String): Unit = {
     val (freeMB, freePct) = getFree
     logger.info("{}: {}% free, {} MB free", context, freePct.toString, freeMB.toString)
   }
@@ -31,11 +31,12 @@ object Utils extends Logging {
    * Returns true if there is at least minFreePct % of memory free.
    */
   def atLeastFreeMem(minFreePct: Int = DefaultMinFreePct): Boolean = {
-    val (freeMB, freePct) = getFree
+    val (_, freePct) = getFree
     freePct >= minFreePct
   }
 
-  def checkFreeMemAndDie(minFreePct: Int = DefaultMinFreePct, runGC: Boolean = false) {
+  def checkFreeMemAndDie(minFreePct: Int = DefaultMinFreePct,
+                         runGC: Boolean = false): Unit = {
     val (freeMB, freePct) = getFree
     if (freePct < minFreePct) {
       logMemoryUsage("Free memory below limit, throwing up!")

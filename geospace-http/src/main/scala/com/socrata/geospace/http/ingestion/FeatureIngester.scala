@@ -35,21 +35,24 @@ object FeatureIngester extends Metrics {
                           sodaFountain: SodaFountainClient,
                           friendlyName: String,
                           features: Traversable[Feature],
-                          schema: Schema): Try[Response] = coreIngestTimer.time {
-    logger.info("Creating dataset for schema = {}", schema: Any)
-    // HACK : Core doesn't seem to chunk the upsert payload properly when passing it on to Soda Fountain
-    //        This hack bypasses Core for the upsert. Auth is already validated in the DDL steps, so this should be ok.
-    for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
-          addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
-          upsert     <- SodaResponse.check(sodaFountain.upsert("_" + fourByFour,
-                        GeoToSoda2Converter.getUpsertBody(features, schema)), HttpStatus.SC_OK)
-          publish    <- requester.publish(fourByFour)
-    } yield {
-      // The region cache keys off the Soda Fountain resource name, but we currently
-      // ingress the shapefile rows through Core, so we have to mimic the Core->SF
-      // resource name mapping here. We can remove this once Core goes away.
-      val sodaFountainResourceName = "_" + fourByFour
-      Response(sodaFountainResourceName, features.size)
+                          schema: Schema): Try[Response] = {
+    def sfResourceName(fourByFour: String): String = "_" + fourByFour
+    coreIngestTimer.time {
+      logger.info("Creating dataset for schema = {}", schema: Any)
+      // HACK : Core doesn't seem to chunk the upsert payload properly when
+      // passing it on to Soda Fountain. This hack bypasses Core for the upsert.
+      // Auth is already validated in the DDL steps, so this should be ok.
+      for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
+            addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
+            upsert     <- SodaResponse.check(sodaFountain.upsert(sfResourceName(fourByFour),
+              GeoToSoda2Converter.getUpsertBody(features, schema)), HttpStatus.SC_OK)
+            publish    <- requester.publish(fourByFour)
+      } yield {
+        // The region cache keys off the Soda Fountain resource name, but we currently
+        // ingress the shapefile rows through Core, so we have to mimic the Core->SF
+        // resource name mapping here. We can remove this once Core goes away.
+        Response(sfResourceName(fourByFour), features.size)
+      }
     }
   }
 
@@ -59,7 +62,7 @@ object FeatureIngester extends Metrics {
         case JObject(map)  =>
           val JString(id) = map("id")
           id
-        case x             =>
+        case x: JValue     =>
           throw new RuntimeException("Unexpected response from getCreateBody(): " + x)
       }
     }

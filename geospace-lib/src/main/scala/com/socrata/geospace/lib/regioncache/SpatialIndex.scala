@@ -8,7 +8,10 @@ import com.vividsolutions.jts.geom.prep.{PreparedGeometry, PreparedGeometryFacto
 import com.vividsolutions.jts.geom.util.GeometryTransformer
 import com.vividsolutions.jts.geom.{Envelope, Geometry, CoordinateSequence}
 import com.vividsolutions.jts.index.strtree.STRtree
+import org.geoscript.layer._
+import org.geoscript.feature._
 import SpatialIndex._
+import scala.collection.JavaConverters._
 
 /**
  * A spatial index based on JTS STRTree.  It is immutable, once built, it cannot be changed.
@@ -26,8 +29,6 @@ class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
   private val index = new STRtree() // use default node capacity
 
   val numCoordinates = addItems()
-
-  import collection.JavaConverters._
 
   /**
    * Returns a list of Entry's which contain the given geometry, as defined by JTS contains test.
@@ -75,9 +76,6 @@ object GeometryConverter {
 }
 
 object SpatialIndex {
-  import org.geoscript.layer._
-  import org.geoscript.feature._
-
   trait Entry[T] {
     def geom: Geometry
     def item: T
@@ -87,9 +85,9 @@ object SpatialIndex {
   }
 
   case class GeoEntry[T](geom: Geometry, item: T) extends Entry[T] {
-    val prep = PreparedGeometryFactory.prepare(geom)
-    def envelope = geom.getEnvelopeInternal
-    def numCoordinates = geom.getCoordinates.size
+    val prep: PreparedGeometry = PreparedGeometryFactory.prepare(geom)
+    def envelope: Envelope     = geom.getEnvelopeInternal
+    def numCoordinates: Int    = geom.getCoordinates.size
   }
 
   object GeoEntry {
@@ -113,7 +111,7 @@ object SpatialIndex {
   /**
    * Create a SpatialIndex[String] from a Layer/FeatureSource.  The feature ID will be stored in the index.
    *
-   * @param layer an [[org.geoscript.layer.Layer]] or GeoTools FeatureSource.
+   * @param layer an org.geoscript.layer.Layer or GeoTools FeatureSource.
    * @return a SpatialIndex[String] where each entry is the geometry and ID from each feature
    */
   def apply(layer: Layer): SpatialIndex[Int] = apply(layer.features.toSeq)

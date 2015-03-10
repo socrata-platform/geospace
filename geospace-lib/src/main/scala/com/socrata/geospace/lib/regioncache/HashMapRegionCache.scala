@@ -1,6 +1,6 @@
 package com.socrata.geospace.lib.regioncache
 
-import com.rojoma.json.v3.ast.JString
+import com.rojoma.json.v3.ast.{JString, JValue}
 import com.socrata.geospace.lib.feature.FeatureExtensions
 import FeatureExtensions._
 import com.socrata.geospace.lib.client.GeoToSoda2Converter
@@ -40,7 +40,7 @@ class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[S
        case JString(key) =>
          properties.get(GeoToSoda2Converter.FeatureIdColName)
                    .collect { case JString(id) => key.toLowerCase -> id.toInt }
-       case x            =>
+       case x: JValue    =>
          throw new RuntimeException(s"Found FeatureJson property value $x, expected a JString")
      }
    }.toMap

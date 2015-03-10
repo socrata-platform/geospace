@@ -17,6 +17,7 @@ object GeoToSoda2Converter {
   // such as points to the belonging feature.
   // Note: is there a better way to come up with a column name for feature ID?
   // This here is a hack.
+  // scalastyle:off
   val FeatureIdColName = "_feature_id"
   val FeatureIdColumnDef = JObject(Map(
       "field_name" -> JString(FeatureIdColName),
@@ -41,6 +42,7 @@ object GeoToSoda2Converter {
     classOf[java.lang.Double]  -> "double",
     classOf[java.lang.Long]    -> "double"
   )
+  // scalastyle:on
 
   /**
    * Generates a Soda2 create request body

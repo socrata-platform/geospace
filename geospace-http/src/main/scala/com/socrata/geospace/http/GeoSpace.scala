@@ -13,15 +13,17 @@ import org.scalatra.servlet.ScalatraListener
  * This main class is needed to start a Scalatra server standalone with embedded Jetty
  */
 object Geospace extends App {
+  private val rootPath = "/"
+
   val config = new GeospaceConfig(ConfigFactory.load().getConfig("com.socrata"))
   val port = config.port
   val server = new Server(port)
   val context = new WebAppContext()
 
-  context setContextPath "/"
+  context setContextPath rootPath
   context.setResourceBase("geospace-http/src/main/webapp")
   context.addEventListener(new ScalatraListener)
-  context.addServlet(classOf[DefaultServlet], "/")
+  context.addServlet(classOf[DefaultServlet], rootPath)
 
   val handler = new InstrumentedHandler(Metrics.metricsRegistry, context, config.metrics.prefix)
   server.setHandler(handler)

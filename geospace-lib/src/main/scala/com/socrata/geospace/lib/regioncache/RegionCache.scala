@@ -1,17 +1,15 @@
 package com.socrata.geospace.lib.regioncache
 
-import com.rojoma.json.v3.ast.JValue
 import com.socrata.geospace.lib.client.SodaResponse
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
 import com.socrata.thirdparty.metrics.Metrics
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
-import com.vividsolutions.jts.geom.Geometry
 import org.geoscript.feature._
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import spray.caching.LruCache
-
 
 /**
  * Represents the key for a region cache (dataset resource name + column name)
@@ -54,8 +52,6 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
   val cacheSizeGauge = metrics.gauge("num-entries", System.currentTimeMillis.toString) { cache.size }
   val sodaReadTimer  = metrics.timer("soda-region-read")
   val regionIndexLoadTimer = metrics.timer("region-index-load")
-
-  import concurrent.ExecutionContext.Implicits.global
 
   /**
    * Generates a cache entry for the dataset given a sequence of features
@@ -112,7 +108,6 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
         }
         // Originally using javax lib for this one status code, I doubt highly it will ever change, and
         // we will avoid having to make an import for single item by statically adding it.
-        //val payload = SodaResponse.check(sodaResponse, HttpStatus.SC_OK)
         val payload = SodaResponse.check(sodaResponse, Status_OK)
         regionIndexLoadTimer.time {
           payload.toOption.
@@ -132,5 +127,5 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
   /**
    * Clears the cache of all entries.  Mostly used for testing.
    */
-  def reset() { cache.clear() }
+  def reset(): Unit = { cache.clear() }
 }

@@ -16,22 +16,20 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem
 import org.geoscript.feature.schemaBuilder._
 import org.geotools.factory.Hints
 
-
-
-
-
-
-
 trait ShapeReader extends Logging {
   def read(file: File): AnyRef
   def validate(file: File): AnyRef
 
 
-  /** performs feature and schema reprojections will not handle exceptions. **/
+  /**
+   * performs feature and schema reprojections will not handle exceptions.
+   */
   final def doProjections(projection: Projection, file: File): (Traversable[Feature], Schema) = {
     val shapeFile = Shapefile(file)
     try{
-      logger.info("Reprojecting shapefile schema and {} features to {}", shapeFile.features.size.toString, projection.getName)
+      logger.info("Reprojecting shapefile schema and {} features to {}",
+                  shapeFile.features.size.toString,
+                  projection.getName)
       logMemoryUsage("Before reprojecting features...")
 
       var i = 0
@@ -54,8 +52,9 @@ trait ShapeReader extends Logging {
     }
   }
 
-
-  /** Provides the projection object necessary to re-project when parsing shape-files **/
+  /**
+   * Provides the projection object necessary to re-project when parsing shape-files
+   */
   def getTargetProjection(epsgCode: String, forceLonLat: Boolean): Either[InvalidShapefileSet, Projection] =
     try {
       val hints = if (forceLonLat) new Hints(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER, true) else new Hints()
