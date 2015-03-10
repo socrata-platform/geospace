@@ -19,31 +19,47 @@ import scala.annotation.tailrec
   * then allows you to unarchive contents and return the directory with directory structure flattened.
   */
 abstract class AbstractZip(tmpDir: Option[File] = None) extends Closeable with Logging {
+  require(hasContents, "Null or empty zip file")
 
-  /** output temp file, override if declaring another directory. **/
+  val shpPrefix = "shp_"
+  val zipSuffix = ".zip"
+
+  /**
+   * output temp file, override if declaring another directory.
+   */
   lazy val tmpFile: File = {
     tmpDir match {
       case Some(x) =>
         x.mkdir()
-        File.createTempFile("shp_", ".zip", x)
-      case None => File.createTempFile("shp_", ".zip")
+        File.createTempFile(shpPrefix, zipSuffix, x)
+      case None => File.createTempFile(shpPrefix, zipSuffix)
     }
   }
 
   /**
    * the zip file saved temporarily to disk.
    */
-  lazy val archive: File = getArchive
+  lazy val archive: File = {
+    logger.info("Temporarily copying shapefile zip to {}", tmpFile.getAbsolutePath)
+    getArchive
+  }
 
-  /** Implement to indicate how to get the file. **/
+    /**
+     * Implement to indicate how to get the file.
+     */
   protected def getArchive: File
+
+  /**
+   * Validates that the zip file has contents
+   */
+  protected def hasContents: Boolean
 
   /**
    * The single directory containing the contents of the zip file.
    * The directory structure of the original zip file is flattened.
    */
   lazy val contents: File = {
-    val contentsTmpDir = Files.createTempDirectory("shp_")
+    val contentsTmpDir = Files.createTempDirectory(shpPrefix)
     logMemoryUsage("Before zip file extraction")
 
     for { zip <- managed(new ZipFile(archive)) } {
@@ -71,14 +87,13 @@ abstract class AbstractZip(tmpDir: Option[File] = None) extends Closeable with L
   /**
    * Removes all temporary files from the file system once they are no longer needed.
    */
-  def close() {
+  def close(): Unit = {
     FileUtils.deleteDirectory(contents)
     logger.info("Deleted temporary extracted shapefile contents")
     archive.delete()
     tmpDir.foreach(_.delete)
     logger.info("Deleted temporary shapefile zip")
   }
-
 }
 
 
@@ -89,15 +104,14 @@ abstract class AbstractZip(tmpDir: Option[File] = None) extends Closeable with L
   * @param compressed byte array representation of the zip file
   */
 case class ZipFromArray(compressed: Array[Byte]) extends AbstractZip(None) {
-  require(Option(compressed).filter(_.nonEmpty).isDefined, "Null or empty zip file")
+  protected def hasContents: Boolean = Option(compressed).filter(_.nonEmpty).isDefined
 
-  def getArchive = {
+  def getArchive: File = {
     for {
       in <- managed(new ByteArrayInputStream(compressed))
       out <- managed(new FileOutputStream(tmpFile))
     } {
       IOUtils.copy(in, out)
-      logger.info("Temporarily copied shapefile zip to {}", tmpFile.getAbsolutePath)
     }
 
     tmpFile
@@ -112,15 +126,14 @@ case class ZipFromArray(compressed: Array[Byte]) extends AbstractZip(None) {
   * @param tmpDir temp directory where to place the zip file.
   */
 case class ZipFromStream(compressed: InputStream, tmpDir: Option[File]) extends AbstractZip(tmpDir) {
-  require(Option(compressed).filter(_.available >= 0).isDefined, "Null or empty zip file")
+  protected def hasContents: Boolean = Option(compressed).filter(_.available >= 0).isDefined
 
-  def getArchive = {
-    for{
+  def getArchive: File = {
+    for {
       ops <- managed(new FileOutputStream(tmpFile))
     } {
       IOUtils.copy(compressed, ops)
       ops.flush()
-      logger.info("Temporarily copied shapefile zip to {}", tmpFile.getAbsolutePath)
     }
 
     tmpFile

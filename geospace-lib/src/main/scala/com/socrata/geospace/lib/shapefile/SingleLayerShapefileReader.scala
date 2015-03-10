@@ -34,8 +34,10 @@ object SingleLayerShapefileReader extends ShapeReader {
     }
   }
 
-  /** default read case where forcelatLong is false. **/
-  def read(directory: File) = read(directory, false)
+  /**
+   * default read case where forcelatLong is false.
+   */
+  def read(directory: File): Try[(Traversable[Feature], Schema)] = read(directory, false)
 
   /**
    * Validates a shapefile and extracts its contents
@@ -64,7 +66,9 @@ object SingleLayerShapefileReader extends ShapeReader {
     if (namedGroups.size != 1) {
       Failure(InvalidShapefileSet("Expected a single set of consistently named shapefiles"))
     } else {
-      val missing = ShapeFileConstants.RequiredFiles.map { rf => getFile(directory, rf) }.find { find => find.isFailure }
+      val missing = ShapeFileConstants.RequiredFiles.map { rf =>
+        getFile(directory, rf)
+      }.find { find => find.isFailure }
       missing match {
         case Some(file) => Failure(file.failed.get)
         case None       =>

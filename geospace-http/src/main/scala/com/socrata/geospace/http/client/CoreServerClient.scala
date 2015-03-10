@@ -74,6 +74,7 @@ class CoreServerClient(httpClient: HttpClient,
      */
     def publish(fourByFour: String): Try[JValue] = post(publishUrl(_, fourByFour), JNull, HttpStatus.SC_OK)
 
+    // scalastyle:off
     private def createUrl(rb: RequestBuilder) =
       basicCoreServerUrl(rb).method("POST").p("views").addParameter("nbe" -> "true")
 
@@ -85,6 +86,7 @@ class CoreServerClient(httpClient: HttpClient,
 
     private def publishUrl(rb: RequestBuilder, resourceName: String) =
       basicCoreServerUrl(rb).method("POST").p("views", resourceName, "publication.json")
+    // scalastyle:on
 
     private def basicCoreServerUrl(rb: RequestBuilder) =
       rb.addHeader("Authorization"  -> auth.authToken)
@@ -117,9 +119,9 @@ class CoreServerClient(httpClient: HttpClient,
       case Some(rb) =>
         val request = buildRequest(rb)
         logger.info("Request: " + request)
-        for (response <- httpClient.execute(request)) {
-          f(response)
-        }
+        for {
+          response <- httpClient.execute(request)
+        } f(response)
       case None => throw ServiceDiscoveryException("Could not connect to Core")
     }
   }

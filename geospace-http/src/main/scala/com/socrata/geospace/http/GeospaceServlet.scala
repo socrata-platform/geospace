@@ -8,7 +8,6 @@ import com.socrata.geospace.http.client.{CoreServerClient, CoreServerAuth}
 import com.socrata.geospace.http.config.GeospaceConfig
 import com.socrata.geospace.http.curatedregions.{CuratedRegionIndexer, CuratedRegionSuggester}
 import com.socrata.geospace.http.ingestion.FeatureIngester
-import com.socrata.geospace.lib.errors.InvalidShapefileSet
 import com.socrata.geospace.lib.feature.FeatureValidator
 import com.socrata.geospace.lib.regioncache.{SpatialRegionCache, HashMapRegionCache}
 import com.socrata.geospace.lib.shapefile.{SingleLayerShapefileReader, ZipFromArray}
@@ -17,16 +16,16 @@ import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.socrata.thirdparty.metrics.Metrics
 import javax.servlet.http.{HttpServletResponse => HttpStatus}
+import org.geoscript.geometry.builder
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
-import scala.util.{Try, Failure, Success}
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
                       myConfig: GeospaceConfig) extends GeospaceMicroserviceStack
-with FileUploadSupport with Metrics {
+                      with FileUploadSupport with Metrics with GeospaceParams {
   val spatialCache = new SpatialRegionCache(myConfig.cache)
   val stringCache  = new HashMapRegionCache(myConfig.cache)
 
@@ -56,21 +55,9 @@ with FileUploadSupport with Metrics {
   // (still figuring how to do that in Scalatra)
   // TODO Return some kind of meaningful JSON response
   post("/v1/regions/shapefile") {
-    val friendlyName = params.getOrElse("friendlyName",
-      halt(BadRequest("No friendlyName param provided in the request")))
-    val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean).getOrElse(
-      halt(BadRequest("Invalid forceLonLat param provided in the request")))
     // TODO fileParams.get currently blows up if no post params are provided. Handle that scenario more gracefully.
     val file = fileParams.getOrElse("file", halt(BadRequest("No file param provided in the request")))
-    val bypassValidation = Try(params.getOrElse("bypassValidation", "false").toBoolean)
-      .getOrElse(halt(BadRequest("Invalid bypassValidation param provided in the request")))
 
-    val authToken = request.headers.getOrElse("Authorization",
-      halt(BadRequest("Core Basic Auth must be provided in order to ingest a shapefile")))
-    val appToken = request.headers.getOrElse("X-App-Token",
-      halt(BadRequest("X-App-Token header must be provided in order to ingest a shapefile")))
-    val domain = request.headers.getOrElse("X-Socrata-Host",
-      halt(BadRequest("X-Socrata-Host header must be provided in order to ingest a shapefile")))
     val requester = coreServer.requester(CoreServerAuth(authToken, appToken, domain))
 
     val readReprojectStartTime = System.currentTimeMillis
@@ -109,25 +96,19 @@ with FileUploadSupport with Metrics {
 
     // TODO : Zip file manipulation is not actually handled through scala.util.Try right now.
     // Refactor to do that and handle IOExceptions cleanly.
-    ingressResult match {
-      case Success(payload)                  => Map("response" -> payload)
-      case Failure(e: InvalidShapefileSet)   => throw e //halt(BadRequest(e.getMessage))
-      case Failure(e)                        => throw e //halt(InternalServerError(e.getMessage))
-    }
+    ingressResult.map { payload => Map("response" -> payload) }.get
   }
 
   // A test route only for loading a Shapefile to cache; body = full path to Shapefile unzipped directory
   post("/v1/regions/:resourceName/local-shp") {
-    val forceLonLat = Try(params.getOrElse("forceLonLat", "false").toBoolean)
-                         .getOrElse(halt(BadRequest("Invalid forceLonLat param provided in the request")))
     val readResult = SingleLayerShapefileReader.read(new java.io.File(request.body), forceLonLat)
     assert(readResult.isSuccess)
-    val (features, schema) = readResult.get
+    val (features, _) = readResult.get
 
     // Cache the reprojected features in our region cache for immediate geocoding
     // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
     new AsyncResult { val is =
-      spatialCache.getFromFeatures(params("resourceName"), features.toSeq)
+      spatialCache.getFromFeatures(resourceName, features.toSeq)
         .map { index => Map("rows-ingested" -> features.toSeq.length) }
     }
   }
@@ -141,15 +122,13 @@ with FileUploadSupport with Metrics {
       halt(HttpStatus.SC_BAD_REQUEST, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     }
     new AsyncResult { val is =
-      geocodingTimer.time { geoRegionCode(params("resourceName"), points) }
+      geocodingTimer.time { geoRegionCode(resourceName, points) }
     }
   }
 
   // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
   // Also describe how the getting the region file is async and thus the coding happens afterwards
   private def geoRegionCode(resourceName: String, points: Seq[Seq[Double]]): Future[Seq[Option[Int]]] = {
-    import org.geoscript.geometry.builder
-
     val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
     val futureIndex = spatialCache.getFromSoda(sodaFountain, resourceName)
     futureIndex.map { index =>
@@ -161,10 +140,10 @@ with FileUploadSupport with Metrics {
     val strings = parsedBody.extract[Seq[String]]
     if (strings.isEmpty) halt(HttpStatus.SC_BAD_REQUEST,
       s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
-    val column = params.getOrElse("column", halt(BadRequest("column param must be provided")))
+    val column = mandatoryQueryParam("column")
 
     new AsyncResult { val is =
-      geocodingTimer.time { stringCode(params("resourceName"), column, strings) }
+      geocodingTimer.time { stringCode(resourceName, column, strings) }
     }
   }
 
@@ -173,6 +152,7 @@ with FileUploadSupport with Metrics {
     futureIndex.map { index => strings.map { str => index.get(str.toLowerCase) } }
   }
 
+  // scalastyle:off
   get("/v1/regions") {
     Map("spatialCache" -> spatialCache.indicesBySizeDesc().map {
                             case (key, size) => Map("resource" -> key, "numCoordinates" -> size) },
@@ -186,6 +166,7 @@ with FileUploadSupport with Metrics {
     logMemoryUsage("After clearing region caches")
     Ok("Done")
   }
+  // scalastyle:on
 
   post("/v1/regions/curated") {
     val curatedDomains  = myConfig.curatedRegions.domains
@@ -209,10 +190,9 @@ with FileUploadSupport with Metrics {
   }
 
   post("/v1/regions/:resourceName/curated") {
-    val geoColumn = params.getOrElse("geoColumn", halt(BadRequest("geoColumn param must be provided")))
-    val domain = request.headers.getOrElse("X-Socrata-Host", halt(BadRequest("must provide header: X-Socrata-Host")))
+    val geoColumn = mandatoryQueryParam("geoColumn")
 
     val indexer = CuratedRegionIndexer(sodaFountain, myConfig.curatedRegions)
-    indexer.index(params("resourceName"), geoColumn, domain).get
+    indexer.index("resourceName", geoColumn, domain).get
   }
 }

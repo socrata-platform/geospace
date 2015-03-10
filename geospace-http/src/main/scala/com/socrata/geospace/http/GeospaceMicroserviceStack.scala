@@ -22,7 +22,7 @@ trait GeospaceMicroserviceStack extends ScalatraServlet
   }
 
   error {
-    case e =>
+    case e: Exception =>
       logger.error("Request errored out", e)
       InternalServerError(s"${e.getClass.getSimpleName}: ${e.getMessage}\n${e.getStackTraceString}\n")
   }

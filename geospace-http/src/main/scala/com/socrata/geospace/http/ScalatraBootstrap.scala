@@ -51,7 +51,7 @@ class ScalatraBootstrap extends LifeCycle {
 
   lazy val metricsReporter = new MetricsReporter(config.metrics)
 
-  override def init(context: ServletContext) {
+  override def init(context: ServletContext): Unit = {
     curator.start
     discovery.start
     cookie
@@ -61,7 +61,7 @@ class ScalatraBootstrap extends LifeCycle {
     context.mount(new GeospaceServlet(sodaFountain, coreServer, config), "/*")
   }
 
-  override def destroy(context: ServletContext) {
+  override def destroy(context: ServletContext): Unit = {
     metricsReporter.stop()
     coreServer.close
     sodaFountain.close

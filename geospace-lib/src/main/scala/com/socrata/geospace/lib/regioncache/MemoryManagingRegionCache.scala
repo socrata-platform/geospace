@@ -36,7 +36,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
   /**
    * Relieve memory pressure, if required, before caching a new entry
    */
-  protected override def prepForCaching() = depressurize()
+  override protected def prepForCaching() = depressurize()
 
   /**
    * Returns indices in descending order of size

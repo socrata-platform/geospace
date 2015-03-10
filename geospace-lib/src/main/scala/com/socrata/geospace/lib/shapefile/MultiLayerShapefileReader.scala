@@ -5,30 +5,27 @@ import java.io.{IOException, File}
 import com.socrata.geospace.lib.Utils._
 import com.socrata.geospace.lib.errors.InvalidShapefileSet
 import org.apache.commons.io.FilenameUtils
-import org.geoscript.feature._
-import org.geoscript.layer.Shapefile
 import org.geoscript.projection._
-import org.geoscript.feature.schemaBuilder._
 import org.geoscript.feature._
-import org.geoscript.layer._
-import org.geotools.factory.Hints
 import org.geoscript.projection.Projection
-import org.geotools.referencing.ReferencingFactoryFinder
-import org.opengis.referencing.crs.CoordinateReferenceSystem
+import scala.util.{Success, Failure, Try}
 
 /**
  * Shape file reader but for the case where we have multiple layers.
  * Notable is that we can also pass a different projection if we so desire.
  * If not, then default is take to be "EPSG:4326"
  *
- * <p> Note: As currently used each layer (distinguished by their namespace) will result in a features and schema tuple
- * that will be used and ingested as desired. For socrata internally that means each layer will be assigned to a 4x4 that in turn
- * will be referenced in a parent's 4x4 view's metadata. The metadata will have a map named layers that will map a namepsace to a 4x4. The choice
- * of mapping will help in updating consistently and adding new layers.</p>
+ * <p> Note: As currently used each layer (distinguished by their namespace) will
+ * result in a features and schema tuple that will be used and ingested as desired.
+ * For socrata internally that means each layer will be assigned to a 4x4 that in turn
+ * will be referenced in a parent's 4x4 view's metadata. The metadata will have a map
+ * named layers that will map a namepsace to a 4x4. The choice of mapping will help in
+ * updating consistently and adding new layers.</p>
  * @param projectionString
  * @param forceLatLon
  */
-case class MultiLayerShapefileReader(projectionString: String = ShapeFileConstants.StandardProjection, forceLatLon: Boolean) extends ShapeReader {
+case class MultiLayerShapefileReader(projectionString: String = ShapeFileConstants.StandardProjection,
+                                     forceLatLon: Boolean) extends ShapeReader {
 
   val projection = getTargetProjection(projectionString, forceLatLon).fold(throw _, x => x )
 
@@ -68,7 +65,7 @@ case class MultiLayerShapefileReader(projectionString: String = ShapeFileConstan
         (name, array) <- namedGroups
         rf <- ShapeFileConstants.RequiredFiles
         error <- getFileFromArray(array, rf).left.toSeq
-      } yield "FileName: "+name + " - error: " + error
+      } yield "FileName: " + name + " - error: " + error
 
       if (errors.size == 0) {
         Right(namedGroups)
@@ -86,7 +83,9 @@ case class MultiLayerShapefileReader(projectionString: String = ShapeFileConstan
    */
   def getFileFromArray(directory: Array[File], extension: String): Either[InvalidShapefileSet, File] = {
     // find file given the extension, if fond return that value, if not then send an InvalidShapeFIleSet
-    directory.find(f => FilenameUtils.getExtension(f.getName).equals(extension)).toRight(InvalidShapefileSet(s".$extension file is missing"))
+    directory.find { f =>
+      FilenameUtils.getExtension(f.getName).equals(extension)
+    }.toRight(InvalidShapefileSet(s".$extension file is missing"))
   }
 
   /**
@@ -113,29 +112,28 @@ case class MultiLayerShapefileReader(projectionString: String = ShapeFileConstan
   }
 
 
-  /** Actual parsing of shapefiles done here. Including projections **/
+  /**
+   * Actual parsing of shapefiles done here. Including projections
+   */
   def parseShape(name: String, array: Array[File]): Either[InvalidShapefileSet, (Traversable[Feature], Schema)] = {
-    try {
-      for {
-        shp <- getFileFromArray(array, ShapeFileConstants.ShapeFormat).right
-      } yield {
-        try {
-          doProjections(projection, shp)
-        } catch {
-          case e: Exception =>
-            logger.warn("\"Reader failed to parse shape layer {}. -> {}", name, e.getMessage)
-            return Left(InvalidShapefileSet("Reader failed to parse shape layer '%s'. -> %s".format(name, e.getMessage)))
-        }
-      }
-    } catch {
-      case io: IOException =>
-        val fullName = getFileFromArray(array, ShapeFileConstants.ShapeFormat).right.get.getAbsolutePath
-        logger.warn("Reader failed to read shapefile layer {}. -> {}", fullName, io.getMessage)
-        Left(InvalidShapefileSet("Reader failed to read shapefile layer %s. -> %s".format(fullName,io.getMessage)))
+    val contents = for {
+      shp  <- getFileFromArray(array, ShapeFileConstants.ShapeFormat).fold(Failure(_), Success(_))
+      proj <- Try(doProjections(projection, shp))
+    } yield proj
+
+    contents match {
+      case Success(c) =>
+        Right(c)
+      case Failure(e: Exception) =>
+        logger.warn("\"Reader failed to parse shape layer {}. -> {}", name, e.getMessage)
+        Left(InvalidShapefileSet("Reader failed to parse shape layer '%s'. -> %s".format(name, e.getMessage)))
+      case Failure(e) =>
+        throw e
     }
   }
 }
 
 object MultiLayerShapefileReader {
-  def apply(projection: Projection, forceLatLon: Boolean) = new MultiLayerShapefileReader(projection.id, forceLatLon)
+  def apply(projection: Projection, forceLatLon: Boolean): MultiLayerShapefileReader =
+    new MultiLayerShapefileReader(projection.id, forceLatLon)
 }

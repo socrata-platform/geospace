@@ -40,7 +40,7 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
                         config.resourceName, JArray(Seq(JObject(allFields)))), HttpStatus.SC_OK)
     } yield {
       logger.info(s"Dataset $resourceName was successfully marked as a curated georegion")
-      Map("resource_name" -> resourceName, "domain" -> domain, "isSuccess" -> true)
+      allFields + ("isSuccess" -> true)
     }
   }
 
@@ -53,7 +53,7 @@ case class CuratedRegionIndexer(sodaFountain: SodaFountainClient, config: Curate
         Success(keys.map(extractField(_, fields.toMap)).toMap)
       case JObject(fields)              =>
         Success(keys.map(extractField(_, fields.toMap)).toMap)
-      case other                        =>
+      case other: JValue                =>
         Failure(UnexpectedSodaResponse("Could not parse Soda resource information", other))
     }
   }
