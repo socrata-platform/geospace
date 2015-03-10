@@ -7,7 +7,7 @@ object BuildSettings {
   val buildSettings =
     Seq(
       name := "geospace",
-      scalaVersion := "2.10.3",
+      scalaVersion := "2.10.4",
       organization := Organization,
       autoAPIMappings := true,
       apiMappings ++= {
@@ -26,16 +26,12 @@ object BuildSettings {
         }
       },
       fork in Test := true   // Sometimes this causes sbt test to fail,
-    ) ++
-    net.virtualvoid.sbt.graph.Plugin.graphSettings
-
-
+    )
 
   def projectSettings(assembly: Boolean = false) = buildSettings ++
     Seq(resolvers += Classpaths.typesafeReleases,
         resolvers ++= socrataResolvers,
         scalacOptions ++= Seq("-Xlint", "-deprecation", "-Xfatal-warnings", "-feature"))
-
 
   lazy val socrataResolvers = Seq(
     "Open Source Geospatial Foundation Repository" at "http://download.osgeo.org/webdav/geotools",
