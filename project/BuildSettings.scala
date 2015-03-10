@@ -19,13 +19,18 @@ object BuildSettings {
       autoAPIMappings := true,
       apiMappings ++= {
         val classpath = (fullClasspath in Compile).value
-        def findJar(name: String): File = {
+        def findJar(name: String): Option[File] = {
           val regex = ("/" + name + "[^/]*.jar$").r
-          classpath.find { jar => regex.findFirstIn(jar.data.toString).nonEmpty }.get.data // fail hard if not found
+          classpath.map(_.data).find { data =>
+            regex.findFirstIn(data.toString).nonEmpty
+          }
         }
 
         // Define external documentation paths
-        Map( findJar("geoscript") -> url("http://geoscript.org/py/api/") )
+        findJar("geoscript") match {
+          case Some(jar) => Map(jar -> url("http://geoscript.org/py/api/"))
+          case None      => Map.empty
+        }
       },
       fork in Test := true   // Sometimes this causes sbt test to fail,
     ) ++
