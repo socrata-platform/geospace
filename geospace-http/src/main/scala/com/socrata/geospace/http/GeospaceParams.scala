@@ -16,7 +16,7 @@ trait GeospaceParams { this: ScalatraBase =>
                        extract: String => Option[String],
                        convert: String => T): Option[T] = {
     def tryConvert(raw: String): T = Try(convert(raw)).getOrElse(invalidParamError(name))
-    params.get(name).map(tryConvert).orElse(default)
+    extract(name).map(tryConvert).orElse(default)
   }
 
   def mandatoryInput[T](name: String,
