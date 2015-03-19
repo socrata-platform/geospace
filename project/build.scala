@@ -6,7 +6,7 @@ object Build extends sbt.Build {
     settings(BuildSettings.buildSettings: _*).
     aggregate(geoLibrary, geospaceHttp)
 
-  def p(name: String, settings : { def settings: Seq[Setting[_]] }, dependencies: ClasspathDep[ProjectReference]*) =
+  private def p(name: String, settings : { def settings: Seq[Setting[_]] }, dependencies: ClasspathDep[ProjectReference]*) =
     Project(name, file(name)).
       settings(settings.settings : _*).
       dependsOn(dependencies: _*)
