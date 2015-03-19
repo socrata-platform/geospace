@@ -28,7 +28,7 @@ object BuildSettings {
           case None      => Map.empty
         }
       },
-      fork in Test := false   // Sometimes this causes sbt test to fail,
+      fork in Test := true   // Sometimes this causes sbt test to fail,
     )
 
   def projectSettings = buildSettings ++
