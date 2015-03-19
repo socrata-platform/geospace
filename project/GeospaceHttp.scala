@@ -18,9 +18,7 @@ object GeospaceHttp {
   private val Organization = "com.socrata"
 
   lazy val settings: Seq[Setting[_]] =
-    BuildSettings.projectSettings(assembly = true) ++ buildInfoSettings++
-    ScalatraPlugin.scalatraWithJRebel ++
-    scalateSettings ++
+    BuildSettings.projectSettings ++ buildInfoSettings ++ ScalatraPlugin.scalatraWithJRebel ++ scalateSettings ++
     Seq(
       name := "geospace-microservice",
       port in Conf := 2020,         // Needed for container:restart, which uses a custom Jetty instance
