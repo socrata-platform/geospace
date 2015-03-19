@@ -1,10 +1,15 @@
 import sbt.Keys._
 import sbt._
 import sbtassembly.AssemblyKeys._
+import com.socrata.sbtplugins.StylePlugin.StyleKeys._
+
 
 object BuildSettings {
   val buildSettings =
     Seq(
+      // TODO: enable style checks
+      // turned off style check in testing.
+      styleCheck in Test := {},
       scalaVersion := "2.10.4",
       organization := "com.socrata",
       autoAPIMappings := true,
@@ -23,7 +28,7 @@ object BuildSettings {
           case None      => Map.empty
         }
       },
-      fork in Test := true   // Sometimes this causes sbt test to fail,
+      fork in Test := false   // Sometimes this causes sbt test to fail,
     )
 
   def projectSettings = buildSettings ++
