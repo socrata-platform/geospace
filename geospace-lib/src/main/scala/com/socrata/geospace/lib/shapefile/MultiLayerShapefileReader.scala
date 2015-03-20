@@ -23,6 +23,7 @@ import scala.util.{Success, Failure, Try}
  * updating consistently and adding new layers.</p>
  * @param projectionString
  * @param forceLatLon
+ * @deprecated to use MultiLayerReader and LayerTransformer instead.
  */
 case class MultiLayerShapefileReader(projectionString: String = ShapeFileConstants.StandardProjection,
                                      forceLatLon: Boolean) extends ShapeReader {
