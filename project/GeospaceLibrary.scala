@@ -6,7 +6,7 @@ import CommonDependencies._
 object GeospaceLibrary{
 
   lazy val settings: Seq[sbt.Setting[_]] =
-  BuildSettings.projectSettings(assembly = true) ++
+  BuildSettings.projectSettings ++
   Seq(
     name := "geospace-library",
     libraryDependencies ++= commonDeps
