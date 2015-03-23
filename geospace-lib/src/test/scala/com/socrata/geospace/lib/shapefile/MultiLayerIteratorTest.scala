@@ -13,7 +13,6 @@ class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAf
   // reader creation.
   private val projection = ShapeFileConstants.StandardProjection
   private val forceLatLon = false
-  private val reader = MultiLayerShapefileReader(projection, forceLatLon)
 
   // files to test from.
   private var goodZip: ZipFromStream = _
@@ -37,7 +36,7 @@ class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAf
   }
 
   test("Iterate good directory") {
-    val reader = MultiLayerReader(projection, false, goodZip.contents)
+    val reader = MultiLayerReader(projection, forceLatLon, goodZip.contents)
     val it = reader.iterator
 
     reader.projection.id must equal(projection)
@@ -89,26 +88,5 @@ class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAf
     schema must not be (null)
     schema.getAttributeCount must be (13)
 
-  }
-
-  test("Read directory"){
-    // success case
-    val result = reader.read(goodZip.contents)
-    result must be ('right)
-    val map = result.right.get
-    map.isEmpty must be (false)
-    map.size must be (2)
-
-    val mapRes = map.get("wards_chicago_mid_simp")
-    mapRes.isDefined must be (true)
-
-    val (features, schema) = mapRes.get
-    features.isEmpty must be (false)
-    features.foreach { feature =>
-      feature.getDefaultGeometry must be (a [MultiPolygon])
-    }
-
-    schema must not be (null)
-    schema.getAttributeCount must be (13)
   }
 }
