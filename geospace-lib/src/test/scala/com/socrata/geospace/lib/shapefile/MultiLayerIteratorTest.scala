@@ -69,13 +69,13 @@ class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAf
 
     var resultMap: Map[String, (Traversable[Feature], Schema)] = Map()
 
-
-    while(it.hasNext) {
-      val (name, fArray) = it.next()
+    // use foreach instead of while loop, just better form but the idea is the same.
+    it.foreach{
+      case (name, fArray) =>
       lt.transform(name, fArray).right.map(x => resultMap += name -> x)
     }
 
-
+    // check each layer exists.
     val mapRes = resultMap.get("wards_chicago_mid_simp")
     mapRes.isDefined must be (true)
 
@@ -87,6 +87,5 @@ class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAf
 
     schema must not be (null)
     schema.getAttributeCount must be (13)
-
   }
 }
