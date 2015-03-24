@@ -29,7 +29,7 @@ import org.geoscript.projection._
  */
 case class MultiLayerReader(projectionString: String = ShapeFileConstants.StandardProjection,
                             forceLatLon: Boolean,
-                            directory: File) extends Iterable[(String, Array[File])] with Logging{
+                            directory: File) extends Iterable[(String, Array[File])] with Logging {
 
   def iterator: Iterator[(String, Array[File])] =  validate(directory).fold(throw _, x => x.iterator)
   def projection: Projection = getTargetProjection(projectionString, forceLatLon).fold(throw _, x => x )

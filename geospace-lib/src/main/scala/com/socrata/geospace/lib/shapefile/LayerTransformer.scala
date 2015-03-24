@@ -19,7 +19,10 @@ import org.geotools.factory.Hints
 import scala.util.{Failure, Success, Try}
 
 /**
- * Shape file reader.
+ * Shape file layer parser.
+ *
+ * <p> The intent of this class is to take a projection (created possibly from MultiLayerReader)
+ * to apply and transform any layer. </p>
  *
  * <p> Note: As currently used each layer (distinguished by their namespace) will
  * result in a features and schema tuple that will be used and ingested as desired.
@@ -29,8 +32,8 @@ import scala.util.{Failure, Success, Try}
  * updating consistently and adding new layers.</p>
  * @param projection
  */
-case class LayerTransformer(projection: Projection) extends Logging{
-  type IngestResultMap = (String, (Traversable[Feature], Schema))
+case class LayerTransformer(projection: Projection) extends Logging {
+  type ParseResult = (Traversable[Feature], Schema)
 
   /**
    * From an array of files, looks for a file with a given extension and returns success if found.
@@ -51,23 +54,9 @@ case class LayerTransformer(projection: Projection) extends Logging{
    * @param layerName name of layer containing the set of files that make up the shapefile
    * @return The shapefile features and schema, reprojected to WGS84.
    */
-  def transform(layerName: String, contents: Array[File]):
-                                                Either[InvalidShapefileSet, (Traversable[Feature], Schema)] = {
+  def transform(layerName: String, array: Array[File]): Either[InvalidShapefileSet, ParseResult] = {
     logMemoryUsage("Before reading Shapefile...")
     // take each item, then push to transform.
-    parseShape(layerName, contents) match {
-      case Right(x) =>
-        Right(x)
-      case Left(e: InvalidShapefileSet) =>
-        Left(e)
-    }
-  }
-
-  /**
-   * Actual parsing of shapefiles done here. Including projections
-   */
-  private def parseShape(name: String, array: Array[File]):
-                                                  Either[InvalidShapefileSet,(Traversable[Feature], Schema)] = {
     val contents = for {
       shp  <- getFileFromArray(array, ShapeFileConstants.ShapeFormat).fold(Failure(_), Success(_))
       proj <- Try(doProjections(projection, shp))
@@ -77,8 +66,8 @@ case class LayerTransformer(projection: Projection) extends Logging{
       case Success(c) =>
         Right(c)
       case Failure(e: Exception) =>
-        logger.warn("\"Reader failed to parse shape layer {}. -> {}", name, e.getMessage)
-        Left(InvalidShapefileSet("Reader failed to parse shape layer '%s'. -> %s".format(name, e.getMessage)))
+        logger.warn("\"Reader failed to parse shape layer {}. -> {}", layerName, e.getMessage)
+        Left(InvalidShapefileSet("Reader failed to parse shape layer '%s'. -> %s".format(layerName, e.getMessage)))
       case Failure(e) =>
         throw e
     }
@@ -87,7 +76,7 @@ case class LayerTransformer(projection: Projection) extends Logging{
   /**
    * performs feature and schema reprojections will not handle exceptions.
    */
-  private def doProjections(projection: Projection, file: File): (Traversable[Feature], Schema) = {
+  private def doProjections(projection: Projection, file: File): ParseResult = {
     val shapeFile = Shapefile(file)
     try{
       logger.info("Reprojecting shapefile schema and {} features to {}",
