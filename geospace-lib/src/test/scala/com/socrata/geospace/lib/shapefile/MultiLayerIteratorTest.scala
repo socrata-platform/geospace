@@ -70,9 +70,8 @@ class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAf
     var resultMap: Map[String, (Traversable[Feature], Schema)] = Map()
 
     // use foreach instead of while loop, just better form but the idea is the same.
-    it.foreach{
-      case (name, fArray) =>
-      lt.transform(name, fArray).right.map(x => resultMap += name -> x)
+    it.foreach {
+      case (name, fArray) => lt.transform(name, fArray).right.map(x => resultMap += name -> x)
     }
 
     // check each layer exists.

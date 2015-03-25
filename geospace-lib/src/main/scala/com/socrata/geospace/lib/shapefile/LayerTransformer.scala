@@ -54,11 +54,11 @@ case class LayerTransformer(projection: Projection) extends Logging {
    * @param layerName name of layer containing the set of files that make up the shapefile
    * @return The shapefile features and schema, reprojected to WGS84.
    */
-  def transform(layerName: String, array: Array[File]): Either[InvalidShapefileSet, ParseResult] = {
+  def transform(layerName: String, files: Array[File]): Either[InvalidShapefileSet, ParseResult] = {
     logMemoryUsage("Before reading Shapefile...")
     // take each item, then push to transform.
     val contents = for {
-      shp  <- getFileFromArray(array, ShapeFileConstants.ShapeFormat).fold(Failure(_), Success(_))
+      shp  <- getFileFromArray(files, ShapeFileConstants.ShapeFormat).fold(Failure(_), Success(_))
       proj <- Try(doProjections(projection, shp))
     } yield proj
 
