@@ -15,12 +15,14 @@ import com.socrata.geospace.lib.regioncache.RegionCacheKey
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.socrata.thirdparty.metrics.Metrics
+import java.util.concurrent.TimeUnit
 import javax.servlet.http.{HttpServletResponse => HttpStatus}
 import org.geoscript.geometry.builder
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 class GeospaceServlet(sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
@@ -121,8 +123,9 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     if (points.isEmpty) {
       halt(HttpStatus.SC_BAD_REQUEST, s"Could not parse '${request.body}'.  Must be in the form [[x, y]...]")
     }
-    new AsyncResult { val is =
-      geocodingTimer.time { geoRegionCode(resourceName, points) }
+    new AsyncResult {
+      override val timeout = new FiniteDuration(myConfig.shapePayloadTimeout, TimeUnit.MILLISECONDS)
+      val is = geocodingTimer.time { geoRegionCode(resourceName, points) }
     }
   }
 
