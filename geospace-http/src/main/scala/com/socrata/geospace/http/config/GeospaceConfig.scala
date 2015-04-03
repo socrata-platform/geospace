@@ -3,7 +3,9 @@ package com.socrata.geospace.http.config
 import com.socrata.thirdparty.curator.{CuratorConfig, DiscoveryConfig}
 import com.socrata.thirdparty.metrics.MetricsOptions
 import com.typesafe.config.Config
+import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * Contains configuration values from the application config file
@@ -13,8 +15,8 @@ class GeospaceConfig(config: Config) {
   val port = config.getInt("geospace.port")
   val gracefulShutdownMs = config.getMilliseconds("geospace.graceful-shutdown-time").toInt
   val maxMultiPolygonComplexity = config.getInt("geospace.max-multipolygon-complexity")
-  val shapePayloadTimeout = config.getMilliseconds("geospace.shape-payload-timeout")
-
+  val shapePayloadTimeout = new FiniteDuration(
+    config.getMilliseconds("geospace.shape-payload-timeout"), TimeUnit.MILLISECONDS)
   val cache = config.getConfig("geospace.cache")
   val curatedRegions = new CuratedRegionsConfig(config.getConfig("geospace.curated-regions"))
 
