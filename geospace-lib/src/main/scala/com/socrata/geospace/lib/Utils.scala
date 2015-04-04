@@ -15,8 +15,8 @@ object Utils extends Logging {
   // Returns (FreeMemoryInMB, FreeMemoryPercentageInt (0-100))
   private def getFree: (Int, Int) = {
     val freeMB = Runtime.getRuntime.freeMemory / MB
-    val totalMB = Runtime.getRuntime.maxMemory / MB
-    val freePct = freeMB * Pct / totalMB
+    val total = Runtime.getRuntime.maxMemory
+    val freePct = freeMB * Pct * MB / total // not converting total now is less expensive
     (freeMB.toInt, freePct.toInt)
   }
 

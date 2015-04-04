@@ -33,7 +33,7 @@ import scala.util.{Failure, Success, Try}
  * @param projection
  */
 case class LayerTransformer(projection: Projection) extends Logging {
-  type ParseResult = (Traversable[Feature], Schema)
+  type ParseResult = (FeatureJValueIterator, Schema)
 
   /**
    * From an array of files, looks for a file with a given extension and returns success if found.
@@ -83,16 +83,10 @@ case class LayerTransformer(projection: Projection) extends Logging {
         shapeFile.features.size.toString,
         projection.getName)
       logMemoryUsage("Before reprojecting features...")
-
-      var i = 0
-      // projecting features
-      val features: Traversable[Feature] = shapeFile.features.map { feature =>
-        i += 1
-        if (i % 1000 == 0) checkFreeMemAndDie(runGC = true)
-        reproject(feature, projection)
-      }
       // projecting schema
       val schema: Schema = reproject(shapeFile.schema, projection)
+      // projecting features
+      val features = new FeatureJValueIterator(shapeFile.features, schema, projection)
       logMemoryUsage("Done with reprojection")
 
       (features, schema)
@@ -103,4 +97,7 @@ case class LayerTransformer(projection: Projection) extends Logging {
       shapeFile.getDataStore.dispose
     }
   }
+
 }
+
+

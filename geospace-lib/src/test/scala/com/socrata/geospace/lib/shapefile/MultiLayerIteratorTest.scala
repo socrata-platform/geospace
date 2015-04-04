@@ -2,11 +2,28 @@ package com.socrata.geospace.lib.shapefile
 
 import java.io.{File, InputStream}
 
+import com.rojoma.json.util.SimpleJsonCodecBuilder
+import com.rojoma.json.v3.ast.JValue
+import com.rojoma.json.v3.codec.JsonDecode
+import com.rojoma.json.v3.util.{JsonKey, AutomaticJsonCodecBuilder}
 import com.socrata.geospace.lib.errors.InvalidShapefileSet
-import com.vividsolutions.jts.geom.MultiPolygon
+import com.socrata.thirdparty.geojson.JtsCodecs
+import com.vividsolutions.jts.geom.{Geometry, MultiPolygon}
 import org.scalatest.{BeforeAndAfterEach, FunSuite, MustMatchers}
 import org.geoscript.projection.{Projection, _}
 import org.geoscript.feature._
+
+
+case class GeometryData( @JsonKey("type") typeName: String)
+object GeometryData {
+  implicit val jCodec = AutomaticJsonCodecBuilder[GeometryData]
+}
+
+case class FeatureData(the_geom: GeometryData)
+object FeatureData {
+  implicit val jCodec = AutomaticJsonCodecBuilder[FeatureData]
+}
+
 
 class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAfterEach {
 
@@ -67,7 +84,7 @@ class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAf
 
     val lt = LayerTransformer(pr)
 
-    var resultMap: Map[String, (Traversable[Feature], Schema)] = Map()
+    var resultMap: Map[String, (FeatureJValueIterator, Schema)] = Map()
 
     // use foreach instead of while loop, just better form but the idea is the same.
     it.foreach {
@@ -80,11 +97,22 @@ class MultiLayerIteratorTest extends FunSuite with MustMatchers with BeforeAndAf
 
     val (features, schema) = mapRes.get
     features.isEmpty must be (false)
-    features.foreach { feature =>
-      feature.getDefaultGeometry must be (a [MultiPolygon])
+
+    features.foreach { jFeature =>
+      decodeFeature(jFeature).the_geom.typeName equals("MultiPolygon")
     }
 
     schema must not be (null)
     schema.getAttributeCount must be (13)
   }
+
+  def decodeFeature(jValue: JValue): FeatureData = {
+    JsonDecode.fromJValue[FeatureData](jValue) match {
+      case Right(x) => x
+      case Left(e) => throw new Exception("jValue: "+jValue.toString()+" error: "+e.english)
+    }
+  }
+
+
+
 }
