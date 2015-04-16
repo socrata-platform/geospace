@@ -8,7 +8,7 @@ import Utils._
 import com.typesafe.scalalogging.slf4j.Logging
 import java.io._
 import java.nio.file.Files
-import java.util.zip.ZipFile
+import java.util.zip.{ZipEntry, ZipFile}
 import org.apache.commons.io.{FileUtils, FilenameUtils, IOUtils}
 
 import scala.annotation.tailrec
@@ -68,7 +68,7 @@ abstract class AbstractZip(tmpDir: Option[File] = None) extends Closeable with L
       // If there is more than one file with the same name in different subdirectories,
       // we don't bother resolving the conflict and just overwrite the same base filename
       // in the same temp directory.
-      val files = zip.entries.asScala.filter(e => !e.isDirectory)
+      val files = zip.entries.asScala.filter(e => isZipEntryValid(e))
       files.foreach {
         entry =>
           val contentFile = new File(contentsTmpDir.toString, FilenameUtils.getName(entry.getName))
@@ -93,6 +93,11 @@ abstract class AbstractZip(tmpDir: Option[File] = None) extends Closeable with L
     archive.delete()
     tmpDir.foreach(_.delete)
     logger.info("Deleted temporary shapefile zip")
+  }
+
+  def isZipEntryValid(e: ZipEntry): Boolean ={
+    val name = e.getName
+    !e.isDirectory && !name.startsWith("__MACOSX") && !name.startsWith("._")
   }
 }
 
