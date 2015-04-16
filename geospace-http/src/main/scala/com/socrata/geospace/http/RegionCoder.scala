@@ -30,4 +30,9 @@ trait RegionCoder {
     val futureIndex = stringCache.getFromSoda(sodaFountain, RegionCacheKey(resourceName, columnName))
     futureIndex.map { index => strings.map { str => index.get(str.toLowerCase) } }
   }
+
+  protected def resetRegionState(): Unit = {
+    spatialCache.reset()
+    stringCache.reset()
+  }
 }

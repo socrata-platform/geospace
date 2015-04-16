@@ -142,8 +142,7 @@ class GeospaceServlet(val sodaFountain: SodaFountainClient,
   }
 
   delete("/v1/regions") {
-    spatialCache.reset()
-    stringCache.reset()
+    resetRegionState()
     logMemoryUsage("After clearing region caches")
     Ok("Done")
   }
