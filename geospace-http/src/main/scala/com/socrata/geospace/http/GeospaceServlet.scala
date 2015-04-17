@@ -23,6 +23,8 @@ class GeospaceServlet(val sodaFountain: SodaFountainClient,
                       myConfig: GeospaceConfig) extends GeospaceMicroserviceStack
                       with FileUploadSupport with Metrics with GeospaceParams with RegionCoder {
   val cacheConfig = myConfig.cache
+  val partitionXsize = myConfig.partitioning.sizeX
+  val partitionYsize = myConfig.partitioning.sizeY
 
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")

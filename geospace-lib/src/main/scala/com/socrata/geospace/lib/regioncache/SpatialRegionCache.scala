@@ -2,13 +2,14 @@ package com.socrata.geospace.lib.regioncache
 
 import com.rojoma.json.v3.ast.{JString, JObject}
 import com.socrata.geospace.lib.client.{GeoToSoda2Converter, SodaResponse}
-import com.typesafe.config.Config
 import com.socrata.geospace.lib.regioncache.SpatialIndex.GeoEntry
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.FeatureJson
+import com.typesafe.config.Config
+import com.vividsolutions.jts.geom.Envelope
 import org.geoscript.feature._
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.Success
 import spray.caching.LruCache
 
@@ -75,14 +76,15 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
    * Retrieves the geometry column name from soda fountain dataset schema (needed for
    * envelope / intersection queries)
    * @param sodaFountain the Soda Fountain client
-   * @param resourceName Resource name of the cached dataset. Column name is assumed to be
-   *                     the default name given to the primary geometry column in a shapefile (the_geom)
+   * @param resourceName Resource name of the cached dataset. Geom column name is fetched from SF.
+   * @param envelope     an optional Envelope to restrict geometries to ones within/intersecting envelope
    * @return             A SpatialIndex future representing the cached dataset
    */
-  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[Int]] =
+  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String, envelope: Option[Envelope] = None):
+      Future[SpatialIndex[Int]] =
     for { geomColumn <- getGeomColumnFromSoda(sodaFountain, resourceName)
           spatialIndex <- getFromSoda(sodaFountain,
-                                      RegionCacheKey(resourceName, geomColumn)) }
+                                      RegionCacheKey(resourceName, geomColumn, envelope)) }
     yield spatialIndex
 
   private def getGeomColumnFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[String] = {
