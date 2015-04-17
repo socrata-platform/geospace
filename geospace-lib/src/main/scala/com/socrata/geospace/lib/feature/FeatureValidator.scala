@@ -4,8 +4,6 @@ import com.typesafe.scalalogging.slf4j.Logging
 import com.vividsolutions.jts.geom.{Coordinate, Geometry, MultiPolygon}
 import org.geoscript.feature.{RichFeature, Feature}
 
-import scala.util.{Failure, Try, Success}
-
 /** *
   * Validates whether a feature meets the criteria for ingestion into our system
   */
