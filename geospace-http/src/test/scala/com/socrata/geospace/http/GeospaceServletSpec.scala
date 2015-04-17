@@ -33,6 +33,14 @@ class GeospaceServletSpec extends FakeSodaFountain {
                          .withBody(returnedBody)))
   }
 
+  private def mockSodaIntersects(resourceName: String, x: String, y: String, returnedBody: String) {
+    WireMock.stubFor(WireMock.get(WireMock.urlMatching(s".+$resourceName.+POLYGON%20\\(\\(\\(${x}%20${y}.+")).
+               willReturn(WireMock.aResponse()
+                         .withStatus(200)
+                         .withHeader("Content-Type", "application/vnd.geo+json; charset=utf-8")
+                         .withBody(returnedBody)))
+  }
+
   private def mockSodaSchema(resourceName: String, columnName: String = "the_geom") {
     val body = s"""{"columns":{"$columnName":{"datatype":"multipolygon"}}}"""
     WireMock.stubFor(WireMock.get(WireMock.urlMatching(s"/dataset/$resourceName")).
@@ -100,21 +108,46 @@ class GeospaceServletSpec extends FakeSodaFountain {
                 |  },
                 |  "properties": { "_feature_id": "2", "name": "My Mixed Case Name 2" }
                 |}""".stripMargin
+  val feat3 = """{
+                |  "type": "Feature",
+                |  "geometry": {
+                |    "type": "Polygon",
+                |    "coordinates": [[[10.0, 10.0], [10.0, 15.0], [15.0, 15.0], [10.0, 10.0]]]
+                |  },
+                |  "properties": { "_feature_id": "4", "name": "My Mixed Case Name 2" }
+                |}""".stripMargin
   val geojson = """{"type":"FeatureCollection",
                    |"crs" : { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
                    |"features": [""".stripMargin + Seq(feat1, feat2).mkString(",") + "]}"
+  val geojson2 = """{"type":"FeatureCollection",
+                   |"crs" : { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+                   |"features": [""".stripMargin + Seq(feat3).mkString(",") + "]}"
 
   // Pretty much an end to end functional test, from Servlet route to SF client and region cache
   test("points geocode properly with cache loaded from soda fountain mock") {
     forceRegionRecache()
     mockSodaSchema("triangles")
-    mockSodaRoute("triangles.geojson", geojson)
+    mockSodaIntersects("triangles.geojson", "0", "0", geojson)
 
     post("/v1/regions/triangles/geocode",
-         "[[0.1, 0.5], [0.5, 0.1], [10, 20]]",
+         "[[0.1, 0.5], [0.5, 0.1], [4.99, 4.99]]",
          headers = Map("Content-Type" -> "application/json")) {
       status should equal (200)
       body should equal ("""[1,2,null]""")
+    }
+  }
+
+  test("points in multiple partitions geocode properly with cache loaded from soda fountain") {
+    forceRegionRecache()
+    mockSodaSchema("triangles")
+    mockSodaIntersects("triangles.geojson", "0", "0", geojson)
+    mockSodaIntersects("triangles.geojson", "10", "10", geojson2)
+
+    post("/v1/regions/triangles/geocode",
+         "[[0.1, 0.5], [11.1, 13.9], [0.5, 0.1]]",
+         headers = Map("Content-Type" -> "application/json")) {
+      status should equal (200)
+      body should equal ("""[1,4,2]""")
     }
   }
 
