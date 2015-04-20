@@ -87,7 +87,7 @@ object FeatureValidator extends Logging {
     val badCoordinates = coordinates.filter { c =>
       c.x >= 180.000001 || c.x <= -180.000001 || c.y >= 90.000001 || c.y <= -90.000001
     }
-    if(!badCoordinates.isEmpty)
+    if (!badCoordinates.isEmpty)
       return GeometryContainsOffMapPoints(badCoordinates)
 
     Valid
