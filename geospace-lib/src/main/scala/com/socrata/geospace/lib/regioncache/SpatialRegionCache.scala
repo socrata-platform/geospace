@@ -90,7 +90,7 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
   private def getGeomColumnFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[String] = {
     geomColumnCache(resourceName) {
       logger.info(s"Populating geometry column name for resource $resourceName from soda fountain..")
-      val tryColumn = SodaResponse.check(sodaFountain.schema(resourceName), 200).map { jSchema =>
+      val tryColumn = SodaResponse.check(sodaFountain.schema(resourceName), Status_OK).map { jSchema =>
         val geoColumns = jSchema.dyn.columns.!.asInstanceOf[JObject]
                            .collect { case (k, v) if v.dyn.datatype.! == JString("multipolygon") => k }
                            .toSeq
