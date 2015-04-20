@@ -1,11 +1,16 @@
 package com.socrata.geospace.http
 
-
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.socrata.geospace.http.config.GeospaceConfig
 import com.typesafe.config.ConfigFactory
 
-
+object GeospaceServletSpec {
+  val config = """
+               | geospace.cache.enable-depressurize = false
+               | geospace.partitioning.sizeX = 5.0
+               | geospace.partitioning.sizeY = 5.0
+               """.stripMargin
+}
 /**
  * Test Geospace HTTP routes
  *
@@ -18,7 +23,7 @@ class GeospaceServletSpec extends FakeSodaFountain {
 
   override def beforeAll() {
     super.beforeAll()
-    val cfg = ConfigFactory.parseString("geospace.cache.enable-depressurize = false").
+    val cfg = ConfigFactory.parseString(GeospaceServletSpec.config).
                             withFallback(ConfigFactory.load().getConfig("com.socrata"))
     addServlet(new GeospaceServlet(sodaFountain, null, new GeospaceConfig(cfg)), "/*")
   }
