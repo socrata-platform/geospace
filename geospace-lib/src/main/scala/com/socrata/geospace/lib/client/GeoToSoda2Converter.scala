@@ -100,7 +100,7 @@ object GeoToSoda2Converter {
    * @param attrNames List of column names
    * @return JSON representation of the row
    */
-  private def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
+  def rowToJObject(feature: Feature, attrNames: Seq[String]): JValue = {
     require(feature.getAttributes.size == attrNames.size, "Inconsistency between shapefile schema and features")
     val fields = feature.getAttributes.asScala.zip(attrNames).map {
       case (g: Geometry, name) => name -> JtsCodecs.geoCodec.encode(g)
