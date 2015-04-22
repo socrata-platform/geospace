@@ -98,7 +98,8 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
    */
   def getFromSoda(sodaFountain: SodaFountainClient, key: RegionCacheKey): Future[T] =
     cache(key) {
-      logger.info(s"Populating cache entry for resource [${key.resourceName}}], column [${key.columnName}] from soda fountain client")
+      logger.info(s"Populating cache entry for resource [${key.resourceName}}], " +
+        s"column [${key.columnName}] from soda fountain client")
       Future {
         prepForCaching()
         // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
