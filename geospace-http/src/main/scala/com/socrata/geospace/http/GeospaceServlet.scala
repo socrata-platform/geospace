@@ -96,20 +96,6 @@ class GeospaceServlet(val sodaFountain: SodaFountainClient,
     ingressResult.map { payload => Map("response" -> payload) }.get
   }
 
-  // A test route only for loading a Shapefile to cache; body = full path to Shapefile unzipped directory
-  post("/v1/regions/:resourceName/local-shp") {
-    val readResult = SingleLayerShapefileReader.read(new java.io.File(request.body), forceLonLat)
-    assert(readResult.isSuccess)
-    val (features, _) = readResult.get
-
-    // Cache the reprojected features in our region cache for immediate geocoding
-    // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-    new AsyncResult { val is =
-      spatialCache.getFromFeatures(resourceName, features.toSeq)
-        .map { index => Map("rows-ingested" -> features.toSeq.length) }
-    }
-  }
-
   // NOTE: Tricky to find a good REST endpoint.  What is the resource?  geo-regions?
   // TODO: Add Swagger support so routes are documented.
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.

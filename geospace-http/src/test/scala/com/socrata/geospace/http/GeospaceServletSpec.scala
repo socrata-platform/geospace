@@ -81,22 +81,6 @@ class GeospaceServletSpec extends FakeSodaFountain {
     }
   }
 
-  // NOTE: This also tests reprojection, since a non-WGS84 shapefile is ingested
-  // NOTE: loading from local shapefile is not going to work anymore due to partitioning
-  ignore("points geocode properly with cache loaded from local shapefile") {
-    post("/v1/regions/wards/local-shp", "data/chicago_wards/") {
-      status should equal (200)
-    }
-
-    // The first lat/long is within a ward, second is clearly outside
-    post("/v1/regions/wards/geocode",
-         "[[41.76893907923, -87.62005689261], [10, 20]]",
-         headers = Map("Content-Type" -> "application/json")) {
-      status should equal (200)
-      body should equal ("""[31,null]""")
-    }
-  }
-
   val feat1 = """{
                 |  "type": "Feature",
                 |  "geometry": {
