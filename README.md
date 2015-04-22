@@ -75,9 +75,7 @@ in a normal run of the test:
 
 ## On Memory Usage
 
-The JTS library's Geometry shapes use up 40 bytes per Coordinate, so the rough
-memory usage of reading the shapefiles and doing georegion coding is 40 * the
-total number of coordinates in the layer.
+The JTS library's Geometry shapes use up 40 bytes per Coordinate.  However, Geospace uses `PackedCoordinateSequence`, which stores coordinates as `Array[Double]`s and only expands as needed, meaning permanent on-heap storage is only 16 bytes per coordinate.  Also, Geospace will partition regions and only load the partitions needed for georegioncoding the points in a request.  This means that less memory is used for most datasets, and less memory is used while reading in shapes as well.
 
 Currently, when Geospace caches region datasets and it experiences memory
 pressure, it will attempt to start uncaching regions from the biggest currently
