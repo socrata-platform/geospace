@@ -6,7 +6,7 @@ import org.geoscript.projection._
 import scala.collection.JavaConverters._
 import com.socrata.geospace.lib.client.GeoToSoda2Converter.rowToJObject
 import org.geoscript.feature.schemaBuilder._
-import java.io.Closeable;
+import java.io.Closeable
 
 
 /**
@@ -21,7 +21,7 @@ import java.io.Closeable;
  * @param projection
  */
 class FeatureJValueIterator(unprojectedFeatures: FeatureCollection,
-                            schema: Schema, projection: Projection) extends Iterator[JValue] with Closeable{
+                            schema: Schema, projection: Projection) extends Iterator[JValue] with Closeable {
 
   private val featureIteratorOption = Some(unprojectedFeatures.features)
   private val attrNames = schema.getDescriptors.asScala.map(_.getName.toString.toLowerCase).toSeq
