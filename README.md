@@ -92,6 +92,8 @@ NOTE: If you are doing memory testing locally on spatial caching, some hints:
 
 ## Optimizations
 
+The partitioning scheme will not work well for polar regions, because the size of each partition will get skinnier and skinnier as one heads towards the poles.
+
 Shapefile ingest can be made streaming; right now it loads all features into the heap.  This is a lot of work however;
 
 1. Convert shapefile validation to work off of a FeatureCollection (disk based) rather than a `Traversable[Feature]`.  
