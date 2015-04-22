@@ -66,14 +66,16 @@ object FeatureValidator extends Logging {
    * @return
    */
   private def validateMultiPolygon(mp: MultiPolygon, maxMultiPolygonComplexity: Int): Result = {
-    if (!mp.isValid)
-      return GeometryNotValid
+    if (mp.isValid) {
+      val coordinates = mp.getCoordinates
 
-    val coordinates = mp.getCoordinates
+      offTheMapPoints(coordinates) match {
+        case offTheMap: ValidationFailed => offTheMap
+        case Valid => checkComplexity(coordinates.size, maxMultiPolygonComplexity)
+      }
 
-    offTheMapPoints(coordinates) match {
-      case offTheMap: ValidationFailed => offTheMap
-      case Valid => checkComplexity(coordinates.size, maxMultiPolygonComplexity)
+    } else {
+        GeometryNotValid
     }
   }
 
@@ -87,10 +89,8 @@ object FeatureValidator extends Logging {
     val badCoordinates = coordinates.filter { c =>
       c.x >= 180.000001 || c.x <= -180.000001 || c.y >= 90.000001 || c.y <= -90.000001
     }
-    if (!badCoordinates.isEmpty)
-      return GeometryContainsOffMapPoints(badCoordinates)
 
-    Valid
+    if (!badCoordinates.isEmpty) GeometryContainsOffMapPoints(badCoordinates) else Valid
   }
 
   /**
@@ -100,9 +100,7 @@ object FeatureValidator extends Logging {
    * @return
    */
   private def checkComplexity(complexity: Int, maxComplexity: Int): Result = {
-    if(complexity > maxComplexity)
-      return GeometryTooComplex(complexity, maxComplexity)
-    Valid
+    if(complexity > maxComplexity) GeometryTooComplex(complexity, maxComplexity) else Valid
   }
 
 }

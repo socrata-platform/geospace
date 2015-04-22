@@ -72,7 +72,8 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
           } else {
             val validationErrors = FeatureValidator.validationErrors(features, myConfig.maxMultiPolygonComplexity)
             if (!validationErrors.isEmpty){
-              logger.warn("Feature validation failed! Fail count {}, first failure: {} ...aborting!", validationErrors.size, validationErrors.head.toString)
+              logger.warn("Feature validation failed! Fail count {}, first failure: {} ...aborting!",
+                validationErrors.size, validationErrors.head.toString)
               halt(BadRequest(validationErrors))
             }
             logger.info("Feature validation succeeded")
