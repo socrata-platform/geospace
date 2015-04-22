@@ -79,7 +79,8 @@ object FeatureIngester extends Metrics {
       // Auth is already validated in the DDL steps, so this should be ok.
       for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
             addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
-            upsert     <- SodaResponse.check(sodaFountain.upsertStream(sfResourceName(fourByFour),features), HttpStatus.SC_OK)
+            upsert     <- SodaResponse.check(sodaFountain.upsertStream(
+                                          sfResourceName(fourByFour),features), HttpStatus.SC_OK)
             publish    <- requester.publish(fourByFour)
       } yield {
         // The region cache keys off the Soda Fountain resource name, but we currently

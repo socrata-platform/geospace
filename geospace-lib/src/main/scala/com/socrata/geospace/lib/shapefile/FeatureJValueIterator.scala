@@ -13,9 +13,9 @@ import org.geoscript.feature.schemaBuilder._
  * hasNext is false, the internal stream is closed for you.
  *
  * <p> The intent of this class is to save memory of projecting and obtaining features as each call to a feature
- * will load that feature into memory. It is recommended that whatever task need be performed on that feature is handled
- * in a fashion keeping in mind that of the load unto memory. In fact, during upsert, it is suggested that either batching
- * or streaming be the method of choice.</p>
+ * will load that feature into memory. It is recommended that whatever task need be performed on that feature is
+ * handled in a fashion keeping in mind that of the load unto memory. In fact, during upsert, it is suggested that
+ * either batching or streaming be the method of choice.</p>
  * @param unprojectedFeatures
  * @param projection
  */
@@ -30,14 +30,13 @@ class FeatureJValueIterator(unprojectedFeatures: FeatureCollection,
   }
 
   def hasNext: Boolean = {
-    if(Some(featureIterator).isEmpty)
-      return false
-
-    if(!featureIterator.hasNext ) {
-      featureIterator.close()
-      return false
+    if(Some(featureIterator).isEmpty) {
+      false
+    } else if(!featureIterator.hasNext ) {
+        featureIterator.close()
+        false
+    } else {
+      true
     }
-
-    return true
   }
 }
