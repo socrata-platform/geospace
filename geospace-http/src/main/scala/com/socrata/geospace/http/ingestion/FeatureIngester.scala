@@ -2,6 +2,7 @@ package com.socrata.geospace.http.ingestion
 
 import javax.servlet.http.{HttpServletResponse => HttpStatus}
 
+import com.rojoma.simplearm.util._
 import com.rojoma.json.v3.ast._
 import com.rojoma.json.v3.io.{EndOfArrayEvent, StartOfArrayEvent, Position}
 import com.socrata.geospace.http.client.CoreServerClient
@@ -77,10 +78,12 @@ object FeatureIngester extends Metrics {
       // HACK : Core doesn't seem to chunk the upsert payload properly when
       // passing it on to Soda Fountain. This hack bypasses Core for the upsert.
       // Auth is already validated in the DDL steps, so this should be ok.
-      for { fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
+      for {
+            managedFeatures <- managed(features)
+            fourByFour <- createDatasetViaCoreServer(requester, friendlyName)
             addColumns <- addColumnsViaCoreServer(requester, schema, fourByFour)
             upsert     <- SodaResponse.check(sodaFountain.upsertStream(
-                                          sfResourceName(fourByFour),features), HttpStatus.SC_OK)
+                                          sfResourceName(fourByFour), managedFeatures), HttpStatus.SC_OK)
             publish    <- requester.publish(fourByFour)
       } yield {
         // The region cache keys off the Soda Fountain resource name, but we currently

@@ -6,6 +6,7 @@ import org.geoscript.projection._
 import scala.collection.JavaConverters._
 import com.socrata.geospace.lib.client.GeoToSoda2Converter.rowToJObject
 import org.geoscript.feature.schemaBuilder._
+import java.io.Closeable;
 
 
 /**
@@ -20,23 +21,25 @@ import org.geoscript.feature.schemaBuilder._
  * @param projection
  */
 class FeatureJValueIterator(unprojectedFeatures: FeatureCollection,
-                            schema: Schema, projection: Projection) extends Iterator[JValue] {
+                            schema: Schema, projection: Projection) extends Iterator[JValue] with Closeable{
 
-  private val featureIterator = unprojectedFeatures.features
+  private val featureIteratorOption = Some(unprojectedFeatures.features)
   private val attrNames = schema.getDescriptors.asScala.map(_.getName.toString.toLowerCase).toSeq
 
   def next: JValue = {
-    rowToJObject(reproject(featureIterator.next(), projection), attrNames)
+    featureIteratorOption match{
+      case None => throw new IllegalStateException("iterator is not available")
+      case Some(x) => rowToJObject(reproject(x.next(), projection), attrNames)
+    }
   }
 
   def hasNext: Boolean = {
-    if(Some(featureIterator).isEmpty) {
-      false
-    } else if(!featureIterator.hasNext ) {
-        featureIterator.close()
-        false
-    } else {
-      true
+    featureIteratorOption match{
+      case None => false
+      case Some(x) => x.hasNext
     }
   }
+
+  def close: Unit = featureIteratorOption.foreach{ x => x.close }
+
 }
