@@ -15,23 +15,23 @@ The routes are all in `GeospaceServlet.scala`.
 To do so: perform the follow steps:
 
 # For SODA-FOUNTAIN: #
-
+```
 git checkout master
 git reset --hard
 git pull
 sbt assembly
-
+```
 Ensure that your startup script launches the latest version of the JAR located in:
 
 `soda-fountain-jetty/target/scala-2.10/`
 
 # For DATA-COORDINATOR #
-
+```
 git checkout master
 git reset --hard
 git pull
 sbt assembly
-
+```
 Ensure that your startup script launches the latest version of the JAR located in:
 
 `coordinator/target/scala-2.10/`
