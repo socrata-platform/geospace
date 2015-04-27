@@ -48,8 +48,11 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
 
   // There's a bug in the scala-metrics library - metrics.gauge doesn't check if
   // the metric already exists before trying to registering it again.
-  // Because of this, unit tests fail unless we give the gauge metric a unique scope per instance
-  val cacheSizeGauge = metrics.gauge("num-entries", System.currentTimeMillis.toString) { cache.size }
+  // Because of this, unit tests fail unless we check for existence and skip the gauge.
+  if (!metrics.registry.getNames.contains("num-entries")) {
+    metrics.gauge("num-entries") { cache.size }
+  }
+
   val sodaReadTimer  = metrics.timer("soda-region-read")
   val regionIndexLoadTimer = metrics.timer("region-index-load")
 
