@@ -1,15 +1,17 @@
 package com.socrata.geospace.lib.regioncache
 
-import com.rojoma.json.v3.ast.JString
-import com.socrata.geospace.lib.client.GeoToSoda2Converter
-import com.typesafe.config.Config
-import com.socrata.geospace.lib.client.GeoToSoda2Converter
+import com.rojoma.json.v3.ast.{JString, JObject}
+import com.socrata.geospace.lib.client.{GeoToSoda2Converter, SodaResponse}
 import com.socrata.geospace.lib.regioncache.SpatialIndex.GeoEntry
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.geojson.FeatureJson
+import com.typesafe.config.Config
+import com.vividsolutions.jts.geom.Envelope
 import org.geoscript.feature._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Success
+import spray.caching.LruCache
 
 /**
  * Caches indices of the region datasets for geo-region-coding in a SpatialIndex
@@ -18,6 +20,9 @@ import scala.util.Success
  */
 class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[SpatialIndex[Int]](config) {
   val defaultRegionGeomName = "the_geom"
+
+  // Cache the geometry column name for each region dataset
+  val geomColumnCache = LruCache[String](config.getInt("max-entries"))
 
   /**
    * Generates a SpatialIndex for the dataset given the set of features
@@ -67,12 +72,33 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
     getFromFeatures(RegionCacheKey(resourceName, defaultRegionGeomName), features)
 
   /**
-   * Gets a SpatialIndex from the cache, populating it from Soda Foutnain as needed
+   * Gets a SpatialIndex from the cache, populating it from Soda Fountain as needed.
+   * Retrieves the geometry column name from soda fountain dataset schema (needed for
+   * envelope / intersection queries)
    * @param sodaFountain the Soda Fountain client
-   * @param resourceName Resource name of the cached dataset. Column name is assumed to be
-   *                     the default name given to the primary geometry column in a shapefile (the_geom)
+   * @param resourceName Resource name of the cached dataset. Geom column name is fetched from SF.
+   * @param envelope     an optional Envelope to restrict geometries to ones within/intersecting envelope
    * @return             A SpatialIndex future representing the cached dataset
    */
-  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[SpatialIndex[Int]] =
-    getFromSoda(sodaFountain, RegionCacheKey(resourceName, defaultRegionGeomName))
+  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String, envelope: Option[Envelope] = None):
+      Future[SpatialIndex[Int]] =
+    for { geomColumn <- getGeomColumnFromSoda(sodaFountain, resourceName)
+          spatialIndex <- getFromSoda(sodaFountain,
+                                      RegionCacheKey(resourceName, geomColumn, envelope)) }
+    yield spatialIndex
+
+  private def getGeomColumnFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[String] = {
+    geomColumnCache(resourceName) {
+      logger.info(s"Populating geometry column name for resource $resourceName from soda fountain..")
+      val tryColumn = SodaResponse.check(sodaFountain.schema(resourceName), Status_OK).map { jSchema =>
+        val geoColumns = jSchema.dyn.columns.!.asInstanceOf[JObject]
+                           .collect { case (k, v) if v.dyn.datatype.! == JString("multipolygon") => k }
+                           .toSeq
+        assert(geoColumns.length == 1, "There should only be one multipolygon column in region " + resourceName)
+        geoColumns.head
+      }
+      tryColumn.recover { case t: Throwable => throw t }
+      tryColumn.get
+    }
+  }
 }

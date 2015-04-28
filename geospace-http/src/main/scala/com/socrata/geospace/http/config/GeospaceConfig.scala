@@ -19,6 +19,7 @@ class GeospaceConfig(config: Config) {
     config.getMilliseconds("geospace.shape-payload-timeout"), TimeUnit.MILLISECONDS)
   val cache = config.getConfig("geospace.cache")
   val curatedRegions = new CuratedRegionsConfig(config.getConfig("geospace.curated-regions"))
+  val partitioning = new RegionPartitionConfig(config.getConfig("geospace.partitioning"))
 
   val curator = new CuratorConfig(config, "curator")
   val discovery = new DiscoveryConfig(config, "service-advertisement")
@@ -28,6 +29,11 @@ class GeospaceConfig(config: Config) {
   val metrics = MetricsOptions(config.getConfig("metrics"))
 
   val debugString = config.root.render()
+}
+
+class RegionPartitionConfig(config: Config) {
+  val sizeX = config.getDouble("sizeX")
+  val sizeY = config.getDouble("sizeY")
 }
 
 /**

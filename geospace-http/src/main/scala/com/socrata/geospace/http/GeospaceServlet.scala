@@ -9,25 +9,22 @@ import com.socrata.geospace.http.config.GeospaceConfig
 import com.socrata.geospace.http.curatedregions.{CuratedRegionIndexer, CuratedRegionSuggester}
 import com.socrata.geospace.http.ingestion.FeatureIngester
 import com.socrata.geospace.lib.feature.FeatureValidator
-import com.socrata.geospace.lib.regioncache.{SpatialRegionCache, HashMapRegionCache}
 import com.socrata.geospace.lib.shapefile.{SingleLayerShapefileReader, ZipFromArray}
-import com.socrata.geospace.lib.regioncache.RegionCacheKey
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
 import com.socrata.thirdparty.metrics.Metrics
 import javax.servlet.http.{HttpServletResponse => HttpStatus}
-import org.geoscript.geometry.builder
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
 
-class GeospaceServlet(sodaFountain: SodaFountainClient,
+class GeospaceServlet(val sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
                       myConfig: GeospaceConfig) extends GeospaceMicroserviceStack
-                      with FileUploadSupport with Metrics with GeospaceParams {
-  val spatialCache = new SpatialRegionCache(myConfig.cache)
-  val stringCache  = new HashMapRegionCache(myConfig.cache)
+                      with FileUploadSupport with Metrics with GeospaceParams with RegionCoder {
+  val cacheConfig = myConfig.cache
+  val partitionXsize = myConfig.partitioning.sizeX
+  val partitionYsize = myConfig.partitioning.sizeY
 
   // Metrics
   val geocodingTimer = metrics.timer("geocoding-requests")
@@ -99,20 +96,6 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     ingressResult.map { payload => Map("response" -> payload) }.get
   }
 
-  // A test route only for loading a Shapefile to cache; body = full path to Shapefile unzipped directory
-  post("/v1/regions/:resourceName/local-shp") {
-    val readResult = SingleLayerShapefileReader.read(new java.io.File(request.body), forceLonLat)
-    assert(readResult.isSuccess)
-    val (features, _) = readResult.get
-
-    // Cache the reprojected features in our region cache for immediate geocoding
-    // TODO: what do we do if the region was previously cached already?  Need to invalidate cache
-    new AsyncResult { val is =
-      spatialCache.getFromFeatures(resourceName, features.toSeq)
-        .map { index => Map("rows-ingested" -> features.toSeq.length) }
-    }
-  }
-
   // NOTE: Tricky to find a good REST endpoint.  What is the resource?  geo-regions?
   // TODO: Add Swagger support so routes are documented.
   // This route for now takes a body which is a JSON array of points. Each point is an array of length 2.
@@ -127,16 +110,6 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     }
   }
 
-  // Given points, encode them with SpatialIndex and return a sequence of IDs, "" if no matching region
-  // Also describe how the getting the region file is async and thus the coding happens afterwards
-  private def geoRegionCode(resourceName: String, points: Seq[Seq[Double]]): Future[Seq[Option[Int]]] = {
-    val geoPoints = points.map { case Seq(x, y) => builder.Point(x, y) }
-    val futureIndex = spatialCache.getFromSoda(sodaFountain, resourceName)
-    futureIndex.map { index =>
-      geoPoints.map { pt => index.firstContains(pt).map(_.item) }
-    }
-  }
-
   post("/v1/regions/:resourceName/stringcode") {
     val strings = parsedBody.extract[Seq[String]]
     if (strings.isEmpty) halt(HttpStatus.SC_BAD_REQUEST,
@@ -148,11 +121,6 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
     }
   }
 
-  private def stringCode(resourceName: String, columnName: String, strings: Seq[String]): Future[Seq[Option[Int]]] = {
-    val futureIndex = stringCache.getFromSoda(sodaFountain, RegionCacheKey(resourceName, columnName))
-    futureIndex.map { index => strings.map { str => index.get(str.toLowerCase) } }
-  }
-
   // scalastyle:off
   get("/v1/regions") {
     Map("spatialCache" -> spatialCache.indicesBySizeDesc().map {
@@ -162,8 +130,7 @@ class GeospaceServlet(sodaFountain: SodaFountainClient,
   }
 
   delete("/v1/regions") {
-    spatialCache.reset()
-    stringCache.reset()
+    resetRegionState()
     logMemoryUsage("After clearing region caches")
     Ok("Done")
   }
