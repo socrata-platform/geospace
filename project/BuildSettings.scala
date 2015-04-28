@@ -1,15 +1,12 @@
 import sbt.Keys._
 import sbt._
 import sbtassembly.AssemblyKeys._
-import com.socrata.sbtplugins.StylePlugin.StyleKeys._
-
 
 object BuildSettings {
   val buildSettings =
     Seq(
-      // TODO: enable style checks
-      // turned off style check in testing.
-      styleCheck in Test := {},
+      // TODO: improve tests and enable code coverage failures
+      scoverage.ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := false,
       scalaVersion := "2.10.4",
       organization := "com.socrata",
       autoAPIMappings := true,

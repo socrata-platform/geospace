@@ -6,7 +6,7 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration._
 import com.socrata.geospace.lib.errors.ServiceDiscoveryException
-import com.socrata.http.client.{NoopLivenessChecker, HttpClientHttpClient}
+import com.socrata.http.client.{HttpClientHttpClient, NoopLivenessChecker}
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.thirdparty.curator.ServerProvider.RetryOnAllExceptionsDuringInitialRequest
 import com.socrata.thirdparty.curator.{CuratorBroker, CuratorServiceIntegration}
@@ -14,7 +14,6 @@ import org.scalatest.{BeforeAndAfterEach, FunSuiteLike}
 import org.scalatra.test.scalatest.ScalatraSuite
 
 trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with ScalatraSuite with BeforeAndAfterEach {
-
   private val sodaHost = "soda-fountain"
 
   // WireMock properties and service.
@@ -22,8 +21,8 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
   val mockHost = "localhost"
   var mockServer = new WireMockServer(wireMockConfig.port(mockServerPort))
 
-  //Scalatra properties
-  override def localPort = Option(mockServerPort)
+  // Scalatra properties
+  override def localPort: Option[Int] = Option(mockServerPort)
 
   lazy val broker = new CuratorBroker(discovery, mockHost, sodaHost, None)
   lazy val cookie = broker.register(mockServerPort)
@@ -32,7 +31,7 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
   httpOptions.withUserAgent("test")
   httpOptions.withLivenessChecker(NoopLivenessChecker)
 
-  override lazy val httpClient = new HttpClientHttpClient( Executors.newCachedThreadPool(), httpOptions)
+  override lazy val httpClient = new HttpClientHttpClient(Executors.newCachedThreadPool(), httpOptions)
 
   lazy val sodaFountain = new SodaFountainClient(httpClient, discovery, sodaHost,
                                                  curatorConfig.connectTimeout,
@@ -40,10 +39,8 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
                                                  RetryOnAllExceptionsDuringInitialRequest,
                                                  throw ServiceDiscoveryException("No Soda Fountain servers found"))
 
-  override def beforeAll() {
-    if( mockServerPort < 0)
-      mockServerPort = 51200 + (util.Random.nextInt % 100)
-
+  override def beforeAll(): Unit = {
+    if (mockServerPort < 0) mockServerPort = 51200 + (util.Random.nextInt % 100)
     mockServer = new WireMockServer(wireMockConfig.port(mockServerPort))
 
     start()
@@ -54,7 +51,7 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
     WireMock.configureFor(mockHost, mockServerPort)
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     sodaFountain.close()
     broker.deregister(cookie)
     mockServer.stop()
@@ -62,8 +59,7 @@ trait FakeSodaFountain extends FunSuiteLike with CuratorServiceIntegration with 
     stop()
   }
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     WireMock.reset()
   }
-
 }

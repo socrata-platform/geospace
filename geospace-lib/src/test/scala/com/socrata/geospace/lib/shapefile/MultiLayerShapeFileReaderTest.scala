@@ -5,6 +5,7 @@ import java.io.{File, InputStream}
 import com.vividsolutions.jts.geom.MultiPolygon
 import org.scalatest.{BeforeAndAfterEach, FunSuite, MustMatchers}
 
+// scalastyle:off magic.number multiple.string.literals
 class MultiLayerShapeFileReaderTest extends FunSuite with MustMatchers with BeforeAndAfterEach {
 
   // reader creation.
@@ -14,77 +15,67 @@ class MultiLayerShapeFileReaderTest extends FunSuite with MustMatchers with Befo
 
   // files to test from.
   private var goodZip: ZipFromStream = _
-  private var badZip : ZipFromStream = _
-
+  private var badZip: ZipFromStream = _
 
   def getIns(path: String): InputStream = classOf[MultiLayerShapeFileReaderTest].getResourceAsStream(path)
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     val goodIns = getIns("/com.socrata.geo.worker/data/good_sample.zip")
     val badIns = getIns("/com.socrata.geo.worker/data/bad_sample.zip")
 
-    goodZip = new ZipFromStream(goodIns,None)
-    badZip = new ZipFromStream(badIns,None)
+    goodZip = new ZipFromStream(goodIns, None)
+    badZip = new ZipFromStream(badIns, None)
   }
 
-  override def afterEach(){
+  override def afterEach(): Unit = {
     goodZip.close()
     badZip.close()
-
   }
 
-  test("Validate directory"){
+  test("Validate directory") {
     // must be right, size must has 2 layers, and must contain expected entry.
     val result = reader.validate(goodZip.contents)
-    result must be ('right)
+    result must be('right)
     val array = result.right.get
-    array.size must be (2)
-    array.contains("chicago_commareas_mid_simp") must be (true)
-    array.contains("wards_chicago_mid_simp") must be (true)
+    array.size must be(2)
+    array.contains("chicago_commareas_mid_simp") must be(true)
+    array.contains("wards_chicago_mid_simp") must be(true)
 
     // failure case
     val badResult = reader.validate(badZip.contents)
-    badResult must be ('left)
+    badResult must be('left)
   }
 
-
-
-  test("Read directory"){
+  test("Read directory") {
     // success case
     val result = reader.read(goodZip.contents)
-    result must be ('right)
+    result must be('right)
     val map = result.right.get
-    map.isEmpty must be (false)
-    map.size must be (2)
+    map.isEmpty must be(false)
+    map.size must be(2)
 
     val mapRes = map.get("wards_chicago_mid_simp")
-    mapRes.isDefined must be (true)
+    mapRes.isDefined must be(true)
 
     val (features, schema) = mapRes.get
-    features.isEmpty must be (false)
+    features.isEmpty must be(false)
     features.foreach { feature =>
-      feature.getDefaultGeometry must be (a [MultiPolygon])
+      feature.getDefaultGeometry must be(a[MultiPolygon])
     }
 
-    schema must not be (null)
-    schema.getAttributeCount must be (13)
+    schema must not be null // scalastyle:ignore null
+    schema.getAttributeCount must be(13)
 
     // failure case
     val badResult = reader.read(badZip.contents)
-    badResult must be ('left)
-
+    badResult must be('left)
   }
 
-
-
-  test("Get a file from an array of files: getFileFromArray"){
+  test("Get a file from an array of files: getFileFromArray") {
     val array = Array(new File("adf.shp"), new File("adf.prj"), new File("adf.shx"), new File("adf.dbf"))
-    reader.getFileFromArray(array, ShapeFileConstants.ShapeFormat).right.get must be (array(0))
-    reader.getFileFromArray(array, ShapeFileConstants.ProjectionFormat).right.get must be (array(1))
-    reader.getFileFromArray(array, ShapeFileConstants.ShapeIndexFormat).right.get must be (array(2))
-    reader.getFileFromArray(array, ShapeFileConstants.AttributeFormat).right.get must be (array(3))
+    reader.getFileFromArray(array, ShapeFileConstants.ShapeFormat).right.get must be(array(0))
+    reader.getFileFromArray(array, ShapeFileConstants.ProjectionFormat).right.get must be(array(1))
+    reader.getFileFromArray(array, ShapeFileConstants.ShapeIndexFormat).right.get must be(array(2))
+    reader.getFileFromArray(array, ShapeFileConstants.AttributeFormat).right.get must be(array(3))
   }
-
-
-
 }

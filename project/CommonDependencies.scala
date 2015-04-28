@@ -10,8 +10,7 @@ object CommonDependencies {
     "com.socrata"              %% "socrata-http-client"       % "3.1.1",
     "com.socrata"              %% "socrata-thirdparty-utils"  % "3.0.0",
     "com.socrata"              %% "soda-fountain-external"    % "0.4.8",
-    "com.socrata"              %% "soql-types"                % "0.3.3" exclude("org.jdom", "jdom")
-      exclude("javax.media", "jai_core"),
+    "com.socrata"              %% "soql-types"                % "0.3.3" exclude("org.jdom", "jdom"),
     "com.typesafe"              % "config"                    % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"        % "1.1.0",
     "io.spray"                  % "spray-caching"             % "1.2.2",
