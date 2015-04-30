@@ -43,6 +43,8 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
   // To be the same value as HttpStatus.SC_OK
   val Status_OK = 200
 
+  private val GaugeNumEntries = "num-entries"
+
   def this(config: Config) = this(config.getInt("max-entries"))
 
   protected val cache = LruCache[T](maxEntries)
@@ -53,8 +55,8 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
   // the metric already exists before trying to registering it again.
   // Because of this, unit tests fail unless we check for existence and skip the gauge.
   metrics.registry.synchronized {
-    if (!metrics.registry.getNames.contains("num-entries")) {
-      metrics.gauge("num-entries") { cache.size }
+    if (!metrics.registry.getNames.contains(GaugeNumEntries)) {
+      metrics.gauge(GaugeNumEntries) { cache.size }
     }
   }
 
