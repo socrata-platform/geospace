@@ -3,18 +3,22 @@ package com.socrata.geospace.http
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatra._
 import org.scalatra.json._
+import org.scalatra.scalate.ScalateSupport
 import org.slf4j.LoggerFactory
-import scalate.ScalateSupport
+
+import scala.concurrent.ExecutionContextExecutor
 
 trait GeospaceMicroserviceStack extends ScalatraServlet
-  with ScalateSupport with JacksonJsonSupport with FutureSupport with ScalatraLogging {
-
+                                with ScalateSupport
+                                with JacksonJsonSupport
+                                with FutureSupport
+                                with ScalatraLogging {
   // Sets up automatic case class to JSON output serialization, required by
   // the JValueResult trait.
-  protected implicit val jsonFormats: Formats = DefaultFormats + new NoneSerializer
+  protected implicit def jsonFormats: Formats = DefaultFormats + new NoneSerializer
 
   // For FutureSupport / async stuff
-  protected implicit def executor = concurrent.ExecutionContext.Implicits.global
+  protected implicit def executor: ExecutionContextExecutor = concurrent.ExecutionContext.Implicits.global
 
   // Before every action runs, set the content type to be in JSON format.
   before() {
