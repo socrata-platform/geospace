@@ -6,6 +6,8 @@ import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJs
 import com.socrata.thirdparty.metrics.Metrics
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
+import com.vividsolutions.jts.geom.{Envelope, Polygon, GeometryFactory}
+import com.vividsolutions.jts.io.WKTWriter
 import org.geoscript.feature._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,8 +17,9 @@ import spray.caching.LruCache
  * Represents the key for a region cache (dataset resource name + column name)
  * @param resourceName Resource name of the dataset represented in the cache entry
  * @param columnName   Name of the column used as a key for individual features inside the cache entry
+ * @param envelope All geometries must be within or intersect with this envelope/bounding box
  */
-case class RegionCacheKey(resourceName: String, columnName: String)
+case class RegionCacheKey(resourceName: String, columnName: String, envelope: Option[Envelope] = None)
 
 /**
  * The RegionCache caches indices of the region datasets for geo-region-coding.
@@ -40,6 +43,8 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
   // To be the same value as HttpStatus.SC_OK
   val Status_OK = 200
 
+  private val GaugeNumEntries = "num-entries"
+
   def this(config: Config) = this(config.getInt("max-entries"))
 
   protected val cache = LruCache[T](maxEntries)
@@ -48,8 +53,13 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
 
   // There's a bug in the scala-metrics library - metrics.gauge doesn't check if
   // the metric already exists before trying to registering it again.
-  // Because of this, unit tests fail unless we give the gauge metric a unique scope per instance
-  val cacheSizeGauge = metrics.gauge("num-entries", System.currentTimeMillis.toString) { cache.size }
+  // Because of this, unit tests fail unless we check for existence and skip the gauge.
+  metrics.registry.synchronized {
+    if (!metrics.registry.getNames.contains(GaugeNumEntries)) {
+      metrics.gauge(GaugeNumEntries) { cache.size }
+    }
+  }
+
   val sodaReadTimer  = metrics.timer("soda-region-read")
   val regionIndexLoadTimer = metrics.timer("region-index-load")
 
@@ -90,6 +100,19 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
     }
   }
 
+  private def getQueryString(key: RegionCacheKey): String = {
+    val where = key.envelope.map { env =>
+      // Factories and writers are not thread safe, and this is not perf-sensitive
+      val factory = new GeometryFactory
+      val writer = new WKTWriter
+      val polys = Array(factory.toGeometry(env).asInstanceOf[Polygon])
+      // soda fountain only accepts MULTIPOLYGONs not POLYGONs
+      val envelopePolyWkt = writer.write(factory.createMultiPolygon(polys))
+      s"where intersects(${key.columnName}, '$envelopePolyWkt')"
+    }.getOrElse("")
+    s"select * $where limit ${Long.MaxValue}"
+  }
+
   /**
    * Gets an entry from the cache, populating it from Soda Fountain as needed
    *
@@ -99,10 +122,11 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
   def getFromSoda(sodaFountain: SodaFountainClient, key: RegionCacheKey): Future[T] =
     cache(key) {
       logger.info(s"Populating cache entry for resource [${key.resourceName}}], column [] from soda fountain client")
+      key.envelope.foreach { env => logger.info(s"  for envelope $env") }
       Future {
         prepForCaching()
         // Ok, get a Try[JValue] for the response, then parse it using GeoJSON parser
-        val query = s"select * limit ${Long.MaxValue}"
+        val query = getQueryString(key)
         val sodaResponse = sodaReadTimer.time {
           sodaFountain.query(key.resourceName, Some("geojson"), Iterable(("$query", query)))
         }

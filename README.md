@@ -75,9 +75,7 @@ in a normal run of the test:
 
 ## On Memory Usage
 
-The JTS library's Geometry shapes use up 40 bytes per Coordinate, so the rough
-memory usage of reading the shapefiles and doing georegion coding is 40 * the
-total number of coordinates in the layer.
+The JTS library's Geometry shapes use up 40 bytes per Coordinate.  However, Geospace uses `PackedCoordinateSequence`, which stores coordinates as `Array[Double]`s and only expands as needed, meaning permanent on-heap storage is only 16 bytes per coordinate.  Also, Geospace will partition regions and only load the partitions needed for georegioncoding the points in a request.  This means that less memory is used for most datasets, and less memory is used while reading in shapes as well.
 
 Currently, when Geospace caches region datasets and it experiences memory
 pressure, it will attempt to start uncaching regions from the biggest currently
@@ -93,6 +91,8 @@ NOTE: If you are doing memory testing locally on spatial caching, some hints:
         curl -X POST "http://localhost:2020/v1/regions/census_orig/local-shp?forceLonLat=true" -d $HOME/data/census/orig/ -H "Content-Type: application/json"
 
 ## Optimizations
+
+The partitioning scheme will not work well for polar regions, because the size of each partition will get skinnier and skinnier as one heads towards the poles.
 
 Shapefile ingest can be made streaming; right now it loads all features into the heap.  This is a lot of work however;
 

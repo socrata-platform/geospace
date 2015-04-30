@@ -18,7 +18,7 @@ trait GeospaceMicroserviceStack extends ScalatraServlet
   protected implicit def jsonFormats: Formats = DefaultFormats + new NoneSerializer
 
   // For FutureSupport / async stuff
-  protected implicit def executor: ExecutionContextExecutor = concurrent.ExecutionContext.Implicits.global
+  protected implicit val executor: ExecutionContextExecutor = concurrent.ExecutionContext.Implicits.global
 
   // Before every action runs, set the content type to be in JSON format.
   before() {
