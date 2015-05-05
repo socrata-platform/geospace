@@ -3,12 +3,15 @@ package com.socrata.geospace.http
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatra._
 import org.scalatra.json._
+import org.scalatra.metrics._
 import org.scalatra.scalate.ScalateSupport
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContextExecutor
 
 trait GeospaceMicroserviceStack extends ScalatraServlet
+                                with MetricsSupport
+                                with HealthChecksSupport
                                 with ScalateSupport
                                 with JacksonJsonSupport
                                 with FutureSupport

@@ -39,7 +39,7 @@ class GeospaceServletSpec extends FakeSodaFountain {
       .withBody(returnedBody)))
   }
 
-  private def mockSodaIntersects(resourceName: String, x: String, y: String, returnedBody: String) {
+  private def mockSodaIntersects(resourceName: String, x: String, y: String, returnedBody: String): Unit =  {
     WireMock.stubFor(WireMock.get(WireMock.urlMatching(s".+$resourceName.+POLYGON%20\\(\\(\\(${x}%20${y}.+")).
       willReturn(WireMock.aResponse()
       .withStatus(200)
@@ -47,7 +47,7 @@ class GeospaceServletSpec extends FakeSodaFountain {
       .withBody(returnedBody)))
   }
 
-  private def mockSodaSchema(resourceName: String, columnName: String = "the_geom") {
+  private def mockSodaSchema(resourceName: String, columnName: String = "the_geom"): Unit =  {
     val body = s"""{"columns":{"$columnName":{"datatype":"multipolygon"}}}"""
     WireMock.stubFor(WireMock.get(WireMock.urlMatching(s"/dataset/$resourceName")).
       willReturn(WireMock.aResponse()

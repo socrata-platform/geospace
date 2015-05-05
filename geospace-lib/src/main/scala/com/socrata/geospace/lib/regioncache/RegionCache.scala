@@ -37,7 +37,7 @@ case class RegionCacheKey(resourceName: String, columnName: String, envelope: Op
  * @param maxEntries          Maximum capacity of the region cache
  * @tparam T                  Cache entry type
  */
-abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
+abstract class RegionCache[T](maxEntries: Int = 100) // scalastyle:ignore magic.number
                               extends Logging with Metrics {
 
   // To be the same value as HttpStatus.SC_OK
@@ -49,7 +49,7 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
 
   protected val cache = LruCache[T](maxEntries)
 
-  logger.info("Creating RegionCache with {} entries", maxEntries.toString())
+  logger.info("Creating RegionCache with {} entries", maxEntries.toString)
 
   // There's a bug in the scala-metrics library - metrics.gauge doesn't check if
   // the metric already exists before trying to registering it again.

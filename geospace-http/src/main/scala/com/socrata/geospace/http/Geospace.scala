@@ -1,11 +1,9 @@
 package com.socrata.geospace.http
 
-import com.codahale.metrics.jetty9.InstrumentedHandler
 import com.socrata.geospace.http.config.GeospaceConfig
-import com.socrata.thirdparty.metrics.Metrics
 import com.typesafe.config.ConfigFactory
 import org.eclipse.jetty.server.Server
-import org.eclipse.jetty.server.handler.{HandlerCollection, StatisticsHandler}
+import org.eclipse.jetty.server.handler.StatisticsHandler
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
@@ -27,10 +25,7 @@ object Geospace extends App {
   context.addServlet(classOf[DefaultServlet], rootPath)
 
   // http://docs.codehaus.org/display/JETTY/How+to+gracefully+shutdown
-  val metricsHandler = new InstrumentedHandler(Metrics.metricsRegistry, config.metrics.prefix)
-  val handlers = new HandlerCollection()
-  handlers.setHandlers(Array(new StatisticsHandler(), metricsHandler))
-  server.setHandler(handlers)
+  server.setHandler(new StatisticsHandler())
   server.setStopTimeout(config.gracefulShutdownMs)
   server.setStopAtShutdown(true)
 

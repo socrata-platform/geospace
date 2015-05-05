@@ -58,7 +58,6 @@ object GeospaceHttp {
     "org.eclipse.jetty.orbit"   % "javax.servlet"       % "3.0.0.v201112011016" % "container;provided;test"
       artifacts Artifact("javax.servlet", "jar", "jar"),
     "org.eclipse.jetty"         % "jetty-webapp"        % "9.2.1.v20140609"     % "container;compile",
-    "io.dropwizard.metrics"     % "metrics-jetty9"      % "3.1.2" exclude("org.eclipse.jetty", "jetty-server"),
     // See CORE-3635: use lower version of graphite to work around Graphite reconnect issues
     "com.codahale.metrics"      % "metrics-graphite"    % "3.0.2" exclude("com.codahale.metrics", "metrics-core")
   )

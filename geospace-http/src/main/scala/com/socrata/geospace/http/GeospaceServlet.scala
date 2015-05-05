@@ -1,36 +1,38 @@
 package com.socrata.geospace.http
 
+import javax.servlet.http.{HttpServletResponse => HttpStatus}
+
 import com.rojoma.simplearm.util._
 import com.socrata.BuildInfo
-import com.socrata.geospace.lib.Utils
-import com.socrata.geospace.lib.Utils._
-import com.socrata.geospace.http.client.{CoreServerClient, CoreServerAuth}
+import com.socrata.geospace.http.client.{CoreServerAuth, CoreServerClient}
 import com.socrata.geospace.http.config.GeospaceConfig
 import com.socrata.geospace.http.curatedregions.{CuratedRegionIndexer, CuratedRegionSuggester}
 import com.socrata.geospace.http.ingestion.FeatureIngester
+import com.socrata.geospace.lib.Utils
+import com.socrata.geospace.lib.Utils._
 import com.socrata.geospace.lib.feature.FeatureValidator
 import com.socrata.geospace.lib.shapefile.{SingleLayerShapefileReader, ZipFromArray}
 import com.socrata.soda.external.SodaFountainClient
 import com.socrata.soql.types.SoQLMultiPolygon
-import com.socrata.thirdparty.metrics.Metrics
-import javax.servlet.http.{HttpServletResponse => HttpStatus}
+import org.geoscript.feature._
 import org.scalatra._
 import org.scalatra.servlet.FileUploadSupport
+
 import scala.collection.JavaConverters._
 
 class GeospaceServlet(val sodaFountain: SodaFountainClient,
                       coreServer: CoreServerClient,
                       myConfig: GeospaceConfig) extends GeospaceMicroserviceStack
-                      with FileUploadSupport with Metrics with GeospaceParams with RegionCoder {
+                      with FileUploadSupport with GeospaceParams with RegionCoder {
   val cacheConfig = myConfig.cache
   val partitionXsize = myConfig.partitioning.sizeX
   val partitionYsize = myConfig.partitioning.sizeY
 
   // Metrics
-  val geocodingTimer = metrics.timer("geocoding-requests")
-  val suggestTimer   = metrics.timer("suggestion-requests")
-  val decompressTimer = metrics.timer("shapefile-decompression")
-  val freeMem        = metrics.gauge("free-memory-MB") { Utils.getFreeMem }
+  def geocodingTimer[A](f: => A): A = timer("geocoding-requests") {f}.call()
+  def suggestTimer[A](f: => A): A = timer("suggestion-requests") {f}.call()
+  def decompressTimer[A](f: => A): A = timer("shapefile-decompression") {f}.call()
+  val freeMem = gauge("free-memory-MB") { Utils.getFreeMem }
 
   get("/") {
     contentType = "text/html"
@@ -59,19 +61,20 @@ class GeospaceServlet(val sodaFountain: SodaFountainClient,
 
     val readReprojectStartTime = System.currentTimeMillis
 
-    val readResult = decompressTimer.time {
+    val readResult = decompressTimer {
       // For some reason, the for comprehension and Try() doesn't work with -Xlint.
       // Try doesn't have withFilter() and for some reason for tries to use withFilter.
-      managed(new ZipFromArray(file.get)) flatMap { zip =>
-        SingleLayerShapefileReader.read(zip.contents, forceLonLat) map { case (features, schema) =>
-          if (bypassValidation) {
-            logger.info("Feature validation bypassed")
-          } else {
-            val validationErrors = FeatureValidator.validationErrors(features, myConfig.maxMultiPolygonComplexity)
-            if (!validationErrors.isEmpty) halt(BadRequest(validationErrors))
-            logger.info("Feature validation succeeded")
-          }
-          (features, schema)
+      managed(new ZipFromArray(file.get())) flatMap { zip =>
+        SingleLayerShapefileReader.read(zip.contents, forceLonLat) map {
+          case (features: Traversable[Feature], schema: Schema) =>
+            if (bypassValidation) {
+              logger.info("Feature validation bypassed")
+            } else {
+              val validationErrors = FeatureValidator.validationErrors(features, myConfig.maxMultiPolygonComplexity)
+              if (validationErrors.nonEmpty) halt(BadRequest(validationErrors))
+              logger.info("Feature validation succeeded")
+            }
+            (features, schema)
         }
       }
     }
@@ -106,7 +109,7 @@ class GeospaceServlet(val sodaFountain: SodaFountainClient,
     }
     new AsyncResult {
       override val timeout = myConfig.shapePayloadTimeout
-      val is = geocodingTimer.time { geoRegionCode(resourceName, points) }
+      val is = geocodingTimer { geoRegionCode(resourceName, points) }
     }
   }
 
@@ -116,8 +119,8 @@ class GeospaceServlet(val sodaFountain: SodaFountainClient,
       s"""Could not parse '${request.body}'.  Must be in the form ["98102","98101",...]""")
     val column = mandatoryQueryParam("column")
 
-    new AsyncResult { val is =
-      geocodingTimer.time { stringCode(resourceName, column, strings) }
+    new AsyncResult {
+      val is = geocodingTimer { stringCode(resourceName, column, strings) }
     }
   }
 
@@ -150,7 +153,7 @@ class GeospaceServlet(val sodaFountain: SodaFountainClient,
 
     val suggester = new CuratedRegionSuggester(sodaFountain, myConfig.curatedRegions)
 
-    suggestTimer.time {
+    suggestTimer {
       suggester.suggest(curatedDomains ++ customerDomains, boundingMultiPolygon).map {
         suggestions => Map("suggestions" -> suggestions)
       }.get
