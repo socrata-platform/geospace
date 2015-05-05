@@ -4,6 +4,7 @@ import org.geoscript.geometry.{builder => build}
 import org.geoscript.layer._
 import org.scalatest.{FunSpec, ShouldMatchers}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 /**
@@ -15,11 +16,10 @@ class SpatialIndexConcurrencySpec extends FunSpec with ShouldMatchers {
   val bbox = layer.getBounds
   val numPoints = 1000
   val points = Array.fill(numPoints)(build.Point(bbox.getMinX + util.Random.nextDouble * bbox.getWidth,
-                                                 bbox.getMinY + util.Random.nextDouble * bbox.getHeight))
+    bbox.getMinY + util.Random.nextDouble * bbox.getHeight))
   val index = SpatialIndex(layer)
 
   val concurrency = 4
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   describe("concurrent geospatial index reads") {
     it("should geocode to same points when coding concurrently") {
@@ -29,12 +29,14 @@ class SpatialIndexConcurrencySpec extends FunSpec with ShouldMatchers {
       // Now split up the points and have them coded concurrently using Futures, compare results
       val shardedPoints = points.grouped(numPoints / concurrency)
       val futures = shardedPoints.map { shard =>
-                      Future { shard.map { pt => index.firstContains(pt).map(_.item).getOrElse("") } }
-                    }
+        Future {
+          shard.map { pt => index.firstContains(pt).map(_.item).getOrElse("") }
+        }
+      }
 
       // Future.reduce returns a Future with all future results, which are lists, concatenated.
       val idsFromFutures = Future.reduce(futures)(_ ++ _)
-      idsFromFutures.foreach { futuresIds => futuresIds should equal (truthIds) }
+      idsFromFutures.foreach { futuresIds => futuresIds should equal(truthIds) }
     }
   }
 }

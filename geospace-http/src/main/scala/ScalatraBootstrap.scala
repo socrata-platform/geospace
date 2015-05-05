@@ -1,5 +1,3 @@
-
-
 import java.util.concurrent.Executors
 import javax.servlet.ServletContext
 
@@ -15,10 +13,11 @@ import com.socrata.thirdparty.curator._
 import com.socrata.thirdparty.metrics.MetricsReporter
 import com.typesafe.config.ConfigFactory
 import org.scalatra._
+import org.scalatra.metrics.MetricsSupportExtensions._
+import org.scalatra.metrics._
 import org.slf4j.LoggerFactory
 
-
-class ScalatraBootstrap extends LifeCycle {
+class ScalatraBootstrap extends LifeCycle with MetricsBootstrap {
   val logger = LoggerFactory.getLogger(getClass)
 
   // TODO: Factor out the code from Soda Fountain that already does this into a new library
@@ -52,22 +51,27 @@ class ScalatraBootstrap extends LifeCycle {
   lazy val metricsReporter = new MetricsReporter(config.metrics)
 
   override def init(context: ServletContext): Unit = {
-    curator.start
-    discovery.start
+    curator.start()
+    discovery.start()
     cookie
-    sodaFountain.start
-    coreServer.start
+    sodaFountain.start()
+    coreServer.start()
     metricsReporter
+    context.mountMetricsAdminServlet("/metrics-admin")
+    context.mountHealthCheckServlet("/health")
+    context.mountMetricsServlet("/metrics")
+    context.mountThreadDumpServlet("/thread-dump")
+    context.installInstrumentedFilter("/v1/*")
     context.mount(new GeospaceServlet(sodaFountain, coreServer, config), "/*")
   }
 
   override def destroy(context: ServletContext): Unit = {
     metricsReporter.stop()
-    coreServer.close
-    sodaFountain.close
+    coreServer.close()
+    sodaFountain.close()
     broker.deregister(cookie)
-    httpClient.close
-    discovery.close
-    curator.close
+    httpClient.close()
+    discovery.close()
+    curator.close()
   }
 }

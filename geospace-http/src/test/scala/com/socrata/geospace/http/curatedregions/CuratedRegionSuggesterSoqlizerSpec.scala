@@ -1,8 +1,9 @@
 package com.socrata.geospace.http.curatedregions
 
 import com.socrata.soql.types.SoQLMultiPolygon
-import org.scalatest.{Matchers, FunSuiteLike}
+import org.scalatest.{FunSuiteLike, Matchers}
 
+// scalastyle:off magic.number multiple.string.literals
 class CuratedRegionSuggesterSoqlizerSpec extends FunSuiteLike with Matchers with CuratedRegionSuggesterSoqlizer {
   test("No parameters provided") {
     val query = makeQuery(Seq(), None)

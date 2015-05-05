@@ -1,21 +1,24 @@
 package com.socrata.geospace.http
 
-import com.socrata.geospace.lib.regioncache.RegionCacheKey
-import com.socrata.geospace.lib.regioncache.{SpatialRegionCache, HashMapRegionCache}
+import com.socrata.geospace.lib.regioncache.{HashMapRegionCache, RegionCacheKey, SpatialRegionCache}
 import com.socrata.soda.external.SodaFountainClient
 import com.typesafe.config.Config
 import com.vividsolutions.jts.geom.{Envelope, Point}
 import org.geoscript.geometry.builder
+
 import scala.concurrent.{ExecutionContext, Future}
 
 trait RegionCoder {
   def cacheConfig: Config
+
   def partitionXsize: Double
+
   def partitionYsize: Double
+
   def sodaFountain: SodaFountainClient
 
   lazy val spatialCache = new SpatialRegionCache(cacheConfig)
-  lazy val stringCache  = new HashMapRegionCache(cacheConfig)
+  lazy val stringCache = new HashMapRegionCache(cacheConfig)
 
   protected implicit val executor: ExecutionContext
 
@@ -56,8 +59,7 @@ trait RegionCoder {
     points.map { point =>
       val partitionX = Math.floor(point.getX / partitionXsize) * partitionXsize
       val partitionY = Math.floor(point.getY / partitionYsize) * partitionYsize
-      new Envelope(partitionX, partitionX + partitionXsize,
-                   partitionY, partitionY + partitionYsize)
+      new Envelope(partitionX, partitionX + partitionXsize, partitionY, partitionY + partitionYsize)
     }
   }
 }

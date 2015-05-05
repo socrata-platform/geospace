@@ -1,16 +1,13 @@
 import sbt.Keys._
 import sbt._
 import sbtassembly.AssemblyKeys._
-import com.socrata.sbtplugins.StylePlugin.StyleKeys._
-
 
 object BuildSettings {
   val buildSettings =
     Seq(
-      // TODO: enable style checks
-      // turned off style check in testing.
-      styleCheck in Test := {},
-      scalaVersion := "2.10.4",
+      // TODO: improve tests and enable code coverage failures
+      scoverage.ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := false,
+      scalaVersion := "2.10.5",
       organization := "com.socrata",
       autoAPIMappings := true,
       apiMappings ++= {
@@ -28,7 +25,7 @@ object BuildSettings {
           case None      => Map.empty
         }
       },
-      fork in Test := true   // Sometimes this causes sbt test to fail,
+      fork in Test := true // Sometimes this causes sbt test to fail,
     )
 
   def projectSettings = buildSettings ++
@@ -45,7 +42,7 @@ object BuildSettings {
       "velvia maven" at "https://dl.bintray.com/velvia/maven"
     )
 
-
+  // TODO: investigate root project assembly settings
   lazy val rootSettings =
     Seq(
       // do not publish (no geospace folder created)
@@ -53,7 +50,7 @@ object BuildSettings {
       // do not publish locally
       publishLocal := {},
       // do not publish artifact
-      publishArtifact :=  false,
+      publishArtifact := false,
       // disable assembling artifact
       assembleArtifact := false,
       // rename and hide the produced empty jar so no one uses it.
