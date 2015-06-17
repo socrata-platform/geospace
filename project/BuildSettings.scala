@@ -2,7 +2,7 @@ import sbt.Keys._
 import sbt._
 import com.socrata.sbtplugins.StylePlugin.StyleKeys._
 import CommonDependencies._
-
+import scoverage.ScoverageSbtPlugin.ScoverageKeys._
 
 object BuildSettings {
   val buildSettings =
@@ -13,6 +13,7 @@ object BuildSettings {
       scalaVersion := "2.10.4",
       organization := "com.socrata",
       autoAPIMappings := true,
+      coverageFailOnMinimum := false,
       apiMappings ++= {
         val classpath = (fullClasspath in Compile).value
         def findJar(name: String): Option[File] = {
