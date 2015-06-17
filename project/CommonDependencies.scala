@@ -34,5 +34,4 @@ object CommonDependencies {
     "org.apache.curator"        % "curator-test"                  % "2.4.2" % "test",
     "org.scalatest"            %% "scalatest"                     % "2.1.0" % "test"
   )
-
 }

@@ -1,7 +1,7 @@
 import sbt.Keys._
 import sbt._
-import sbtassembly.AssemblyKeys._
 import com.socrata.sbtplugins.StylePlugin.StyleKeys._
+import CommonDependencies._
 
 
 object BuildSettings {
@@ -35,7 +35,8 @@ object BuildSettings {
     Seq(
       resolvers += Classpaths.typesafeReleases,
       resolvers ++= socrataResolvers,
-      scalacOptions ++= Seq("-Xlint", "-deprecation", "-Xfatal-warnings", "-feature")
+      scalacOptions ++= Seq("-Xlint", "-deprecation", "-Xfatal-warnings", "-feature"),
+      libraryDependencies ++= commonDeps
     )
 
   lazy val socrataResolvers =
@@ -43,20 +44,5 @@ object BuildSettings {
       "Open Source Geospatial Foundation Repository" at "http://download.osgeo.org/webdav/geotools",
       "spray repo" at "http://repo.spray.io",
       "velvia maven" at "https://dl.bintray.com/velvia/maven"
-    )
-
-
-  lazy val rootSettings =
-    Seq(
-      // do not publish (no geospace folder created)
-      publish := {},
-      // do not publish locally
-      publishLocal := {},
-      // do not publish artifact
-      publishArtifact :=  false,
-      // disable assembling artifact
-      assembleArtifact := false,
-      // rename and hide the produced empty jar so no one uses it.
-      assemblyJarName := ".junk"
     )
 }
