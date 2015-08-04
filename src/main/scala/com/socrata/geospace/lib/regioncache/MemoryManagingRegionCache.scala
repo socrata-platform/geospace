@@ -36,7 +36,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
   /**
    * Relieve memory pressure, if required, before caching a new entry
    */
-  override protected def prepForCaching() = depressurizeByAge()
+  override protected def prepForCaching() = depressurizeByLeastRecentlyUsed()
 
   /**
    * Returns indices in descending order of size
@@ -87,7 +87,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
    * It goes in a loop, pausing and force running GC to attempt to free memory, and exits if it
    * runs out of entries to free.
    */
-  protected def depressurizeByAge(): Unit = synchronized {
+  protected def depressurizeByLeastRecentlyUsed(): Unit = synchronized {
 
     if (!enableDepressurize || atLeastFreeMem(minFreePct)) {
       // we are ok, moving on
