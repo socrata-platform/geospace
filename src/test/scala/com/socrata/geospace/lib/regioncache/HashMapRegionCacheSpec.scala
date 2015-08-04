@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
 
 class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
   val testConfig = ConfigFactory.parseMap(Map("max-entries"            -> 100,
-                                              "enable-depressurize"    -> false,
+                                              "enable-depressurize"    -> true,
                                               "min-free-percentage"    -> 10,
                                               "target-free-percentage" -> 10,
                                               "iteration-interval"     -> 100).asJava)
@@ -64,11 +64,31 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
   // TODO: Re-enable this test.
   // I'm not going to spend any more time on this as the indicesBySizeDesc method is only for debugging
   // purposes, and the functionality does actually work E2E as expected.
-  ignore("indicesBySizeDesc") {
+  test("indicesByLeastRecentlyUsed") {
     val wards = Shapefile("data/chicago_wards/Wards.shp").features
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ALDERMAN"), wards.toSeq.take(8))
-    hashMapCache.getFromFeatures(RegionCacheKey("abcd-1234", "ADDRESS"), wards.toSeq.take(10))
-    hashMapCache.indicesBySizeDesc() should be (Seq((RegionCacheKey("abcd-1234", "ADDRESS"), 10),
-                                                    (RegionCacheKey("abcd-1234", "ALDERMAN"), 8)))
+    val key1 = RegionCacheKey("abcd-1234", "ALDERMAN")
+    val key2 = RegionCacheKey("abcd-1234", "ADDRESS")
+    val key3 = RegionCacheKey("abcd-1234", "ADDRESS2")
+
+    //initialize features with keys here
+    hashMapCache.getFromFeatures(key1, wards.toSeq.take(8))
+    hashMapCache.getFromFeatures(key2, wards.toSeq.take(10))
+    hashMapCache.getFromFeatures(key3, wards.toSeq.take(9))
+
+    // now select a few keys, and note that key3 is selected the least should appear first, next key2
+    hashMapCache.getFromFeatures(key1, wards.toSeq.take(8))
+    hashMapCache.getFromFeatures(key1, wards.toSeq.take(8))
+    hashMapCache.getFromFeatures(key2, wards.toSeq.take(10))
+    hashMapCache.getFromFeatures(key1, wards.toSeq.take(8))
+
+
+    val seq = hashMapCache.keysByLeastRecentlyUsed()
+
+    seq.size should be (3)
+    seq(0) should equal (key3)
+    seq(1) should equal (key2)
+    seq(2) should equal (key1)
+
+
   }
 }
