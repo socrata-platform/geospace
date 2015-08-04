@@ -36,13 +36,20 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
   /**
    * Relieve memory pressure, if required, before caching a new entry
    */
-  override protected def prepForCaching() = depressurize()
+  override protected def prepForCaching() = depressurizeByAge()
 
   /**
    * Returns indices in descending order of size
    * @return Indices in descending order of size
    */
   protected def indicesBySizeDesc(): Seq[(RegionCacheKey, Int)]
+
+  /**
+   * Returns keys ir order of least recently used to most used
+   * @return keys ir order of least recentlused to most used
+   */
+  protected def keysByLeastRecentlyUsed(): Seq[RegionCacheKey]
+
 
   /**
    * Relieves memory pressure by removing cache entries, starting with the biggest.
@@ -74,4 +81,50 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
       }
     }
   }
+
+  /**
+   * Relieves memory pressure by removing cache entries, starting with the least recently used first.
+   * It goes in a loop, pausing and force running GC to attempt to free memory, and exits if it
+   * runs out of entries to free.
+   */
+  protected def depressurizeByAge(): Unit = synchronized {
+
+    if (!enableDepressurize || atLeastFreeMem(minFreePct)) {
+      // we are ok, moving on
+      Unit
+    } else {
+      // gives you a list of items in the cache with items most likely can be removed on top not constant time.
+      // according to http://spray.io/documentation/1.2.2/spray-caching/:
+      // allows one to iterate through the keys in order from the least recently used to the most recently used.
+      val keys = keysByLeastRecentlyUsed().iterator
+
+      freeMemLoop(targetFreePct)
+
+      def freeMemLoop(targetSize: Int): Unit = {
+
+        if (atLeastFreeMem(targetSize)) return
+
+        logMemoryUsage("Attempting to un-cache regions to relieve memory pressure")
+        if(!keys.hasNext){
+          logger.warn("No more regions to un-cache, out of memory!!")
+          throw new RuntimeException("No more regions to un-cache, out of memory")
+        } else {
+          val key = keys.next()
+          logger.info("Removing entry [{},{}] from cache...", key.resourceName, key.columnName)
+
+          depressurizeEvents.time {
+            cache.remove(key)
+
+            // Wait a little bit before calling GC to try to force memory to be freed
+            Thread.sleep(iterationIntervalMs)
+            Runtime.getRuntime.gc
+
+            freeMemLoop(targetSize: Int)
+          }
+        }
+      }
+    }
+  }
+
+
 }
