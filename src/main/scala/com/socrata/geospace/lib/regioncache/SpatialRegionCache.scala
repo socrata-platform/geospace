@@ -45,7 +45,7 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
       if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
       i += 1
 //      if (i % 1000 == 0) depressurize()
-      if (i % 1000 == 0) depressurizeByAge()
+      if (i % 1000 == 0) depressurizeByLeastRecentlyUsed()
       entryOpt
     }
     new SpatialIndex(entries)
