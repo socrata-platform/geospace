@@ -121,7 +121,7 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
    */
   def getFromSoda(sodaFountain: SodaFountainClient, key: RegionCacheKey): Future[T] =
     cache(key) {
-      logger.info(s"Populating cache entry for resource [${key.resourceName}}], column [] from soda fountain client")
+      logger.info(s"Populating cache entry for resource [${key.resourceName}], column [] from soda fountain client")
       key.envelope.foreach { env => logger.info(s"  for envelope $env") }
       Future {
         prepForCaching()
