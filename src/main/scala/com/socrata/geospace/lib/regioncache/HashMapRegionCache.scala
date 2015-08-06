@@ -60,7 +60,8 @@ class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[S
    * Returns indices in descending order of Age, not in constant time
    * @return Indices in descending order of Age
    */
-  override def keysByLeastRecentlyUsed(): Seq[RegionCacheKey] = cache.ascendingKeys().toSeq.asInstanceOf[Seq[RegionCacheKey]]
-
+  override def keysByLeastRecentlyUsed(): Seq[RegionCacheKey] = {
+    cache.ascendingKeys().toSeq.asInstanceOf[Seq[RegionCacheKey]]
+  }
 
 }

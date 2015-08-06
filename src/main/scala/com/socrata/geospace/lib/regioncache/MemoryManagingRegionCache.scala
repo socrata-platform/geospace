@@ -102,7 +102,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
 
       def freeMemLoop(targetSize: Int): Unit = {
 
-        if (atLeastFreeMem(targetSize)) return
+        if (atLeastFreeMem(targetSize)) return //scalastyle:ignore
 
         logMemoryUsage("Attempting to un-cache regions to relieve memory pressure")
         if(!keys.hasNext){
@@ -110,7 +110,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
           throw new RuntimeException("No more regions to un-cache, out of memory")
         } else {
           val key = keys.next()
-          logger.info("Removing entry [{},{}] from cache...", key.resourceName, key.columnName)
+          logger.info("Removing cache entry [{},{}] from cache...", key.resourceName, key.columnName)
 
           depressurizeEvents.time {
             cache.remove(key)
