@@ -83,8 +83,9 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
 
 
     val it = hashMapCache.regionKeysByLeastRecentlyUsed()
+    it.isEmpty should be (false)
+    it.hasNext should be (true)
 
-    it.size should be (3)
     val e1 = it.next()
     e1 should equal (key3)
     val e2 = it.next()
