@@ -45,10 +45,19 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
   protected def indicesBySizeDesc(): Seq[(RegionCacheKey, Int)]
 
   /**
-   * Returns keys ir order of least recently used to most used
-   * @return keys ir order of least recentlused to most used
+   * Returns keys in order of least recently used to most used
+   * @return keys in order of least recently used to most used
    */
-  protected def keysByLeastRecentlyUsed(): Seq[RegionCacheKey]
+   def regionKeysByLeastRecentlyUsed(): Iterator[RegionCacheKey] =
+    cache.ascendingKeys().asInstanceOf[Iterator[RegionCacheKey]]
+
+
+  /**
+   * Returns entries
+   * @return keys in order of least recently used to most used
+   */
+
+  protected def entriesByLeastRecentlyUsed(): Seq[(RegionCacheKey, Int)]
 
 
   /**
@@ -96,7 +105,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
       // gives you a list of items in the cache with items most likely can be removed on top not constant time.
       // according to http://spray.io/documentation/1.2.2/spray-caching/:
       // allows one to iterate through the keys in order from the least recently used to the most recently used.
-      val keys = keysByLeastRecentlyUsed().iterator
+      val keys = regionKeysByLeastRecentlyUsed()
 
       freeMemLoop(targetFreePct)
 

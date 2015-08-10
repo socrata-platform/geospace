@@ -40,7 +40,7 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
     val entry = hashMapCache.getEntryFromFeatures(features.toSeq, "ALDERMAN")
     entry.size should be (51)
 
-    // Check a couple of examples to ensure  the data from the Wards file was transposed correctly
+    // Check a couple of examples to ensure  the data from the Wards fi was transposed correctly
     entry.get("EMMA MITTS".toLowerCase) should be (Some(4))
     entry.get("RICARDO MUNOZ".toLowerCase) should be (Some(14))
   }
@@ -82,12 +82,15 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
     hashMapCache.getFromFeatures(key1, wards.toSeq.take(8))
 
 
-    val seq = hashMapCache.keysByLeastRecentlyUsed()
+    val it = hashMapCache.regionKeysByLeastRecentlyUsed()
 
-    seq.size should be (3)
-    seq(0) should equal (key3)
-    seq(1) should equal (key2)
-    seq(2) should equal (key1)
+    it.size should be (3)
+    val e1 = it.next()
+    e1 should equal (key3)
+    val e2 = it.next()
+    e2 should equal (key2)
+    val e3 = it.next()
+    e3 should equal (key1)
 
 
   }

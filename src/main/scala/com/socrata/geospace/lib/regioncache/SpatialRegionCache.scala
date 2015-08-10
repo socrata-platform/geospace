@@ -44,7 +44,6 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
         collect { case JString(id) => GeoEntry.compact(geometry, id.toInt) }
       if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
       i += 1
-//      if (i % 1000 == 0) depressurize()
       if (i % 1000 == 0) depressurizeByLeastRecentlyUsed()
       entryOpt
     }
@@ -61,6 +60,18 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
       sortBy(_._2).
       reverse
   }
+
+  /**
+   * Returns cache entries in order of least-recently-used to most used, not in constant time
+   * @return cache entries in order of least-recently-used to most used
+   */
+  override protected def entriesByLeastRecentlyUsed(): Seq[(RegionCacheKey, Int)] = {
+    cache.ascendingKeys().map(key => (key, cache.get(key).get.value))
+      .collect { case (key: RegionCacheKey, Some(Success(index))) => (key, index.numCoordinates) }
+      .toSeq
+  }
+
+
 
   /**
    * Gets a SpatialIndex from the cache, populating it from a list of features if it's missing
@@ -103,12 +114,6 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
     }
   }
 
-  /**
-   * Returns keys ir order of least recently used to most used
-   * @return keys ir order of least recentlused to most used
-   */
-  override protected def keysByLeastRecentlyUsed(): Seq[RegionCacheKey] = {
-    cache.ascendingKeys().toSeq.asInstanceOf[Seq[RegionCacheKey]]
-  }
+
 
 }
