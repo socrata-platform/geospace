@@ -56,8 +56,7 @@ abstract class MemoryManagingRegionCache[T](maxEntries: Int = 100, //scalastyle:
    * Returns entries
    * @return keys in order of least recently used to most used
    */
-
-  protected def entriesByLeastRecentlyUsed(): Seq[(RegionCacheKey, Int)]
+   def entriesByLeastRecentlyUsed(): Seq[(RegionCacheKey, Int)]
 
 
   /**
