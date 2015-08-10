@@ -65,7 +65,7 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
    * Returns cache entries in order of least-recently-used to most used, not in constant time
    * @return cache entries in order of least-recently-used to most used
    */
-  override protected def entriesByLeastRecentlyUsed(): Seq[(RegionCacheKey, Int)] = {
+  override def entriesByLeastRecentlyUsed(): Seq[(RegionCacheKey, Int)] = {
     cache.ascendingKeys().map(key => (key, cache.get(key).get.value))
       .collect { case (key: RegionCacheKey, Some(Success(index))) => (key, index.numCoordinates) }
       .toSeq
