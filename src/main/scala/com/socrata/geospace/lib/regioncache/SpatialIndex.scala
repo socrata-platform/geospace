@@ -54,7 +54,6 @@ class SpatialIndex[T](items: Seq[Entry[T]]) extends Logging {
   }
 
   private def addItems(): Int = {
-
     val numCoords = items.foldLeft(0) { (numCoords, entry) =>
       index.insert(entry.envelope, entry)
       numCoords + entry.numCoordinates

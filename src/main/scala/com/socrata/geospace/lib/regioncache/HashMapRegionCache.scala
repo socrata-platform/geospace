@@ -32,13 +32,17 @@ class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[S
   /**
    * Generates an in-memory map for the dataset from feature JSON, keyed off the specified field
    * @param features Feature JSON from which to generate a map
+   * @param keyAttribute   Name of the feature attribute to use as the cache entry key
+   * @param valueAttribute Name of the feature attribute to use as the cache entry value
    * @return Map containing the dataset features
    */
-  override def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): Map[String, Int] =
+  override def getEntryFromFeatureJson(features: Seq[FeatureJson],
+                                       keyAttribute: String,
+                                       valueAttribute: String): Map[String, Int] =
    features.flatMap { case FeatureJson(properties, _, _) =>
-     properties.get(keyName).flatMap {
+     properties.get(keyAttribute).flatMap {
        case JString(key) =>
-         properties.get(GeoToSoda2Converter.FeatureIdColName)
+         properties.get(valueAttribute)
                    .collect { case JString(id) => key.toLowerCase -> id.toInt }
        case x: JValue    =>
          throw new RuntimeException(s"Found FeatureJson property value $x, expected a JString")

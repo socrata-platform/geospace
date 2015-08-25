@@ -1,39 +1,10 @@
 package com.socrata.geospace.lib.regioncache
 
-import com.rojoma.json.v3.io.JsonReader
-import com.socrata.thirdparty.geojson.{FeatureCollectionJson, FeatureJson, GeoJson}
-import com.typesafe.config.ConfigFactory
 import org.geoscript.feature._
 import org.geoscript.layer._
-import org.scalatest.{FunSuiteLike, Matchers}
 
-import scala.collection.JavaConverters._
-
-class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
-  val testConfig = ConfigFactory.parseMap(Map("max-entries"            -> 100,
-                                              "enable-depressurize"    -> true,
-                                              "min-free-percentage"    -> 10,
-                                              "target-free-percentage" -> 10,
-                                              "iteration-interval"     -> 100).asJava)
-
-  val fcTemplate = """{ "type": "FeatureCollection", "features": [%s], "crs" : { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } } }"""
-  val fTemplate = """{"type":"Feature","geometry": { "type": "Point", "coordinates": [0,%s] },"properties":{"_feature_id":"%s","name":"%s"}}"""
-
+class HashMapRegionCacheSpec extends RegionCacheSpecHelper {
   val hashMapCache = new HashMapRegionCache(testConfig)
-
-  def tenCompleteFeatures = fcTemplate.format((1 until 10).map { i => fTemplate.format(i, i, s"Name $i") }.mkString(","))
-  def oneFeatureWithNoName = """{"type":"Feature","geometry": { "type": "Point", "coordinates": [0,20] },"properties":{"_feature_id":"20"}}"""
-
-  private def decodeFeatures(geojson: String): Seq[FeatureJson] = {
-    GeoJson.codec.decode(JsonReader.fromString(geojson)) match {
-      case Right(x) => Option(x).collect {
-        case FeatureCollectionJson(features, _) => features
-        case feature: FeatureJson => Seq(feature)
-      }.get
-      case _ => Nil
-    }
-  }
-
 
   test("getEntryFromFeatures - some rows have key value missing") {
     val features = Shapefile("data/chicago_wards/Wards.shp").features
@@ -46,13 +17,18 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
   }
 
   test("getEntryFromFeatureJson - cache on a string feature") {
-    val entry = hashMapCache.getEntryFromFeatureJson(decodeFeatures(tenCompleteFeatures), "name")
+    val entry = hashMapCache.getEntryFromFeatureJson(decodeFeatures(tenCompleteFeatures), "name", "_feature_id")
     entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"Name $i".toLowerCase -> i })
+  }
+
+  test("getEntryFromFeatureJson - cache on a string feature, with user defined key") {
+    val entry = hashMapCache.getEntryFromFeatureJson(decodeFeatures(tenCompleteFeatures), "name", "user_defined_key")
+    entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"Name $i".toLowerCase -> (i + 100) })
   }
 
   test("getEntryFromFeatureJson - some rows have key value missing") {
     val features = decodeFeatures(tenCompleteFeatures ++ oneFeatureWithNoName ++ oneFeatureWithNoName)
-    val entry = hashMapCache.getEntryFromFeatureJson(features, "name")
+    val entry = hashMapCache.getEntryFromFeatureJson(features, "name", "_feature_id")
     entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"Name $i".toLowerCase -> i })
   }
 
@@ -81,7 +57,6 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
     hashMapCache.getFromFeatures(key2, wards.toSeq.take(10))
     hashMapCache.getFromFeatures(key1, wards.toSeq.take(8))
 
-
     val it = hashMapCache.regionKeysByLeastRecentlyUsed()
     it.isEmpty should be (false)
     it.hasNext should be (true)
@@ -92,7 +67,5 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers {
     e2 should equal (key2)
     val e3 = it.next()
     e3 should equal (key1)
-
-
   }
 }
