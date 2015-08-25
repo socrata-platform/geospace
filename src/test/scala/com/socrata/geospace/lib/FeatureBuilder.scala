@@ -1,6 +1,5 @@
 package com.socrata.geospace.lib
 
-import com.vividsolutions.jts.geom.Point
 import org.geoscript.geometry.builder
 import org.geotools.data.DataUtilities
 import org.geotools.feature.simple.SimpleFeatureBuilder
@@ -34,6 +33,4 @@ object PointBuilder extends FeatureBuilder {
     val point = builder.Point(x, y)
     featureBuilder.buildFeature(null, Array(point, name))
   }
-
-  def buildPoint(x: Double, y: Double): Point = buildPointFeature(x, y).getDefaultGeometry.asInstanceOf[Point]
 }
