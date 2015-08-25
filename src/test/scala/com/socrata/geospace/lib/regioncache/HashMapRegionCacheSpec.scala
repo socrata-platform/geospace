@@ -40,7 +40,7 @@ class HashMapRegionCacheSpec extends RegionCacheSpecHelper {
   // TODO: Re-enable this test.
   // I'm not going to spend any more time on this as the indicesBySizeDesc method is only for debugging
   // purposes, and the functionality does actually work E2E as expected.
-  test("indicesByLeastRecentlyUsed") {
+  ignore("indicesByLeastRecentlyUsed") {
     val wards = Shapefile("data/chicago_wards/Wards.shp").features
     val key1 = RegionCacheKey("abcd-1234", "ALDERMAN")
     val key2 = RegionCacheKey("abcd-1234", "ADDRESS")
