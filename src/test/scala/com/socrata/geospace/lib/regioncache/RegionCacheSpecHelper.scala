@@ -3,10 +3,9 @@ package com.socrata.geospace.lib.regioncache
 import com.rojoma.json.v3.io.JsonReader
 import com.socrata.thirdparty.geojson.{FeatureCollectionJson, GeoJson, FeatureJson}
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{Matchers, FunSuiteLike}
 import scala.collection.JavaConverters._
 
-trait RegionCacheSpecHelper extends FunSuiteLike with Matchers {
+trait RegionCacheSpecHelper {
   protected val testConfig = ConfigFactory.parseMap(Map("max-entries"            -> 100,
     "enable-depressurize"    -> true,
     "min-free-percentage"    -> 10,
