@@ -34,15 +34,19 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
   /**
    * Generates a SpatialIndex for the dataset given feature JSON
    * @param features Feature JSON from which to generate a SpatialIndex
+   * @param keyAttribute   Name of the feature attribute to use as the cache entry key
+   * @param valueAttribute Name of the feature attribute to use as the cache entry value
    * @return SpatialIndex containing the dataset features
    */
-  override def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): SpatialIndex[Int] = {
+  override def getEntryFromFeatureJson(features: Seq[FeatureJson],
+                                       keyAttribute: String,
+                                       valueAttribute: String): SpatialIndex[Int] = {
     logger.info("Converting {} features to SpatialIndex entries...", features.length.toString())
     var i = 0
     val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>
-      val entryOpt = properties.get(GeoToSoda2Converter.FeatureIdColName).
+      val entryOpt = properties.get(valueAttribute).
         collect { case JString(id) => GeoEntry.compact(geometry, id.toInt) }
-      if (!entryOpt.isDefined) logger.warn("dataset feature with missing feature ID property")
+      if (!entryOpt.isDefined) logger.warn(s"dataset feature with missing $valueAttribute property")
       i += 1
       if (i % 1000 == 0) depressurizeByLeastRecentlyUsed()
       entryOpt
@@ -71,8 +75,6 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
       .toSeq
   }
 
-
-
   /**
    * Gets a SpatialIndex from the cache, populating it from a list of features if it's missing
    * @param resourceName Resource name of the cached dataset. Column name is assumed to be
@@ -89,14 +91,18 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
    * envelope / intersection queries)
    * @param sodaFountain the Soda Fountain client
    * @param resourceName Resource name of the cached dataset. Geom column name is fetched from SF.
+   * @param valueColumnName Name of the column that should be used as the cache entry value
    * @param envelope     an optional Envelope to restrict geometries to ones within/intersecting envelope
    * @return             A SpatialIndex future representing the cached dataset
    */
-  def getFromSoda(sodaFountain: SodaFountainClient, resourceName: String, envelope: Option[Envelope] = None):
-      Future[SpatialIndex[Int]] =
+  def getFromSoda(sodaFountain: SodaFountainClient,
+                  resourceName: String,
+                  valueColumnName: String,
+                  envelope: Option[Envelope] = None): Future[SpatialIndex[Int]] =
     for { geomColumn <- getGeomColumnFromSoda(sodaFountain, resourceName)
           spatialIndex <- getFromSoda(sodaFountain,
-                                      RegionCacheKey(resourceName, geomColumn, envelope)) }
+                                      RegionCacheKey(resourceName, geomColumn, envelope),
+                                      valueColumnName) }
     yield spatialIndex
 
   private def getGeomColumnFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[String] = {
@@ -113,7 +119,4 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
       tryColumn.get
     }
   }
-
-
-
 }

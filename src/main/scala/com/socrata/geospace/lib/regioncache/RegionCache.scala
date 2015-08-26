@@ -73,11 +73,12 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
 
   /**
    * Generates a cache entry for the dataset given feature JSON
-   * @param features Feature JSON from which to generate a cache entry
-   * @param keyName  Name of the field on which to index the dataset features
+   * @param features  Feature JSON from which to generate a cache entry
+   * @param keyAttribute   Name of the feature attribute to use as the cache entry key
+   * @param valueAttribute Name of the feature attribute to use as the cache entry value
    * @return Cache entry containing the dataset features
    */
-  protected def getEntryFromFeatureJson(features: Seq[FeatureJson], keyName: String): T
+  protected def getEntryFromFeatureJson(features: Seq[FeatureJson], keyAttribute: String, valueAttribute: String): T
 
   /**
    * Any activities that should be carried out before caching a region
@@ -117,9 +118,10 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
    * Gets an entry from the cache, populating it from Soda Fountain as needed
    *
    * @param sodaFountain the Soda Fountain client
-   * @param key the resource name to pull from Soda Fountain and the column to inde
+   * @param key the resource name to pull from Soda Fountain and the column to use as the cache entry key
+   * @param valueColumnName name of the column that should be used as the cache entry value
    */
-  def getFromSoda(sodaFountain: SodaFountainClient, key: RegionCacheKey): Future[T] =
+  def getFromSoda(sodaFountain: SodaFountainClient, key: RegionCacheKey, valueColumnName: String): Future[T] =
     cache(key) {
       logger.info(s"Populating cache entry for resource [${key.resourceName}], column [] from soda fountain client")
       key.envelope.foreach { env => logger.info(s"  for envelope $env") }
@@ -135,8 +137,10 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
         val payload = SodaResponse.check(sodaResponse, Status_OK)
         regionIndexLoadTimer.time {
           payload.toOption.
-            flatMap {  jvalue => GeoJson.codec.decode(jvalue).right.toOption}.
-            collect { case FeatureCollectionJson(features, _) => getEntryFromFeatureJson(features, key.columnName) }.
+            flatMap {  jvalue => GeoJson.codec.decode(jvalue).right.toOption }.
+            collect { case FeatureCollectionJson(features, _) =>
+              getEntryFromFeatureJson(features, key.columnName, valueColumnName)
+            }.
             getOrElse {
               val errMsg = "Could not read GeoJSON from soda fountain: " + payload.get
               if (payload.isFailure) { throw new RuntimeException(errMsg, payload.failed.get) }
