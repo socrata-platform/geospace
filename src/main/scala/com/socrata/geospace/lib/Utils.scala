@@ -13,11 +13,17 @@ object Utils extends Logging {
   private val DefaultMinFreePct = 20     // Must have at least 20% free memory
 
   // Returns (FreeMemoryInMB, FreeMemoryPercentageInt (0-100))
+  // Calculation method is explained well in http://stackoverflow.com/a/18375641
   private def getFree: (Int, Int) = {
-    val freeMB = Runtime.getRuntime.freeMemory / MB
-    val totalMB = Runtime.getRuntime.maxMemory / MB
-    val freePct = freeMB * Pct / totalMB
-    (freeMB.toInt, freePct.toInt)
+    val maxPossibleMB  = Runtime.getRuntime.maxMemory / MB
+    val freeCurrentMB  = Runtime.getRuntime.freeMemory / MB
+    val totalCurrentMB = Runtime.getRuntime.totalMemory / MB
+
+    val usedCurrentMB  = totalCurrentMB - freeCurrentMB
+    val freePossibleMB = maxPossibleMB - usedCurrentMB
+
+    val freePct = freePossibleMB * Pct / maxPossibleMB
+    (freePossibleMB.toInt, freePct.toInt)
   }
 
   def logMemoryUsage(context: String): Unit = {
