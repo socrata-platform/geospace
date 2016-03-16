@@ -1,6 +1,6 @@
 package com.socrata.geospace.lib.regioncache
 
-import com.rojoma.json.v3.ast.{JString, JObject}
+import com.rojoma.json.v3.ast.{JValue, JString, JObject}
 import com.socrata.geospace.lib.client.{GeoToSoda2Converter, SodaResponse}
 import com.socrata.geospace.lib.regioncache.SpatialIndex.GeoEntry
 import com.socrata.soda.external.SodaFountainClient
@@ -20,6 +20,11 @@ import spray.caching.LruCache
  */
 class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[SpatialIndex[Int]](config) {
   val defaultRegionGeomName = "the_geom"
+
+  val polygon = "polygon"
+  val jPolygon = JString(polygon)
+  val multiPolygon = "multipolygon"
+  val jMultiPolygon = JString(multiPolygon)
 
   // Cache the geometry column name for each region dataset
   val geomColumnCache = LruCache[String](config.getInt("max-entries"))
@@ -108,15 +113,22 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
   private def getGeomColumnFromSoda(sodaFountain: SodaFountainClient, resourceName: String): Future[String] = {
     geomColumnCache(resourceName) {
       logger.info(s"Populating geometry column name for resource $resourceName from soda fountain..")
-      val tryColumn = SodaResponse.check(sodaFountain.schema(resourceName), Status_OK).map { jSchema =>
-        val geoColumns = jSchema.dyn.columns.!.asInstanceOf[JObject]
-                           .collect { case (k, v) if v.dyn.datatype.! == JString("multipolygon") => k }
-                           .toSeq
-        assert(geoColumns.length == 1, "There should only be one multipolygon column in region " + resourceName)
+      val tryColumn =
+        SodaResponse.check(sodaFountain.schema(resourceName), Status_OK).map { jSchema =>
+        val geoColumns = jSchema.dyn.columns.!.asInstanceOf[JObject].collect {
+          case (k, v) if isAcceptedGeometry(v.dyn.datatype.!) => k}.toSeq
+
+
+          assert(geoColumns.length == 1, s"There should only be one column of " +
+            s"type $polygon or type $multiPolygon in region " + resourceName)
         geoColumns.head
-      }
+        }
       tryColumn.recover { case t: Throwable => throw t }
       tryColumn.get
     }
+  }
+
+  private def isAcceptedGeometry(ctype: JValue): Boolean = {
+    ctype == jMultiPolygon || ctype == jPolygon
   }
 }
