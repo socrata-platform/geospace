@@ -10,13 +10,14 @@ object CommonDependencies {
     "com.socrata"              %% "socrata-http-client"       % "3.1.1",
     "com.socrata"              %% "socrata-thirdparty-utils"  % "3.0.0",
     "com.socrata"              %% "soda-fountain-external"    % "0.4.8",
-    "com.socrata"              %% "soql-types"                % "0.3.3" exclude("org.jdom", "jdom")
+    "com.socrata"              %% "soql-types"                % "0.3.3"
+      exclude("org.jdom", "jdom")
       exclude("javax.media", "jai_core"),
     "com.typesafe"              % "config"                    % "1.0.2",
     "com.typesafe"             %% "scalalogging-slf4j"        % "1.1.0",
     "io.spray"                  % "spray-caching"             % "1.2.2",
     "nl.grons"                 %% "metrics-scala"             % "3.3.0",
-    "org.apache.commons"        % "commons-io"                % "1.3.2",
+    "org.apache.commons"        % "commons-io"                % "1.3.2" % "provided",
     "org.apache.curator"        % "curator-x-discovery"       % "2.4.2"
       exclude("org.slf4j", "slf4j-log4j12")
       exclude("log4j", "log4j"),
