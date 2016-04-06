@@ -44,6 +44,7 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
    * @return SpatialIndex containing the dataset features
    */
   override def getEntryFromFeatureJson(features: Seq[FeatureJson],
+                                       resourceName: String,
                                        keyAttribute: String,
                                        valueAttribute: String): SpatialIndex[Int] = {
     logger.info("Converting {} features to SpatialIndex entries...", features.length.toString())
@@ -51,7 +52,9 @@ class SpatialRegionCache(config: Config) extends MemoryManagingRegionCache[Spati
     val entries = features.flatMap { case FeatureJson(properties, geometry, _) =>
       val entryOpt = properties.get(valueAttribute).
         collect { case JString(id) => GeoEntry.compact(geometry, id.toInt) }
-      if (!entryOpt.isDefined) logger.warn(s"dataset feature with missing $valueAttribute property")
+      if (!entryOpt.isDefined) {
+        throw new RuntimeException(s"dataset $resourceName contains a feature with missing $valueAttribute property")
+      }
       i += 1
       if (i % 1000 == 0) depressurizeByLeastRecentlyUsed()
       entryOpt

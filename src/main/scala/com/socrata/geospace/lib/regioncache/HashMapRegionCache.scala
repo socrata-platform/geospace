@@ -37,6 +37,7 @@ class HashMapRegionCache(config: Config) extends MemoryManagingRegionCache[Map[S
    * @return Map containing the dataset features
    */
   override def getEntryFromFeatureJson(features: Seq[FeatureJson],
+                                       resourceName: String,
                                        keyAttribute: String,
                                        valueAttribute: String): Map[String, Int] =
    features.flatMap { case FeatureJson(properties, _, _) =>
