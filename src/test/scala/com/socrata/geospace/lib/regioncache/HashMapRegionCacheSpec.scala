@@ -18,18 +18,18 @@ class HashMapRegionCacheSpec extends FunSuiteLike with Matchers with RegionCache
   }
 
   test("getEntryFromFeatureJson - cache on a string feature") {
-    val entry = hashMapCache.getEntryFromFeatureJson(decodeFeatures(tenCompleteFeatures), "name", "_feature_id")
+    val entry = hashMapCache.getEntryFromFeatureJson(decodeFeatures(tenCompleteFeatures), "abcd-1234", "name", "_feature_id")
     entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"Name $i".toLowerCase -> i })
   }
 
   test("getEntryFromFeatureJson - cache on a string feature, with user defined key") {
-    val entry = hashMapCache.getEntryFromFeatureJson(decodeFeatures(tenCompleteFeatures), "name", "user_defined_key")
+    val entry = hashMapCache.getEntryFromFeatureJson(decodeFeatures(tenCompleteFeatures), "abcd-1234", "name", "user_defined_key")
     entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"Name $i".toLowerCase -> (i + 100) })
   }
 
   test("getEntryFromFeatureJson - some rows have key value missing") {
     val features = decodeFeatures(tenCompleteFeatures ++ oneFeatureWithNoName ++ oneFeatureWithNoName)
-    val entry = hashMapCache.getEntryFromFeatureJson(features, "name", "_feature_id")
+    val entry = hashMapCache.getEntryFromFeatureJson(features, "abcd-1234", "name", "_feature_id")
     entry.toSeq.sortBy(_._2) should be ((1 until 10).map { i => s"Name $i".toLowerCase -> i })
   }
 
