@@ -1,6 +1,6 @@
 resolvers :=  Seq(
   "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases",
-  "socrata maven" at "https://repository-socrata-oss.forge.cloudbees.com/release"
+  "socrata maven" at "https://repo.socrata.com/artifactory/libs-release"
 )
 
 addSbtPlugin("com.socrata" % "socrata-sbt-plugins" % "1.4.2")
