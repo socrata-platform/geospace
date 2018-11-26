@@ -2,11 +2,11 @@ package com.socrata.geospace.lib.regioncache
 
 import com.socrata.geospace.lib.client.SodaResponse
 import com.socrata.soda.external.SodaFountainClient
-import com.socrata.thirdparty.geojson.{GeoJson, FeatureCollectionJson, FeatureJson}
+import com.socrata.thirdparty.geojson.{FeatureCollectionJson, FeatureJson, GeoJson}
 import com.socrata.thirdparty.metrics.Metrics
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.slf4j.Logging
-import com.vividsolutions.jts.geom.{Envelope, Polygon, GeometryFactory}
+import com.vividsolutions.jts.geom.{Coordinate, Envelope, GeometryFactory, Polygon}
 import com.vividsolutions.jts.io.WKTWriter
 import org.geoscript.feature._
 import scala.concurrent.Future
@@ -109,7 +109,18 @@ abstract class RegionCache[T](maxEntries: Int = 100) //scalastyle:ignore
       // Factories and writers are not thread safe, and this is not perf-sensitive
       val factory = new GeometryFactory
       val writer = new WKTWriter
-      val polys = Array(factory.toGeometry(env).asInstanceOf[Polygon])
+      // wkt 'MULTIPOLYGON EMPTY'
+      lazy val emptyPolygons = {
+        Array(factory.createPolygon(Array.empty[Coordinate]))
+      }
+      val polys = try {
+        Array(factory.toGeometry(env).asInstanceOf[Polygon])
+      } catch {
+        case ex: ClassCastException =>
+          // When a number is too large like 1e30, the polygon is reduced to a point.
+          // Replace the point with an empty polygon
+          emptyPolygons
+      }
       // soda fountain only accepts MULTIPOLYGONs not POLYGONs
       val envelopePolyWkt = writer.write(factory.createMultiPolygon(polys))
       s"where intersects(${key.columnName}, '$envelopePolyWkt')"
